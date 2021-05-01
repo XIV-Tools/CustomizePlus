@@ -158,16 +158,29 @@ namespace ConsoleApp1
 					if (boneName.StartsWith("Breast") || boneName.StartsWith("Cloth"))
 						continue;
 
-					PoseFile.Bone? poseBone;
-					if (!this.poseFile.Bones.TryGetValue(boneName, out poseBone))
-						continue;
+					Vector scale;
+					if (boneName.StartsWith("Scabbard")
+						|| boneName.StartsWith("Sheathe")
+						|| boneName.StartsWith("Weapon"))
+					{
+						scale = Vector.One;
+					}
+					else
+					{
 
-					if (poseBone == null || poseBone.Scale == null)
-						continue;
+						PoseFile.Bone? poseBone;
+						if (!this.poseFile.Bones.TryGetValue(boneName, out poseBone))
+							continue;
+
+						if (poseBone == null || poseBone.Scale == null)
+							continue;
+
+						scale = (Vector)poseBone.Scale;
+					}
 
 					IntPtr bonePtr = bodyBones.TransformArray + (0x30 * boneIndex);
 					Transform transform = MemoryService.Read<Transform>(bonePtr);
-					transform.Scale = (Vector)poseBone.Scale;
+					transform.Scale = scale;
 					MemoryService.Write(bonePtr, transform);
 				}
 			}
