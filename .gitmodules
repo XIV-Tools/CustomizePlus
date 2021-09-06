@@ -1,0 +1,6 @@
+[submodule "Lib/XivToolsWpf"]
+	path = Lib/XivToolsWpf
+	url = https://github.com/XIV-Tools/XivToolsWpf
+[submodule "Lib/XivtoolsWpf"]
+	path = Lib/XivtoolsWpf
+	url = https://github.com/XIV-Tools/XivToolsWpf.git
