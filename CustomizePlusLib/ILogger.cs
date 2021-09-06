@@ -1,4 +1,4 @@
-﻿// © Anamnesis.
+﻿// © Customize+.
 // Licensed under the MIT license.
 
 namespace CustomizePlusLib

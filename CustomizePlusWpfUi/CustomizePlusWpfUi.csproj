@@ -13,6 +13,8 @@
 	</PropertyGroup>
 
   <ItemGroup>
+	<PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
+	<PackageReference Include="PropertyChanged.Fody" Version="3.3.1" />
 	<PackageReference Include="Serilog" Version="2.10.0" />
 	<PackageReference Include="Serilog.Sinks.Debug" Version="2.0.0" />
 	<PackageReference Include="Serilog.Sinks.File" Version="5.0.0" />
@@ -25,6 +27,16 @@
   <ItemGroup>
 	<ProjectReference Include="..\CustomizePlusLib\CustomizePlusLib.csproj" />
 	<ProjectReference Include="..\Lib\XivtoolsWpf\XivToolsWpf.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+	<Folder Include="Languages\" />
+  </ItemGroup>
+
+  <ItemGroup>
+	  <None Update="Languages\*.*">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </None>
   </ItemGroup>
 
 </Project>

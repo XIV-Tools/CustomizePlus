@@ -9,7 +9,7 @@ namespace CustomizePlusLib.Mods
 	using CustomizePlusLib.Anamnesis;
 	using CustomizePlusLib.Anamnesis.Skeletons;
 
-	internal sealed class AnamnesisPoseBoneScaleMod : BoneScaleModBase
+	public sealed class AnamnesisPoseBoneScaleMod : BoneScaleModBase
 	{
 		private readonly PoseFile pose;
 

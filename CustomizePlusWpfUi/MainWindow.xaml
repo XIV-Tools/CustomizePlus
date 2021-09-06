@@ -5,6 +5,7 @@
 		xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
 		xmlns:windows="clr-namespace:XivToolsWpf.Windows;assembly=XivToolsWpf"
 		xmlns:local="clr-namespace:CustomizePlusWpfUi"
+		xmlns:controls="clr-namespace:XivToolsWpf.Controls;assembly=XivToolsWpf"
 		mc:Ignorable="d"
 		Height="450"
 		Width="300"
@@ -15,6 +16,7 @@
 	<Grid x:Name="ContentArea">
 		<Grid.RowDefinitions>
 			<RowDefinition Height="26"/>
+			<RowDefinition Height="Auto"/>
 			<RowDefinition/>
 		</Grid.RowDefinitions>
 
@@ -25,6 +27,27 @@
 				<TextBlock Margin="12,0,3,0" VerticalAlignment="Center" Text="Customize+" Foreground="{Binding TitlebarForeground}"/>
 			</StackPanel>
 		</Grid>
+
+		<Grid Grid.Row="1" Margin="10, 3">
+
+			<ToggleButton Grid.Column="0" Style="{StaticResource OutlineToggleButton}" Margin="3" Height="32" IsChecked="{Binding Enabled}">
+				<Grid>
+					<controls:TextBlock Key="Common_Enable" Visibility="{Binding Enabled, Converter={StaticResource !B2V}}"/>
+					<controls:TextBlock Key="Common_Disable" Visibility="{Binding Enabled, Converter={StaticResource B2V}}"/>
+				</Grid>
+			</ToggleButton>
+
+		</Grid>
+		
+
+		<ListBox Grid.Row="2" ItemsSource="{Binding Entries}">
+			<ListBox.ItemTemplate>
+				<DataTemplate>
+					<local:EntryListItem Width="280" Height="26"/>
+				</DataTemplate>
+			</ListBox.ItemTemplate>
+			
+		</ListBox>
 		
 	</Grid>
 

@@ -22,6 +22,7 @@ namespace CustomizePlusWpfUi
 		}
 
 		IntPtr IMemory.ActorTableAddress => this.scanner.GetStaticAddressFromSig("48 8D 0D ?? ?? ?? ?? E8 ?? ?? ?? ?? 44 0F B6 83", 0);
+		IntPtr IMemory.FreezeScaleAddress => this.scanner.ScanText("43 0F 29 44 18 20");
 
 		public T Read<T>(IntPtr address)
 			where T : struct

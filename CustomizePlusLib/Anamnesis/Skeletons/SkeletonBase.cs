@@ -26,7 +26,7 @@ namespace CustomizePlusLib.Anamnesis.Skeletons
 				_ => throw new NotImplementedException(),
 			};
 
-			if (index > 0 && index < list.Length)
+			if (index >= 0 && index < list.Length)
 			{
 				return list[index];
 			}

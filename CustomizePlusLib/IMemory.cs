@@ -8,6 +8,7 @@ namespace CustomizePlusLib
 	public interface IMemory
 	{
 		IntPtr ActorTableAddress { get; }
+		IntPtr FreezeScaleAddress { get; }
 
 		T Read<T>(IntPtr address)
 			where T : struct;

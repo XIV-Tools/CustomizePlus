@@ -1,30 +1,55 @@
-﻿// © Anamnesis.
+﻿// © Customize+.
 // Licensed under the MIT license.
 
 namespace CustomizePlusLib
 {
 	using System;
 	using System.Collections.Generic;
-	using System.Threading;
 	using System.Threading.Tasks;
 	using CustomizePlus.GameStructs;
+	using CustomizePlusLib.Memory;
 	using CustomizePlusLib.Mods;
 
 	public class CustomizePlusApi
 	{
 		#pragma warning disable CS8618
 		internal static IMemory Memory;
-		internal static IFiles Files;
 		internal static ILogger Log;
 		#pragma warning restore
 
 		internal readonly Dictionary<string, List<ModBase>> Modifications = new Dictionary<string, List<ModBase>>();
+		private Task? runTask;
+		private bool run;
 
-		public CustomizePlusApi(IMemory memory, IFiles files, ILogger log)
+		public CustomizePlusApi(IMemory memory, ILogger log)
 		{
 			Memory = memory;
-			Files = files;
 			Log = log;
+		}
+
+		public void Start()
+		{
+			this.run = true;
+			this.runTask = Task.Run(this.Run);
+		}
+
+		public void Stop()
+		{
+			NopHookViewModel.ClearAll();
+
+			Task.Run(this.StopAsync);
+		}
+
+		public async Task StopAsync()
+		{
+			NopHookViewModel.ClearAll();
+
+			this.run = false;
+
+			if (this.runTask != null)
+			{
+				await this.runTask;
+			}
 		}
 
 		public void AddModification(ModBase mod)
@@ -48,17 +73,25 @@ namespace CustomizePlusLib
 			characterMods.Remove(mod);
 		}
 
-		internal async Task Run(CancellationToken t)
+		internal async Task Run()
 		{
+			NopHookViewModel? freezeScale = null;
+
 			try
 			{
-				while (!t.IsCancellationRequested)
+				freezeScale = new NopHookViewModel(Memory.FreezeScaleAddress, 6);
+				freezeScale.Enabled = true;
+
+				while (this.run)
 				{
 					int count = 424;
 					IntPtr startAddress = Memory.ActorTableAddress;
 
 					for (int i = 0; i < count; i++)
 					{
+						if (!this.run)
+							return;
+
 						IntPtr ptr = Memory.ReadPtr(startAddress + (i * 8));
 
 						if (ptr == IntPtr.Zero)
@@ -75,28 +108,24 @@ namespace CustomizePlusLib
 
 						foreach (ModBase mod in mods)
 						{
-							await mod.Apply(actor);
-
-							if (t.IsCancellationRequested)
-							{
+							if (!this.run)
 								return;
-							}
-						}
 
-						if (t.IsCancellationRequested)
-						{
-							return;
+							await mod.Apply(actor);
 						}
 					}
 
-					if (t.IsCancellationRequested)
+					if (!this.run)
 						return;
 
 					await Task.Delay(1000);
 				}
+
+				freezeScale?.SetEnabled(false);
 			}
 			catch (Exception ex)
 			{
+				this.run = false;
 				Log.Error(ex, "Run failed");
 			}
 		}

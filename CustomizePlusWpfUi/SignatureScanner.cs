@@ -8,7 +8,6 @@ namespace CustomizePlusWpfUi
 	using System.Diagnostics;
 	using System.Globalization;
 	using System.Runtime.CompilerServices;
-	using Anamnesis.Memory;
 	using Serilog;
 
 	/// <summary>
