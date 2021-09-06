@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.30907.101
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CustomizePlusWpfUi", "CustomizePlusWpfUi\CustomizePlusWpfUi.csproj", "{99451B60-636D-4158-A111-67CDEBC7BD1B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CustomizePlusWpfUi", "CustomizePlusWpfUi\CustomizePlusWpfUi.csproj", "{99451B60-636D-4158-A111-67CDEBC7BD1B}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CustomizePlusLib", "CustomizePlusLib\CustomizePlusLib.csproj", "{20609EE9-FC90-4937-B17C-026ED6E41503}"
 EndProject
@@ -11,6 +11,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
 	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Lib", "Lib", "{0F28EE32-5FDF-4247-A5F3-740BF0D3255E}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "XivToolsWpf", "Lib\XivtoolsWpf\XivToolsWpf.csproj", "{7FE0014A-BFF0-4852-B98E-139E7745B86B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -26,9 +30,16 @@ Global
 		{20609EE9-FC90-4937-B17C-026ED6E41503}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{20609EE9-FC90-4937-B17C-026ED6E41503}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{20609EE9-FC90-4937-B17C-026ED6E41503}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7FE0014A-BFF0-4852-B98E-139E7745B86B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7FE0014A-BFF0-4852-B98E-139E7745B86B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7FE0014A-BFF0-4852-B98E-139E7745B86B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7FE0014A-BFF0-4852-B98E-139E7745B86B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{7FE0014A-BFF0-4852-B98E-139E7745B86B} = {0F28EE32-5FDF-4247-A5F3-740BF0D3255E}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D8086F74-8A1B-4DAD-A9DD-52C8058BAF3A}

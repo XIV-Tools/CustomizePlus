@@ -24,6 +24,7 @@
 
   <ItemGroup>
 	<ProjectReference Include="..\CustomizePlusLib\CustomizePlusLib.csproj" />
+	<ProjectReference Include="..\Lib\XivtoolsWpf\XivToolsWpf.csproj" />
   </ItemGroup>
 
 </Project>
