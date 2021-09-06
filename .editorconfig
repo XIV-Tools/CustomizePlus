@@ -2,7 +2,7 @@
 
 [*.cs]
 indent_style = tab
-file_header_template = © Anamnesis.\nLicensed under the MIT license.
+file_header_template = © Customize+.\nLicensed under the MIT license.
 
 dotnet_diagnostic.SA1000.severity = none
 dotnet_diagnostic.SA1027.severity = none
@@ -17,6 +17,7 @@ dotnet_diagnostic.SA1618.severity = none
 dotnet_diagnostic.SA1611.severity = none
 dotnet_diagnostic.SA1615.severity = none
 dotnet_diagnostic.SA1011.severity = none
+dotnet_diagnostic.SA1134.severity = none
 
 dotnet_diagnostic.IDE0011.severity = none
 dotnet_diagnostic.IDE0022.severity = none
