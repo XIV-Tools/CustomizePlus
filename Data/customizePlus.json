@@ -1,0 +1,13 @@
+{
+  "Author": "XIV Tools",
+  "Name": "Customize Plus",
+  "Punchline": "Customize your character beyond ffxiv's limitations",
+  "Description": "A plugin that allows you to create and apply Anamnesis-style body scaling full time",
+  "InternalName": "customizePlus",
+  "ApplicableVersion": "any",
+  "Tags": [
+    "anamnesis",
+    "customize",
+    "XIV Tools"
+  ]
+}
