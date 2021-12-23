@@ -66,6 +66,9 @@ namespace CustomizePlus
 
 			RenderSkeleton* skel = RenderSkeleton.FromActor(player);
 
+			if (skel == null)
+				return;
+
 			for (int i = 0; i < skel->Length; i++)
 			{
 				this.Update(skel->PartialSkeletons[i].Pose1);
@@ -95,6 +98,12 @@ namespace CustomizePlus
 				Status.Append(name);
 				Status.Append(" - ");
 				Status.AppendLine(transform.Scale.ToString());
+
+				transform.Scale.X = 0;
+				transform.Scale.Y = 0;
+				transform.Scale.Z = 0;
+
+				pose->Transforms[index] = transform;
 			}
 
 			Status.AppendLine();
