@@ -25,13 +25,16 @@ namespace CustomizePlus
             if (!this.Visible)
                 return;
 
-            ImGui.SetNextWindowSize(new Vector2(232, 75), ImGuiCond.Always);
+            ImGui.SetNextWindowSize(new Vector2(450, 600), ImGuiCond.Always);
             if (ImGui.Begin(
 				"CustomizePlus",
 				ref this.Visible,
 				ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse))
             {
-            }
+				ImGui.BeginChild("Scrolling");
+				ImGui.Text(Plugin.Status.ToString());
+				ImGui.EndChild();
+			}
 
             ImGui.End();
         }
