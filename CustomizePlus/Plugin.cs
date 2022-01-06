@@ -32,7 +32,6 @@ namespace CustomizePlus
 
 			Commands.Add((s, t) => Interface.Show(), "/customize", "Opens the customize plus window");
 
-			PluginInterface.UiBuilder.Draw += this.Update;
 			PluginInterface.UiBuilder.Draw += Interface.Draw;
 			PluginInterface.UiBuilder.OpenConfigUi += Interface.Show;
 
@@ -52,6 +51,8 @@ namespace CustomizePlus
         {
 			Files.Dispose();
 			Commands.Dispose();
+			PluginInterface.UiBuilder.Draw -= Interface.Draw;
+			PluginInterface.UiBuilder.OpenConfigUi -= Interface.Show;
         }
 
 		public unsafe void Update()
