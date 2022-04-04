@@ -4,13 +4,14 @@
 namespace CustomizePlus
 {
     using System;
+    using System.Collections.Generic;
     using Dalamud.Configuration;
-    using Dalamud.Plugin;
 
     [Serializable]
     public class Configuration : IPluginConfiguration
     {
         public int Version { get; set; } = 0;
+        public List<BodyScale> BodyScales { get; set; } = new();
 
         public void Save()
         {
