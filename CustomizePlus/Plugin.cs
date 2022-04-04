@@ -7,12 +7,12 @@ namespace CustomizePlus
 	using System.Text;
 	using CustomizePlus.Memory;
 	using Dalamud.Game;
-	using Dalamud.Game.Gui;
 	using Dalamud.Game.ClientState;
 	using Dalamud.Game.ClientState.Objects.SubKinds;
 	using Dalamud.Game.Command;
-	using Dalamud.IoC;
+	using Dalamud.Game.Gui;
 	using Dalamud.Hooking;
+	using Dalamud.IoC;
 	using Dalamud.Logging;
 	using Dalamud.Plugin;
 
@@ -20,11 +20,16 @@ namespace CustomizePlus
     {
 		public static readonly StringBuilder Status = new StringBuilder();
 
-		private readonly ClientState clientState;
+		private static Plugin? instance;
 
-		private delegate IntPtr RenderDelegate(IntPtr renderManager);
-		private readonly Hook<RenderDelegate>? renderManagerHook;
-		private bool updateFailed;
+		private readonly DalamudPluginInterface pluginInterface;
+		private readonly CommandManager commandManager;
+		private readonly Configuration configuration;
+		private readonly Interface userInterface;
+		private readonly ChatGui chatGui;
+
+		private readonly ClientState clientState;
+		private readonly Hook<RenderDelegate> renderManagerHook;
 
 		public Plugin(
 			[RequiredVersion("1.0")] DalamudPluginInterface pluginInterface,
@@ -33,71 +38,67 @@ namespace CustomizePlus
 			SigScanner sigScanner,
 			ChatGui chatGui)
         {
-			PluginInterface = pluginInterface;
-			CommandManager = commandManager;
+			instance = this;
 
-			Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
+			this.pluginInterface = pluginInterface;
+			this.commandManager = commandManager;
+			this.userInterface = new Interface();
+			this.chatGui = chatGui;
+			this.configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
 
-			Interface = new Interface();
+			CommandManager.AddCommand((s, t) => UserInterface.Show(), "/customize", "Opens the customize plus window");
 
-			Commands.Add((s, t) => Interface.Show(), "/customize", "Opens the customize plus window");
-
-			PluginInterface.UiBuilder.Draw += Interface.Draw;
-			PluginInterface.UiBuilder.OpenConfigUi += Interface.Show;
+			PluginInterface.UiBuilder.Draw += UserInterface.Draw;
+			PluginInterface.UiBuilder.OpenConfigUi += UserInterface.Show;
 
 			this.clientState = clientState;
 
 			try
 			{
 				// "Render::Manager::Render"
-				renderManagerHook = new Hook<RenderDelegate>(sigScanner.ScanText("40 53 55 57 41 56 41 57 48 83 EC 60"), manager =>
-				{
-					// if this gets disposed while running we crash calling Original's getter, so get it at start
-					var original = renderManagerHook.Original;
-					try
-					{
-						if (!updateFailed)
-						{
-							Update();
-						}
-					}
-					catch (Exception e)
-					{
-						chatGui.PrintError("Failed to run CustomizePlus render hook, disabling.");
-						PluginLog.Error($"Error in CustomizePlus render hook {e}");
-
-						updateFailed = true;
-					}
-
-					return original(manager);
-				});
-				// Because scales all get set to 0 below, the character will be very messed up
-				renderManagerHook.Enable();
+				this.renderManagerHook = new Hook<RenderDelegate>(sigScanner.ScanText("40 53 55 57 41 56 41 57 48 83 EC 60"), this.OnRender);
+				this.renderManagerHook.Enable();
 			}
 			catch (Exception e)
 			{
 				PluginLog.Error($"Failed to hook Render::Manager::Render {e}");
+				throw;
+			}
+
+			chatGui.Print("Cusotmize+ started");
+		}
+
+		private delegate IntPtr RenderDelegate(IntPtr renderManager);
+
+		public static Plugin Instance
+		{
+			get
+			{
+				if (instance == null)
+					throw new Exception("Plugin is not loaded");
+
+				return instance;
 			}
 		}
 
-#pragma warning disable CS8618
-		public static DalamudPluginInterface PluginInterface { get; private set; }
-		public static CommandManager CommandManager { get; private set; }
-		public static Configuration Configuration { get; private set; }
-		public static Interface Interface { get; private set; }
-#pragma warning restore
+		public static DalamudPluginInterface PluginInterface => Instance.pluginInterface;
+		public static CommandManager CommandManager => Instance.commandManager;
+		public static Configuration Configuration => Instance.configuration;
+		public static Interface UserInterface => Instance.userInterface;
+		public static ChatGui ChatGui => Instance.chatGui;
 
 		public string Name => "Customize Plus";
 
 		public void Dispose()
         {
 			Files.Dispose();
-			Commands.Dispose();
-			PluginInterface.UiBuilder.Draw -= Interface.Draw;
-			PluginInterface.UiBuilder.OpenConfigUi -= Interface.Show;
+			CommandManagerExtensions.Dispose();
 
-			renderManagerHook?.Disable();
-			renderManagerHook?.Dispose();
+			PluginInterface.UiBuilder.Draw -= UserInterface.Draw;
+			PluginInterface.UiBuilder.OpenConfigUi -= UserInterface.Show;
+
+			this.renderManagerHook?.Disable();
+			this.renderManagerHook?.Dispose();
         }
 
 		public unsafe void Update()
@@ -119,6 +120,27 @@ namespace CustomizePlus
 			{
 				this.Update(skel->PartialSkeletons[i].Pose1);
 			}
+		}
+
+		private IntPtr OnRender(IntPtr manager)
+		{
+			if (this.renderManagerHook == null)
+				throw new Exception();
+
+			// if this gets disposed while running we crash calling Original's getter, so get it at start
+			RenderDelegate original = this.renderManagerHook.Original;
+
+			try
+			{
+				this.Update();
+			}
+			catch (Exception e)
+			{
+				PluginLog.Error($"Error in CustomizePlus render hook {e}");
+				this.renderManagerHook?.Disable();
+			}
+
+			return original(manager);
 		}
 
 		private unsafe void Update(HkaPose* pose)

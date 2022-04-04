@@ -6,11 +6,11 @@ namespace CustomizePlus
 	using System.Collections.Generic;
 	using Dalamud.Game.Command;
 
-	public static class Commands
+	public static class CommandManagerExtensions
 	{
 		private static readonly List<string> BoundCommands = new List<string>();
 
-		public static void Add(CommandInfo.HandlerDelegate handler, string command, string help)
+		public static void AddCommand(this CommandManager self, CommandInfo.HandlerDelegate handler, string command, string help)
 		{
 			CommandInfo info = new CommandInfo(handler);
 			info.HelpMessage = help;
@@ -20,7 +20,7 @@ namespace CustomizePlus
 
 			BoundCommands.Add(command);
 
-			Plugin.CommandManager.AddHandler(command, info);
+			self.AddHandler(command, info);
 		}
 
 		public static void Dispose()
