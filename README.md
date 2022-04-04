@@ -1,4 +1,4 @@
-# CustomizePlus
+# Customize+
 Customize+ is a plugin for Dalamud that allows you to create and apply [Anamnesis](https://github.com/imchillin/Anamnesis)-style body scaling full time.
 
 ### Installing Alpha Builds
