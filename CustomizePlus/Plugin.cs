@@ -23,29 +23,36 @@ namespace CustomizePlus
 
 		public Plugin()
 		{
-			UserInterface = new Interface();
-			Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
-
-			LoadConfig();
-
-			CommandManager.AddCommand((s, t) => UserInterface.Show(), "/customize", "Opens the customize plus window");
-
-			PluginInterface.UiBuilder.Draw += UserInterface.Draw;
-			PluginInterface.UiBuilder.OpenConfigUi += UserInterface.Show;
-
 			try
 			{
-				// "Render::Manager::Render"
-				this.renderManagerHook = new Hook<RenderDelegate>(SigScanner.ScanText("40 53 55 57 41 56 41 57 48 83 EC 60"), this.OnRender);
-				this.renderManagerHook.Enable();
-			}
-			catch (Exception e)
-			{
-				PluginLog.Error($"Failed to hook Render::Manager::Render {e}");
-				throw;
-			}
+				UserInterface = new Interface();
+				Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
 
-			ChatGui.Print("Cusotmize+ started");
+				LoadConfig();
+
+				CommandManager.AddCommand((s, t) => UserInterface.Show(), "/customize", "Opens the customize plus window");
+
+				PluginInterface.UiBuilder.Draw += UserInterface.Draw;
+				PluginInterface.UiBuilder.OpenConfigUi += UserInterface.Show;
+
+				try
+				{
+					// "Render::Manager::Render"
+					this.renderManagerHook = new Hook<RenderDelegate>(SigScanner.ScanText("40 53 55 57 41 56 41 57 48 83 EC 60"), this.OnRender);
+					this.renderManagerHook.Enable();
+				}
+				catch (Exception e)
+				{
+					PluginLog.Error($"Failed to hook Render::Manager::Render {e}");
+					throw;
+				}
+
+				ChatGui.Print("Cusotmize+ started");
+			}
+			catch (Exception ex)
+			{
+				PluginLog.Error(ex, "Error instantiating plugin");
+			}
 		}
 
 		private delegate IntPtr RenderDelegate(IntPtr renderManager);
@@ -64,14 +71,21 @@ namespace CustomizePlus
 
 		public static void LoadConfig()
 		{
-			NameToScale.Clear();
-
-			foreach (BodyScale bodyScale in Configuration.BodyScales)
+			try
 			{
-				if (NameToScale.ContainsKey(bodyScale.CharacterName))
-					continue;
+				NameToScale.Clear();
 
-				NameToScale.Add(bodyScale.CharacterName, bodyScale);
+				foreach (BodyScale bodyScale in Configuration.BodyScales)
+				{
+					if (NameToScale.ContainsKey(bodyScale.CharacterName))
+						continue;
+
+					NameToScale.Add(bodyScale.CharacterName, bodyScale);
+				}
+			}
+			catch (Exception ex)
+			{
+				PluginLog.Error(ex, "Error loading config");
 			}
 		}
 
