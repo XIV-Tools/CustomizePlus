@@ -18,8 +18,8 @@ namespace CustomizePlus
 
 	public sealed class Plugin : IDalamudPlugin
 	{
-		private readonly Hook<RenderDelegate> renderManagerHook;
 		private static readonly Dictionary<string, BodyScale> NameToScale = new();
+		private readonly Hook<RenderDelegate> renderManagerHook;
 
 		public Plugin()
 		{

@@ -14,7 +14,7 @@ namespace CustomizePlus
 		private static readonly List<IDisposable> LoadedResources = new List<IDisposable>();
 		private static readonly Dictionary<string, TextureWrap> TextureCache = new Dictionary<string, TextureWrap>();
 
-		public static TextureWrap Icon => LoadImage("goat.png");
+		public static TextureWrap Icon => LoadImage("icon.png");
 
 		public static void Dispose()
 		{
