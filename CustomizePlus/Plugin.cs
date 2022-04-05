@@ -47,7 +47,7 @@ namespace CustomizePlus
 					throw;
 				}
 
-				ChatGui.Print("Cusotmize+ started");
+				ChatGui.Print("Customize+ started");
 			}
 			catch (Exception ex)
 			{
