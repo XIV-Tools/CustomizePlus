@@ -17,3 +17,4 @@ Setup/Debug/
 *.idb
 *.recipe
 *.ilk
+\.vscode/

@@ -5,11 +5,10 @@ namespace CustomizePlus
 {
 	using System;
 	using System.IO;
-	using System.Numerics;
-	using System.Threading.Tasks;
 	using System.Windows.Forms;
 	using Anamnesis.Files;
 	using CustomizePlus.Memory;
+	using Dalamud.Interface.Components;
 	using Dalamud.Logging;
 	using ImGuiNET;
 	using Newtonsoft.Json;
@@ -40,18 +39,25 @@ namespace CustomizePlus
 				ref this.Visible,
 				ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse))
 			{
-				foreach(BodyScale bodyScale in config.BodyScales)
+				for (int i = 0; i < config.BodyScales.Count; i++)
 				{
+					BodyScale bodyScale = config.BodyScales[i];
+
+					ImGui.PushID(i);
+
 					string name = bodyScale.CharacterName ?? string.Empty;
-					ImGui.InputText(string.Empty, ref name, 1024);
-					bodyScale.CharacterName = name;
+					if (ImGui.InputText(string.Empty, ref name, 1024))
+					{
+						bodyScale.CharacterName = name;
+					}
 
 					ImGui.SameLine();
-					if (ImGui.Button("-", new(22, 22)))
+					if (ImGuiComponents.IconButton(Dalamud.Interface.FontAwesomeIcon.Trash))
 					{
 						config.BodyScales.Remove(bodyScale);
-						break;
 					}
+
+					ImGui.PopID();
 				}
 
 				if (ImGui.Button("Import Anamnesis Pose"))
