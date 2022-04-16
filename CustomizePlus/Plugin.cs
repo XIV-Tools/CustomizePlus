@@ -5,6 +5,7 @@ namespace CustomizePlus
 {
 	using System;
 	using System.Collections.Generic;
+	using CustomizePlus.Interface;
 	using Dalamud.Game;
 	using Dalamud.Game.ClientState;
 	using Dalamud.Game.ClientState.Objects;
@@ -19,33 +20,20 @@ namespace CustomizePlus
 	public sealed class Plugin : IDalamudPlugin
 	{
 		private static readonly Dictionary<string, BodyScale> NameToScale = new();
-		private readonly Hook<RenderDelegate> renderManagerHook;
+		private static Hook<RenderDelegate>? renderManagerHook;
 
 		public Plugin()
 		{
 			try
 			{
-				UserInterface = new Interface();
 				Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
 
 				LoadConfig();
 
-				CommandManager.AddCommand((s, t) => UserInterface.Show(), "/customize", "Opens the customize plus window");
+				CommandManager.AddCommand((s, t) => ConfigurationInterface.Show(), "/customize", "Opens the customize+ configuration window");
 
-				PluginInterface.UiBuilder.Draw += UserInterface.Draw;
-				PluginInterface.UiBuilder.OpenConfigUi += UserInterface.Show;
-
-				try
-				{
-					// "Render::Manager::Render"
-					this.renderManagerHook = new Hook<RenderDelegate>(SigScanner.ScanText("40 53 55 57 41 56 41 57 48 83 EC 60"), this.OnRender);
-					this.renderManagerHook.Enable();
-				}
-				catch (Exception e)
-				{
-					PluginLog.Error($"Failed to hook Render::Manager::Render {e}");
-					throw;
-				}
+				PluginInterface.UiBuilder.Draw += InterfaceManager.Draw;
+				PluginInterface.UiBuilder.OpenConfigUi += ConfigurationInterface.Show;
 
 				ChatGui.Print("Customize+ started");
 			}
@@ -64,8 +52,9 @@ namespace CustomizePlus
 		[PluginService] [RequiredVersion("1.0")] public static ClientState ClientState { get; private set; } = null!;
 		[PluginService] [RequiredVersion("1.0")] public static SigScanner SigScanner { get; private set; } = null!;
 
+		public static InterfaceManager InterfaceManager { get; private set; } = new InterfaceManager();
+
 		public static Configuration Configuration { get; private set; } = null!;
-		public static Interface UserInterface { get; private set; } = null!;
 
 		public string Name => "Customize Plus";
 
@@ -82,6 +71,32 @@ namespace CustomizePlus
 
 					NameToScale.Add(bodyScale.CharacterName, bodyScale);
 				}
+
+				try
+				{
+					if (Configuration.Enable)
+					{
+						if (renderManagerHook == null)
+						{
+							// "Render::Manager::Render"
+							IntPtr renderAddress = SigScanner.ScanText("40 53 55 57 41 56 41 57 48 83 EC 60");
+							renderManagerHook = new Hook<RenderDelegate>(renderAddress, OnRender);
+						}
+
+						renderManagerHook.Enable();
+						PluginLog.Information("Hooking render function");
+					}
+					else
+					{
+						renderManagerHook?.Disable();
+						PluginLog.Information("Unhooking render function");
+					}
+				}
+				catch (Exception e)
+				{
+					PluginLog.Error($"Failed to hook Render::Manager::Render {e}");
+					throw;
+				}
 			}
 			catch (Exception ex)
 			{
@@ -91,28 +106,28 @@ namespace CustomizePlus
 
 		public void Dispose()
 		{
-			this.renderManagerHook?.Disable();
-			this.renderManagerHook?.Dispose();
+			renderManagerHook?.Disable();
+			renderManagerHook?.Dispose();
 
 			Files.Dispose();
 			CommandManagerExtensions.Dispose();
 
-			PluginInterface.UiBuilder.Draw -= UserInterface.Draw;
-			PluginInterface.UiBuilder.OpenConfigUi -= UserInterface.Show;
+			PluginInterface.UiBuilder.Draw -= InterfaceManager.Draw;
+			PluginInterface.UiBuilder.OpenConfigUi -= ConfigurationInterface.Show;
 		}
 
-		public unsafe void Update()
+		public static unsafe void Update()
 		{
 			foreach (GameObject obj in ObjectTable)
 			{
 				if (obj is Character character)
 				{
-					this.Apply(character);
+					Apply(character);
 				}
 			}
 		}
 
-		private void Apply(Character character)
+		private static void Apply(Character character)
 		{
 			string characterName = character.Name.ToString();
 			if (NameToScale.TryGetValue(characterName, out var scale))
@@ -121,22 +136,22 @@ namespace CustomizePlus
 			}
 		}
 
-		private IntPtr OnRender(IntPtr manager)
+		private static IntPtr OnRender(IntPtr manager)
 		{
-			if (this.renderManagerHook == null)
+			if (renderManagerHook == null)
 				throw new Exception();
 
 			// if this gets disposed while running we crash calling Original's getter, so get it at start
-			RenderDelegate original = this.renderManagerHook.Original;
+			RenderDelegate original = renderManagerHook.Original;
 
 			try
 			{
-				this.Update();
+				Update();
 			}
 			catch (Exception e)
 			{
 				PluginLog.Error($"Error in CustomizePlus render hook {e}");
-				this.renderManagerHook?.Disable();
+				renderManagerHook?.Disable();
 			}
 
 			return original(manager);
