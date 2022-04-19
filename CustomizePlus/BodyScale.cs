@@ -7,6 +7,7 @@ namespace CustomizePlus
 	using System.Collections.Generic;
 	using CustomizePlus.Memory;
 	using Dalamud.Game.ClientState.Objects.Types;
+	using Dalamud.Logging;
 
 	[Serializable]
 	public class BodyScale

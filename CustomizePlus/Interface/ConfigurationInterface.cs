@@ -8,6 +8,7 @@ namespace CustomizePlus.Interface
 	using System.Numerics;
 	using System.Windows.Forms;
 	using Anamnesis.Files;
+	using Anamnesis.Posing;
 	using CustomizePlus.Memory;
 	using Dalamud.Interface;
 	using Dalamud.Interface.Components;
@@ -177,11 +178,19 @@ namespace CustomizePlus.Interface
 				if (bone.Scale == null)
 					continue;
 
+				string? modernName = LegacyBoneNameConverter.GetModernName(boneName);
+				if (modernName == null)
+					modernName = boneName;
+
 				HkVector4 boneScale = new();
 				boneScale.X = bone.Scale.X;
 				boneScale.Y = bone.Scale.Y;
 				boneScale.Z = bone.Scale.Z;
-				scale.Bones.Add(boneName, boneScale);
+
+				if (!scale.Bones.ContainsKey(modernName))
+					scale.Bones.Add(modernName, boneScale);
+
+				scale.Bones[modernName] = boneScale;
 			}
 		}
 	}
