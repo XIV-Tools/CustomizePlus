@@ -104,6 +104,17 @@ namespace CustomizePlus
 			}
 		}
 
+		public static unsafe void Update()
+		{
+			foreach (GameObject obj in ObjectTable)
+			{
+				if (obj is Character character)
+				{
+					Apply(character);
+				}
+			}
+		}
+
 		public void Dispose()
 		{
 			renderManagerHook?.Disable();
@@ -114,17 +125,6 @@ namespace CustomizePlus
 
 			PluginInterface.UiBuilder.Draw -= InterfaceManager.Draw;
 			PluginInterface.UiBuilder.OpenConfigUi -= ConfigurationInterface.Show;
-		}
-
-		public static unsafe void Update()
-		{
-			foreach (GameObject obj in ObjectTable)
-			{
-				if (obj is Character character)
-				{
-					Apply(character);
-				}
-			}
 		}
 
 		private static void Apply(Character character)
