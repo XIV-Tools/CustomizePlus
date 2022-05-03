@@ -2,7 +2,7 @@
 
 [*.cs]
 indent_style = tab
-file_header_template = © Customize+.\nLicensed under the MIT license.
+file_header_template = © XIV-Tools.\nLicensed under the MIT license.
 
 dotnet_diagnostic.SA1000.severity = none
 dotnet_diagnostic.SA1027.severity = none
