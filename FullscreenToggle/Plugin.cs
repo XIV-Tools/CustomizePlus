@@ -117,4 +117,3 @@ public sealed class Plugin : IDalamudPlugin
 		}
 	}
 }
-
