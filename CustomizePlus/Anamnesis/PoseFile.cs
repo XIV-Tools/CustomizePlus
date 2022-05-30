@@ -40,6 +40,11 @@ namespace Anamnesis.Files
 				v.Z = float.Parse(parts[2], CultureInfo.InvariantCulture);
 				return v;
 			}
+
+			public override string ToString()
+			{
+				return $"{this.X}, {this.Y}, {this.Z}";
+			}
 		}
 
 		public class VectorConverter : JsonConverter<Vector>

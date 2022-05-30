@@ -12,10 +12,10 @@ namespace CustomizePlus
 	[Serializable]
 	public class BodyScale
 	{
-		private readonly Dictionary<int, string?> boneNameCache = new Dictionary<int, string?>();
+		private readonly Dictionary<int, PoseScale> poses = new();
 
 		public string CharacterName { get; set; } = string.Empty;
-		public Dictionary<string, HkVector4> Bones { get; } = new Dictionary<string, HkVector4>();
+		public Dictionary<string, HkVector4> Bones { get; } = new();
 
 		public unsafe void Apply(Character character)
 		{
@@ -26,36 +26,82 @@ namespace CustomizePlus
 
 			for (int i = 0; i < skel->Length; i++)
 			{
-				this.Update(skel->PartialSkeletons[i].Pose1);
+				if (!this.poses.ContainsKey(i))
+					this.poses.Add(i, new(this, i));
+
+				this.poses[i].Update(skel->PartialSkeletons[i].Pose1);
 			}
 		}
 
-		private unsafe void Update(HkaPose* pose)
+		public class PoseScale
 		{
-			if (pose == null)
-				return;
+			public readonly BodyScale BodyScale;
+			public readonly int Index;
 
-			int count = pose->Transforms.Count;
-			for (int index = 0; index < count; index++)
+			private readonly Dictionary<int, HkVector4> scaleCache = new();
+
+			private bool isInitialized = false;
+
+			public PoseScale(BodyScale bodyScale, int index)
 			{
-				HkaBone bone = pose->Skeleton->Bones[index];
-				Transform transform = pose->Transforms[index];
+				this.BodyScale = bodyScale;
+				this.Index = index;
+			}
 
-				if (!this.boneNameCache.ContainsKey(index))
-					this.boneNameCache.Add(index, bone.GetName());
+			public unsafe void Initialize(HkaPose* pose)
+			{
+				if (pose == null)
+					return;
 
-				string? boneName = this.boneNameCache[index];
+				this.scaleCache.Clear();
 
-				if (boneName == null)
-					continue;
-
-				if (this.Bones.TryGetValue(boneName, out var boneScale))
+				int count = pose->Transforms.Count;
+				for (int index = 0; index < count; index++)
 				{
-					transform.Scale.X = boneScale.X;
-					transform.Scale.Y = boneScale.Y;
-					transform.Scale.Z = boneScale.Z;
+					HkaBone bone = pose->Skeleton->Bones[index];
 
-					pose->Transforms[index] = transform;
+					string? boneName = bone.GetName();
+
+					if (boneName == null)
+						continue;
+
+					if (this.BodyScale.Bones.TryGetValue(boneName, out var boneScale))
+					{
+						Transform transform = pose->Transforms[index];
+
+						if (transform.Scale.IsApproximately(boneScale, false))
+							continue;
+
+						this.scaleCache.Add(index, boneScale);
+					}
+				}
+
+				this.isInitialized = true;
+			}
+
+			public unsafe void Update(HkaPose* pose)
+			{
+				if (pose == null)
+					return;
+
+				if (!this.isInitialized)
+					this.Initialize(pose);
+
+				int count = pose->Transforms.Count;
+				for (int index = 0; index < count; index++)
+				{
+					HkaBone bone = pose->Skeleton->Bones[index];
+
+					if (this.scaleCache.TryGetValue(index, out var boneScale))
+					{
+						Transform transform = pose->Transforms[index];
+
+						transform.Scale.X = boneScale.X;
+						transform.Scale.Y = boneScale.Y;
+						transform.Scale.Z = boneScale.Z;
+
+						pose->Transforms[index] = transform;
+					}
 				}
 			}
 		}
