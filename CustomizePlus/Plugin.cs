@@ -43,7 +43,7 @@ namespace CustomizePlus
 			}
 		}
 
-		private delegate IntPtr RenderDelegate(IntPtr renderManager);
+		private delegate IntPtr RenderDelegate(IntPtr a1, int a2, IntPtr a3, byte a4, IntPtr a5, IntPtr a6);
 
 		[PluginService] [RequiredVersion("1.0")] public static ObjectTable ObjectTable { get; private set; } = null!;
 		[PluginService] [RequiredVersion("1.0")] public static DalamudPluginInterface PluginInterface { get; private set; } = null!;
@@ -79,7 +79,7 @@ namespace CustomizePlus
 						if (renderManagerHook == null)
 						{
 							// "Render::Manager::Render"
-							IntPtr renderAddress = SigScanner.ScanText("40 53 55 57 41 56 41 57 48 83 EC 60");
+							IntPtr renderAddress = SigScanner.ScanText("41 54 41 56 41 57 48 81 EC ?? ?? ?? ?? 44 8B 41 18 44 8B FA 48 8B 05 ?? ?? ?? ?? 4C 8B F1 4C 89 AC 24 ?? ?? ?? ?? 41 0F B6 D1");
 							renderManagerHook = new Hook<RenderDelegate>(renderAddress, OnRender);
 						}
 
@@ -136,7 +136,7 @@ namespace CustomizePlus
 			}
 		}
 
-		private static IntPtr OnRender(IntPtr manager)
+		private static IntPtr OnRender(IntPtr a1, int a2, IntPtr a3, byte a4, IntPtr a5, IntPtr a6)
 		{
 			if (renderManagerHook == null)
 				throw new Exception();
@@ -154,7 +154,7 @@ namespace CustomizePlus
 				renderManagerHook?.Disable();
 			}
 
-			return original(manager);
+			return original(a1, a2, a3, a4, a5, a6);
 		}
 	}
 }
