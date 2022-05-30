@@ -68,6 +68,7 @@ namespace CustomizePlus
 			try
 			{
 				NameToScale.Clear();
+				CharacterToScale.Clear();
 
 				foreach (BodyScale bodyScale in Configuration.BodyScales)
 				{
