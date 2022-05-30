@@ -72,6 +72,8 @@ namespace CustomizePlus
 
 				foreach (BodyScale bodyScale in Configuration.BodyScales)
 				{
+					bodyScale.ClearCache();
+
 					if (NameToScale.ContainsKey(bodyScale.CharacterName))
 						continue;
 

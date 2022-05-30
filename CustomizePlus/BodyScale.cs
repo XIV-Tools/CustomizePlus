@@ -34,6 +34,11 @@ namespace CustomizePlus
 			}
 		}
 
+		public void ClearCache()
+		{
+			this.poses.Clear();
+		}
+
 		public class PoseScale
 		{
 			public readonly BodyScale BodyScale;
