@@ -8,7 +8,7 @@
 		"TestingAssemblyVersion": "0.0.0.2",
 		"RepoUrl": "https://github.com/XIV-Tools/CustomizePlus",
 		"ApplicableVersion": "any",
-		"DalamudApiLevel": 5,
+		"DalamudApiLevel": 6,
 		"IsHide": "False",
 		"IsTestingExclusive": "False",
 		"DownloadCount": 0,
@@ -17,6 +17,6 @@
 		"DownloadLinkInstall": "https://github.com/XIV-Tools/CustomizePlus/releases/download/0.0.0.2/CustomizePlus.zip",
 		"DownloadLinkTesting": "https://github.com/XIV-Tools/CustomizePlus/releases/download/0.0.0.2/CustomizePlus.zip",
 		"DownloadLinkUpdate": "https://github.com/XIV-Tools/CustomizePlus/releases/download/0.0.0.2/CustomizePlus.zip",
-		"IconUrl": "https://raw.githubusercontent.com/XIV-Tools/CustomizePlus/master/Data/icon.png"
+		"IconUrl": "https://raw.githubusercontent.com/XIV-Tools/CustomizePlus/main/Data/icon.png"
 	}
 ]
