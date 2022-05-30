@@ -1,9 +1,13 @@
 ﻿// © Customize+.
 // Licensed under the MIT license.
 
+// Signautres stolen from:
+// https://github.com/0ceal0t/DXTest/blob/8e9aef4f6f871e7743aafe56deb9e8ad4dc87a0d/SamplePlugin/Plugin.DX.cs
+// I don't know how they work, but they do!
 namespace CustomizePlus
 {
 	using System;
+	using System.Collections.Concurrent;
 	using System.Collections.Generic;
 	using CustomizePlus.Interface;
 	using Dalamud.Game;
@@ -19,6 +23,7 @@ namespace CustomizePlus
 
 	public sealed class Plugin : IDalamudPlugin
 	{
+		private static readonly Dictionary<Character, BodyScale?> CharacterToScale = new();
 		private static readonly Dictionary<string, BodyScale> NameToScale = new();
 		private static Hook<RenderDelegate>? renderManagerHook;
 
@@ -79,7 +84,7 @@ namespace CustomizePlus
 						if (renderManagerHook == null)
 						{
 							// "Render::Manager::Render"
-							IntPtr renderAddress = SigScanner.ScanText("41 54 41 56 41 57 48 81 EC ?? ?? ?? ?? 44 8B 41 18 44 8B FA 48 8B 05 ?? ?? ?? ?? 4C 8B F1 4C 89 AC 24 ?? ?? ?? ?? 41 0F B6 D1");
+							IntPtr renderAddress = SigScanner.ScanText("E8 ?? ?? ?? ?? 48 81 C3 ?? ?? ?? ?? BE ?? ?? ?? ?? 45 33 F6");
 							renderManagerHook = new Hook<RenderDelegate>(renderAddress, OnRender);
 						}
 
@@ -129,10 +134,22 @@ namespace CustomizePlus
 
 		private static void Apply(Character character)
 		{
-			string characterName = character.Name.ToString();
-			if (NameToScale.TryGetValue(characterName, out var scale))
+			lock (CharacterToScale)
 			{
-				scale.Apply(character);
+				if (CharacterToScale.TryGetValue(character, out var scale))
+				{
+					if (scale == null)
+						return;
+
+					scale.Apply(character);
+				}
+				else
+				{
+					string characterName = character.Name.ToString();
+					BodyScale? newScale = null;
+					NameToScale.TryGetValue(characterName, out newScale);
+					CharacterToScale.TryAdd(character, newScale);
+				}
 			}
 		}
 

@@ -4,6 +4,7 @@
 namespace CustomizePlus
 {
 	using System;
+	using System.Collections.Concurrent;
 	using System.Collections.Generic;
 	using CustomizePlus.Memory;
 	using Dalamud.Game.ClientState.Objects.Types;
@@ -12,7 +13,7 @@ namespace CustomizePlus
 	[Serializable]
 	public class BodyScale
 	{
-		private readonly Dictionary<int, PoseScale> poses = new();
+		private readonly ConcurrentDictionary<int, PoseScale> poses = new();
 
 		public string CharacterName { get; set; } = string.Empty;
 		public Dictionary<string, HkVector4> Bones { get; } = new();
@@ -27,7 +28,7 @@ namespace CustomizePlus
 			for (int i = 0; i < skel->Length; i++)
 			{
 				if (!this.poses.ContainsKey(i))
-					this.poses.Add(i, new(this, i));
+					this.poses.TryAdd(i, new(this, i));
 
 				this.poses[i].Update(skel->PartialSkeletons[i].Pose1);
 			}
@@ -53,26 +54,29 @@ namespace CustomizePlus
 				if (pose == null)
 					return;
 
-				this.scaleCache.Clear();
-
-				int count = pose->Transforms.Count;
-				for (int index = 0; index < count; index++)
+				lock (this.scaleCache)
 				{
-					HkaBone bone = pose->Skeleton->Bones[index];
+					this.scaleCache.Clear();
 
-					string? boneName = bone.GetName();
-
-					if (boneName == null)
-						continue;
-
-					if (this.BodyScale.Bones.TryGetValue(boneName, out var boneScale))
+					int count = pose->Transforms.Count;
+					for (int index = 0; index < count; index++)
 					{
-						Transform transform = pose->Transforms[index];
+						HkaBone bone = pose->Skeleton->Bones[index];
 
-						if (transform.Scale.IsApproximately(boneScale, false))
+						string? boneName = bone.GetName();
+
+						if (boneName == null)
 							continue;
 
-						this.scaleCache.Add(index, boneScale);
+						if (this.BodyScale.Bones.TryGetValue(boneName, out var boneScale))
+						{
+							Transform transform = pose->Transforms[index];
+
+							if (transform.Scale.IsApproximately(boneScale, false))
+								continue;
+
+							this.scaleCache.Add(index, boneScale);
+						}
 					}
 				}
 
