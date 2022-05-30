@@ -12,6 +12,8 @@ namespace CustomizePlus
 	[Serializable]
 	public class BodyScale
 	{
+		private readonly Dictionary<int, string?> boneNameCache = new Dictionary<int, string?>();
+
 		public string CharacterName { get; set; } = string.Empty;
 		public Dictionary<string, HkVector4> Bones { get; } = new Dictionary<string, HkVector4>();
 
@@ -39,7 +41,10 @@ namespace CustomizePlus
 				HkaBone bone = pose->Skeleton->Bones[index];
 				Transform transform = pose->Transforms[index];
 
-				string? boneName = bone.GetName();
+				if (!this.boneNameCache.ContainsKey(index))
+					this.boneNameCache.Add(index, bone.GetName());
+
+				string? boneName = this.boneNameCache[index];
 
 				if (boneName == null)
 					continue;
