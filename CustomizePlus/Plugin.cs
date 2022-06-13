@@ -40,6 +40,8 @@ namespace CustomizePlus
 				PluginInterface.UiBuilder.Draw += InterfaceManager.Draw;
 				PluginInterface.UiBuilder.OpenConfigUi += ConfigurationInterface.Show;
 
+				ClientState.Login += this.ClientState_Login;
+
 				ChatGui.Print("Customize+ started");
 			}
 			catch (Exception ex)
@@ -125,6 +127,8 @@ namespace CustomizePlus
 
 		public void Dispose()
 		{
+			ClientState.Login -= this.ClientState_Login;
+
 			renderManagerHook?.Disable();
 			renderManagerHook?.Dispose();
 
@@ -175,6 +179,11 @@ namespace CustomizePlus
 			}
 
 			return original(a1, a2, a3, a4, a5, a6);
+		}
+
+		private void ClientState_Login(object? sender, EventArgs e)
+		{
+			CharacterToScale.Clear();
 		}
 	}
 }
