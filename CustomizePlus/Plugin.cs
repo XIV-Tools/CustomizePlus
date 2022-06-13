@@ -23,7 +23,6 @@ namespace CustomizePlus
 
 	public sealed class Plugin : IDalamudPlugin
 	{
-		private static readonly Dictionary<Character, BodyScale?> CharacterToScale = new();
 		private static readonly Dictionary<string, BodyScale> NameToScale = new();
 		private static Hook<RenderDelegate>? renderManagerHook;
 
@@ -70,7 +69,6 @@ namespace CustomizePlus
 			try
 			{
 				NameToScale.Clear();
-				CharacterToScale.Clear();
 
 				foreach (BodyScale bodyScale in Configuration.BodyScales)
 				{
@@ -141,23 +139,14 @@ namespace CustomizePlus
 
 		private static void Apply(Character character)
 		{
-			lock (CharacterToScale)
-			{
-				if (CharacterToScale.TryGetValue(character, out var scale))
-				{
-					if (scale == null)
-						return;
+			string characterName = character.Name.ToString();
+			BodyScale? scale = null;
+			NameToScale.TryGetValue(characterName, out scale);
 
-					scale.Apply(character);
-				}
-				else
-				{
-					string characterName = character.Name.ToString();
-					BodyScale? newScale = null;
-					NameToScale.TryGetValue(characterName, out newScale);
-					CharacterToScale.TryAdd(character, newScale);
-				}
-			}
+			if (scale == null)
+				return;
+
+			scale.Apply(character);
 		}
 
 		private static IntPtr OnRender(IntPtr a1, int a2, IntPtr a3, byte a4, IntPtr a5, IntPtr a6)
