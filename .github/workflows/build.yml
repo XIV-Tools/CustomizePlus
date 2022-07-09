@@ -46,7 +46,6 @@ jobs:
 
   deploy:
     needs: build
-    if: "contains(toJSON(github.event.commits.*.message), '[PUSH]')"
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
