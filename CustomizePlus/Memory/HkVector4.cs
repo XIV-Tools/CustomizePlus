@@ -9,10 +9,20 @@ namespace CustomizePlus.Memory
 	[StructLayout(LayoutKind.Sequential)]
 	public struct HkVector4
 	{
+		public static readonly HkVector4 One = new HkVector4(1, 1, 1, 1);
+
 		public float X;
 		public float Y;
 		public float Z;
 		public float W;
+
+		public HkVector4(float x, float y, float z, float w)
+		{
+			this.X = x;
+			this.Y = y;
+			this.Z = z;
+			this.W = w;
+		}
 
 		public override string ToString()
 		{

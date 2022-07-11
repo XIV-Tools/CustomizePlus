@@ -12,6 +12,8 @@ namespace Anamnesis.Files
 	[Serializable]
 	public class PoseFile
 	{
+		public Vector? Scale { get; set; }
+
 		public Dictionary<string, Bone?>? Bones { get; set; }
 
 		[Serializable]
