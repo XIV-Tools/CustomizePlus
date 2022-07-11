@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Authors></Authors>
     <Company></Company>
-    <Version>0.0.0.6</Version>
+    <Version>0.0.0.61</Version>
     <Description>CustomizePlus</Description>
     <Copyright></Copyright>
     <PackageProjectUrl>https://github.com/XIV-Tools/CustomizePlus</PackageProjectUrl>
@@ -18,7 +18,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-    <OutputPath>$(AppData)\XIVLauncher\devPlugins\CustomizePlus\</OutputPath>
+	<OutputPath>bin\$(Configuration)\</OutputPath>
   </PropertyGroup>
 
   <ItemGroup>
@@ -34,8 +34,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="DalamudPackager" Version="2.1.5" />
-    <PackageReference Include="StyleCop.Analyzers" Version="1.1.118">
+    <PackageReference Include="DalamudPackager" Version="2.1.6" />
+    <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.406">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
@@ -70,5 +70,10 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="if $(ConfigurationName) == Debug (&#xD;&#xA;    	  echo Running Debug Post Build (Please have Dalamud closed)&#xD;&#xA;    	  echo Copying to DevPlugins&#xD;&#xA;    	  xcopy &quot;$(TargetPath)\..&quot; &quot;%25appdata%25\XIVLauncher\devPlugins\XIVComboExpanded\&quot; /Y /E&#xD;&#xA;    	  exit /b 0&#xD;&#xA;    	  )" />
+    <Exec Command="if $(ConfigurationName) == Release (&#xD;&#xA;    	  echo Running Release Post Build (Please have Dalamud closed)&#xD;&#xA;    	  echo Copying to DevPlugins&#xD;&#xA;    	  xcopy &quot;$(TargetPath)\..&quot; &quot;%25appdata%25\XIVLauncher\devPlugins\XIVComboExpanded\&quot; /Y /E&#xD;&#xA;    	  exit /b 0&#xD;&#xA;    	  )" />
+  </Target>
 
 </Project>
