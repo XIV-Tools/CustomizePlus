@@ -13,7 +13,7 @@ namespace CustomizePlus.Memory
 		[FieldOffset(0x050)] public short Length;
 		[FieldOffset(0x068)] public PartialSkeleton* PartialSkeletons;
 
-		public static RenderSkeleton* FromActor(Character p)
+		public static RenderSkeleton* FromActor(GameObject p)
 		{
 			if (p.Address == IntPtr.Zero)
 				return null;

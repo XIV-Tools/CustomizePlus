@@ -14,6 +14,8 @@ namespace CustomizePlus
 	using Dalamud.Game.ClientState;
 	using Dalamud.Game.ClientState.Objects;
 	using Dalamud.Game.ClientState.Objects.Types;
+	using Dalamud.Game.ClientState.Objects.SubKinds;
+	using Dalamud.Game.ClientState.Objects.Enums;
 	using Dalamud.Game.Command;
 	using Dalamud.Game.Gui;
 	using Dalamud.Hooking;
@@ -114,10 +116,53 @@ namespace CustomizePlus
 		{
 			foreach (GameObject obj in ObjectTable)
 			{
-				if (obj is Character character)
+
+				string characterName = obj.Name.ToString();
+				BodyScale? scale = null;
+				NameToScale.TryGetValue(characterName, out scale);
+				if (scale == null)
+					continue;
+				// var character = obj;
+				try
 				{
+					switch (obj.ObjectKind)
+					{
+						case ObjectKind.Player:
+							var character = (Character)obj;
+							Apply(character);
+							continue;
+						case ObjectKind.EventNpc:
+						case ObjectKind.Retainer:
+						case ObjectKind.BattleNpc:
+							var npc = obj;
+							Apply(npc);
+							continue;
+						default:
+							continue;
+					}
+				}
+				catch (Exception ex)
+				{
+					continue;
+				}
+				//if (obj.Name.ToString() != characterName)
+				//	continue;
+				/*try
+				{
+					var character = (Character)obj;
+					Apply(character);
+				} catch {
+					var character = (Npc) obj;
 					Apply(character);
 				}
+				*/
+				// Glamourer.RevertableDesigns.Revert(player);
+				//Glamourer.Penumbra.UpdateCharacters(player, null);
+				//return;
+				//if (obj is Character character)
+				//{
+				//	Apply(character);
+				//}
 			}
 		}
 
@@ -133,7 +178,7 @@ namespace CustomizePlus
 			PluginInterface.UiBuilder.OpenConfigUi -= ConfigurationInterface.Show;
 		}
 
-		private static void Apply(Character character)
+		private static void Apply(GameObject character)
 		{
 			string characterName = character.Name.ToString();
 			BodyScale? scale = null;

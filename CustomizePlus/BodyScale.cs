@@ -8,6 +8,8 @@ namespace CustomizePlus
 	using System.Collections.Generic;
 	using CustomizePlus.Memory;
 	using Dalamud.Game.ClientState.Objects.Types;
+	using Dalamud.Game.ClientState.Objects.SubKinds;
+	using Dalamud.Game.ClientState.Objects.Enums;
 	using Dalamud.Logging;
 
 	[Serializable]
@@ -18,7 +20,7 @@ namespace CustomizePlus
 		public string CharacterName { get; set; } = string.Empty;
 		public Dictionary<string, HkVector4> Bones { get; } = new();
 
-		public unsafe void Apply(Character character)
+		public unsafe void Apply(GameObject character)
 		{
 			RenderSkeleton* skel = RenderSkeleton.FromActor(character);
 
