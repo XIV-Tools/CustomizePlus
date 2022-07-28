@@ -163,7 +163,14 @@ namespace CustomizePlus.Interface
 			if (file == null)
 				throw new Exception("Failed to deserialize pose file");
 
-			if (file.Scale != null && file.Scale.X != 0 && file.Scale.Y != 0 && file.Scale.Z != 0)
+			// Load scale if it it not null, not 0 and not 1.
+			if (file.Scale != null &&
+				file.Scale.X != 0 &&
+				file.Scale.Y != 0 &&
+				file.Scale.Z != 0 &&
+				file.Scale.X != 1 &&
+				file.Scale.Y != 1 &&
+				file.Scale.Z != 1)
 			{
 				scale.RootScale = new HkVector4(file.Scale.X, file.Scale.Y, file.Scale.Z, 1);
 			}
