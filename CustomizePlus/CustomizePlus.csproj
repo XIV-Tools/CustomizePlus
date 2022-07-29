@@ -38,7 +38,6 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <ProjectReference Include="..\..\..\Penumbra\Penumbra.GameData\Penumbra.GameData.csproj" />
     <Reference Include="CheapLoc">
       <HintPath>..\..\..\Dalamud\bin\Debug\CheapLoc.dll</HintPath>
     </Reference>
