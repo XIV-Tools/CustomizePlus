@@ -10,6 +10,7 @@ namespace CustomizePlus.Memory
 	[StructLayout(LayoutKind.Sequential)]
 	public struct HkVector4
 	{
+		public static readonly HkVector4 Zero = new HkVector4(0, 0, 0, 0);
 		public static readonly HkVector4 One = new HkVector4(1, 1, 1, 1);
 
 		public float X;
