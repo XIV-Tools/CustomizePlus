@@ -62,6 +62,7 @@ namespace Anamnesis.Posing
 			{ "ArmRight", "j_ude_a_r" },
 			{ "PauldronLeft", "n_kataarmor_l" },
 			{ "PauldronRight", "n_kataarmor_r" },
+			{ "RootHead", "j_kao" },
 			{ "ToesLeft", "j_asi_e_l" },
 			{ "ToesRight", "j_asi_e_r" },
 			{ "HairA", "j_kami_a" },
@@ -117,7 +118,6 @@ namespace Anamnesis.Posing
 			{ "TailE", "n_sippo_e" },
 
 			// Head
-			{ "RootHead", "j_kao" },
 			{ "Jaw", "j_ago" },
 			{ "EyelidLowerLeft", "j_f_dmab_l" },
 			{ "EyelidLowerRight", "j_f_dmab_r" },
@@ -204,6 +204,77 @@ namespace Anamnesis.Posing
 			string? name = null;
 			ModernToLegacy.TryGetValue(modernName, out name);
 			return name;
+		}
+
+		public static int GetCount()
+		{
+			return LegacyToModern.Count;
+		}
+
+		public static List<string> GetModernNames()
+		{
+			List<string> namesList = new List<string>(LegacyToModern.Count);
+			foreach (string modernName in LegacyToModern.Keys)
+			{
+				if (namesList.Contains(modernName))
+					continue;
+				namesList.Add(modernName);
+			}
+			return namesList;
+		}
+
+		public static List<string> GetModernNamesWithoutVieraHroth()
+		{
+			List<string> namesList = new List<string>(LegacyToModern.Count);
+			foreach (string modernName in LegacyToModern.Keys)
+			{
+				if (namesList.Contains(modernName) || modernName.StartsWith("Viera") || modernName.StartsWith("Hroth"))
+				{ 
+					continue;
+				}
+				else
+				{
+					namesList.Add(modernName);
+				}
+			}
+			return namesList;
+		}
+
+		public static List<string> GetLegacyNames()
+		{
+			/*
+			if (ModernToLegacy.Count == 0)
+			{
+				foreach ((string legacy, string modern) in LegacyToModern)
+				{
+					// Skip over duplicate modern keys, since Hroth and Viera both duplicate bones.
+					if (ModernToLegacy.ContainsKey(modern))
+						continue;
+
+					ModernToLegacy.Add(modern, legacy);
+				}
+			}*/
+			List<string> namesList = new List<string>(ModernToLegacy.Count);
+			foreach (string legacyName in LegacyToModern.Values)
+			{
+				if (namesList.Contains(legacyName))
+					continue;
+				namesList.Add(legacyName);
+			}
+			return namesList;
+		}
+
+		public static List<string> GetLegacyNamesWithoutVieraHroth()
+		{
+			List<string> namesList = new List<string>(ModernToLegacy.Count);
+			foreach (string legacyName in LegacyToModern.Values)
+			{
+				string modernName = GetModernName(legacyName);
+				if (namesList.Contains(legacyName) || modernName.StartsWith("Viera") || modernName.StartsWith("Hroth"))
+					continue;
+				namesList.Add(legacyName);
+			}
+			return namesList;
 		}
 	}
 }

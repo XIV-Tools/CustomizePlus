@@ -4,6 +4,7 @@
 namespace CustomizePlus.Interface
 {
 	using System;
+	using System.Collections.Generic;
 	using System.IO;
 	using System.Numerics;
 	using System.Windows.Forms;
@@ -19,6 +20,7 @@ namespace CustomizePlus.Interface
 	public class ConfigurationInterface : WindowBase
 	{
 		private string newScaleName = string.Empty;
+		private string newScaleCharacter = string.Empty;		
 
 		protected override string Title => "Customize+ Configuration";
 		protected override bool SingleInstance => true;
@@ -45,7 +47,7 @@ namespace CustomizePlus.Interface
 			ImGui.Text("Characters:");
 
 			ImGui.SameLine();
-			ImGui.SetNextItemWidth(ImGui.GetWindowSize().X - 123);
+			ImGui.SetNextItemWidth(ImGui.GetWindowSize().X - 623);
 			ImGui.LabelText(string.Empty, string.Empty);
 
 			ImGui.SameLine();
@@ -53,12 +55,13 @@ namespace CustomizePlus.Interface
 			if (ImGui.BeginPopup("Add"))
 			{
 				ImGui.Text("Character Name:");
-				ImGui.InputText(string.Empty, ref this.newScaleName, 1024);
+				ImGui.InputText(string.Empty, ref this.newScaleCharacter, 1024);
+
 
 				if (ImGui.Button("OK"))
 				{
 					BodyScale scale = new();
-					scale.CharacterName = this.newScaleName;
+					scale.CharacterName = this.newScaleCharacter;
 					Plugin.Configuration.BodyScales.Add(scale);
 					ImGui.CloseCurrentPopup();
 				}
@@ -79,18 +82,43 @@ namespace CustomizePlus.Interface
 			for (int i = 0; i < config.BodyScales.Count; i++)
 			{
 				BodyScale bodyScale = config.BodyScales[i];
+				bool bodyScaleEnabled = bodyScale.BodyScaleEnabled;
 
 				ImGui.PushID(i);
 
-				ImGui.SetNextItemWidth(ImGui.GetWindowSize().X - 94);
-				string name = bodyScale.CharacterName ?? string.Empty;
-				if (ImGui.InputText(string.Empty, ref name, 1024, ImGuiInputTextFlags.NoHorizontalScroll))
+				ImGui.SetNextItemWidth((ImGui.GetWindowSize().X - 250) / 2);
+				string characterName = bodyScale.CharacterName ?? string.Empty;
+				if (ImGui.InputText("Char", ref characterName, 512, ImGuiInputTextFlags.NoHorizontalScroll))
 				{
-					bodyScale.CharacterName = name;
+					bodyScale.CharacterName = characterName;
 				}
 
 				if (ImGui.IsItemHovered())
 					ImGui.SetTooltip($"The name of the character this body scale should apply to.");
+
+				ImGui.SameLine();
+
+				ImGui.SetNextItemWidth((ImGui.GetWindowSize().X - 250) / 2);
+				string scaleName = bodyScale.ScaleName ?? string.Empty;
+				if (ImGui.InputText("Scale", ref scaleName, 512, ImGuiInputTextFlags.NoHorizontalScroll))
+				{
+					bodyScale.ScaleName = scaleName;
+				}
+
+				if (ImGui.IsItemHovered())
+					ImGui.SetTooltip($"A description of the scale.");
+
+				ImGui.SameLine();
+				if (ImGuiComponents.ToggleButton("Disable", ref bodyScaleEnabled))
+				{
+					if (bodyScale.CharacterName != null)
+						config.ToggleOffAllOtherMatching(bodyScale.CharacterName, bodyScale.ScaleName);
+					bodyScale.BodyScaleEnabled = bodyScaleEnabled;
+					config.Save();
+				}
+
+				if (ImGui.IsItemHovered())
+					ImGui.SetTooltip($"Enable and disable scale");
 
 				ImGui.SameLine();
 				if (ImGuiComponents.IconButton(FontAwesomeIcon.Pen))
@@ -172,6 +200,8 @@ namespace CustomizePlus.Interface
 				return;
 
 			string name = Path.GetFileNameWithoutExtension(picker.FileName);
+
+			scale.ScaleName = name;
 
 			scale.Bones.Clear();
 

@@ -18,5 +18,21 @@ namespace CustomizePlus
 		{
 			Plugin.PluginInterface.SavePluginConfig(this);
 		}
+
+		public void ToggleOffAllOtherMatching(String characterName, String highlanderScaleName)
+		{
+			if (highlanderScaleName == null)
+			{
+				highlanderScaleName = String.Empty;
+			}
+			foreach (BodyScale scale in this.BodyScales)
+			{
+				if (characterName == scale.CharacterName && highlanderScaleName != scale.ScaleName)
+				{
+					scale.BodyScaleEnabled = false;
+				}
+			}
+			Plugin.PluginInterface.SavePluginConfig(this);
+		}
 	}
 }
