@@ -25,7 +25,7 @@ namespace CustomizePlus.Interface
 		//protected HkaPose Pose { get; private set; }
 		protected override string Title => $"Edit Scale: {this.newScaleName}";
 
-		private int scaleIndex = 0;
+		private int scaleIndex = -1;
 
 		private string newScaleName = string.Empty;
 		private string newScaleCharacter = string.Empty;
@@ -38,7 +38,7 @@ namespace CustomizePlus.Interface
 		
 		//protected BodyScale? ScaleStart { get; private set; }
 		private BodyScale? scaleStart;
-		private BodyScale? scaleUpdated;
+		protected BodyScale? scaleUpdated { get; private set; }
 		//protected BodyScale? ScaleUpdated { get; private set; }
 
 		//protected HkVector4 DefaultBone { get; private set; }
@@ -57,13 +57,16 @@ namespace CustomizePlus.Interface
 		private List<string> boneNamesModernUsed = new List<string>();
 		private List<string> boneNamesLegacyUsed = new List<string>();
 		private bool scaleEnabled = false;
+		private bool autoAdjustEnabled = false;
 		//private Vector4 originalRootScale;
 		//private Vector4 newRootScale;
 
 		public static void Show(BodyScale scale)
 		{
+			Configuration config = Plugin.Configuration;
 			EditInterface editWnd = Plugin.InterfaceManager.Show<EditInterface>();
 			editWnd.Scale = scale;
+			editWnd.scaleUpdated = scale;
 			if (scale == null)
 			{
 				scale = new BodyScale();
@@ -142,21 +145,24 @@ namespace CustomizePlus.Interface
 
 			//editWnd.boneValuesNewVector = editWnd.boneValuesOriginalVector;
 			//editWnd.DefaultBone = new HkVector4(1F, 1F, 1F, 0F);
-
+			editWnd.scaleIndex = -1;
 		}
 
 		protected override void DrawContents()
 		{
 			
 			Configuration config = Plugin.Configuration;
-
-
+			/*
+			if (config.AutomaticEditMode)
+			{
+				this.scaleIndex = getCurrentScaleIndex();
+			}*/
 			//HkVector4 originalRootScale = this.scaleStart.RootScale;
 			//Vector4 newRootScale = originalRootScale.GetAsNumericsVector();
 			//ImGui.Text("Coming Soon");
 			//Scale = config.BodyScales[0];
 			//this.Scale = config.BodyScales[0];
-			
+
 			string newScaleNameTemp = this.newScaleName;
 			string newScaleCharacterTemp = this.newScaleCharacter;
 			bool enabledTemp = this.scaleEnabled;
@@ -332,6 +338,10 @@ namespace CustomizePlus.Interface
 			{
 				rootScaleLocal = new Vector4(rootScaleLocalProper.X, rootScaleLocalProper.Y, rootScaleLocalProper.Z, 0f);
 				this.newRootScale = rootScaleLocal;
+				if (config.AutomaticEditMode)
+				{
+					this.UpdateCurrent("Root", new HkVector4(rootScaleLocal.X, rootScaleLocal.Y, rootScaleLocal.Z, 0f));
+				}
 			}
 
 			ImGui.Separator();
@@ -356,7 +366,7 @@ namespace CustomizePlus.Interface
 			ImGui.Text("W Value:");
 			*/
 			
-			for (int i = 1; i < this.boneValuesNew.Count; i++)
+			for (int i = 0; i < this.boneValuesNew.Count; i++)
 			{
 				//Dictionary<string, HkVector4> boneValues = this.Scale.Bones;
 				//KeyValuePair<string, HkVector4> currentPair = boneValues.TryGetValue
@@ -390,22 +400,47 @@ namespace CustomizePlus.Interface
 
 				}
 				Vector4 currentVector4 = currentHkVector.GetAsNumericsVector();
-				
+				//TODO: Make W a 'change the other 3' option
+				if (currentVector4.X == currentVector4.Y && currentVector4.Y == currentVector4.Z)
+				{
+					//currentVector4.X = currentVector4.W;
+					//currentVector4.Y = currentVector4.W;
+					//currentVector4.Z = currentVector4.W;
+					currentVector4.W = currentVector4.X;
+				} else
+				{
+					currentVector4.W = 0;
+				}	
+
+				//if (currentVector4.X == currentVector4.Y && currentVector4.Y == currentVector4.Z)
+				//{
+				//	currentVector4.W = currentVector4.X;
+				//}
+
 				//if (boneNameLocalModern == null)
 				//	boneNameLocalModern = boneNameLocalLegacy;
 				//string boneNameLocalLegacy = boneNamesLegacy[i];
 				//string boneNamesModern[i]
 				//Vector4 originalScaleValue = this.boneValuesOriginalVector[i];
-				
+
 				//String boneNameModern = 
 				//string label = boneNameLocalModern;
 
 				ImGui.SetNextItemWidth(ImGui.GetWindowWidth() - 150);
 				//Vector4 newScaleValue = this;
-				if (ImGui.DragFloat4(label, ref currentVector4, 0.01f, 0f, 10f))
+				if (ImGui.DragFloat4(label, ref currentVector4, 0.001f, 0f, 10f))
 				{
 					try
 					{
+						if (currentVector4.X != currentVector4.Y || currentVector4.Y != currentVector4.Z || currentVector4.X != currentVector4.Z)
+							currentVector4.W = 0;
+						if (currentVector4.W != 0)
+						{
+							currentVector4.X = currentVector4.W;
+							currentVector4.Y = currentVector4.W;
+							currentVector4.Z = currentVector4.W;
+							//currentVector4.W = 0;
+						}
 						if (this.boneValuesNew.ContainsKey(boneNameLocalModern))
 						{
 							this.boneValuesNew[boneNameLocalModern] = new HkVector4(currentVector4.X, currentVector4.Y, currentVector4.Z, currentVector4.W);
@@ -425,6 +460,11 @@ namespace CustomizePlus.Interface
 					{
 						//throw new Exception();
 					}
+					if (config.AutomaticEditMode)
+					{
+						this.UpdateCurrent(boneNameLocalLegacy, new HkVector4(currentVector4.X, currentVector4.Y, currentVector4.Z, currentVector4.W));
+					}
+
 				}
 
 				//HkVector4 originalScaleValue = HkVector4.One;
@@ -647,6 +687,64 @@ namespace CustomizePlus.Interface
 		{
 			this.boneValuesNew = this.boneValuesOriginal;
 			this.newRootScale = this.originalRootScale;
+		}
+
+		private void UpdateCurrent(string boneName, HkVector4 boneValue)
+		{
+			Configuration config = Plugin.Configuration;
+			BodyScale newBody = this.scaleUpdated;
+			//HkVector4 BoneScale = 
+			//if (!this.scaleUpdated.Bones.ContainsKey(legacyName))
+			//	newBody.Bones.Add(legacyName, this.boneValuesNew[legacyName]);
+			if (boneName == "Root")
+			{
+				newBody.RootScale = boneValue;
+			}
+			else
+			{
+				newBody.Bones[boneName] = boneValue;
+			}
+			
+			//newBody.Bones[legacyName] = this.boneValuesNew[legacyName];
+
+			//newBody.BodyScaleEnabled = this.scaleEnabled;
+			//newBody.ScaleName = this.originalScaleName;
+			//newBody.CharacterName = this.originalScaleCharacter;
+				//}
+			//}
+			//newBody.RootScale = new HkVector4(this.newRootScale.X, this.newRootScale.Y, this.newRootScale.Z, 0);
+			if (this.scaleIndex == -1 || this.scaleIndex > config.BodyScales.Count)
+			{
+				this.scaleIndex = getCurrentScaleIndex(this.originalScaleName, this.originalScaleCharacter);
+			}
+
+			//config.BodyScales.RemoveAt(matchIndex);
+			//	config.BodyScales.Insert(matchIndex, newBody);
+			config.BodyScales[this.scaleIndex] = newBody;
+			config.Save();
+			Plugin.LoadConfig();
+		}
+		
+		private int getCurrentScaleIndex(string scaleName, string scaleCharacter)
+		{
+			Configuration config = Plugin.Configuration;
+			int matchIndex = -1;
+			for (int i = 0; i < config.BodyScales.Count; i++)
+			{
+				if (config.BodyScales[i].ScaleName == scaleName && config.BodyScales[i].CharacterName == scaleCharacter)
+				{
+					matchIndex = i;
+					break;
+				}
+			}
+			if (matchIndex >= 0)
+			{
+				return matchIndex;
+				//config.BodyScales.RemoveAt(matchIndex);
+				//config.BodyScales.Insert(matchIndex, newBody);
+			}
+			return -1;
+			//scaleUpdated
 		}
 	}
 }

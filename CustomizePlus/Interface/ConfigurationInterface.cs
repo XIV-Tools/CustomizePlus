@@ -43,6 +43,17 @@ namespace CustomizePlus.Interface
 			if (ImGui.IsItemHovered())
 				ImGui.SetTooltip($"Toggles Customize+ functionality.\nWhen off, Customize+ will not affect any characters.");
 
+			ImGui.SameLine();
+
+			bool autoModeEnable = config.AutomaticEditMode;
+			if (ImGui.Checkbox("Automatic Mode", ref autoModeEnable))
+			{
+				config.AutomaticEditMode = autoModeEnable;
+			}
+
+			if (ImGui.IsItemHovered())
+				ImGui.SetTooltip($"Applies changes made in edit mode automatically as changed.");
+
 			ImGui.Separator();
 			ImGui.Text("Characters:");
 

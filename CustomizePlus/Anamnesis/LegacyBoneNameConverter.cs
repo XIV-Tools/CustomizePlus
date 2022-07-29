@@ -62,7 +62,6 @@ namespace Anamnesis.Posing
 			{ "ArmRight", "j_ude_a_r" },
 			{ "PauldronLeft", "n_kataarmor_l" },
 			{ "PauldronRight", "n_kataarmor_r" },
-			{ "RootHead", "j_kao" },
 			{ "ToesLeft", "j_asi_e_l" },
 			{ "ToesRight", "j_asi_e_r" },
 			{ "HairA", "j_kami_a" },
@@ -118,6 +117,7 @@ namespace Anamnesis.Posing
 			{ "TailE", "n_sippo_e" },
 
 			// Head
+			//{ "RootHead", "j_kao" },
 			{ "Jaw", "j_ago" },
 			{ "EyelidLowerLeft", "j_f_dmab_l" },
 			{ "EyelidLowerRight", "j_f_dmab_r" },

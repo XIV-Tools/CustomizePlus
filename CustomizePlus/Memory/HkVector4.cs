@@ -27,7 +27,7 @@ namespace CustomizePlus.Memory
 
 		public Vector4 GetAsNumericsVector()
 		{
-			return new Vector4(this.X, this.Y, this.Z, this.W);
+			return new Vector4(MathF.Round(this.X,3), MathF.Round(this.Y,3), MathF.Round(this.Z,3), MathF.Round(this.W,3));
 		}
 
 		public override string ToString()

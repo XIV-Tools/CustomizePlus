@@ -13,6 +13,7 @@ namespace CustomizePlus
 		public int Version { get; set; } = 0;
 		public List<BodyScale> BodyScales { get; set; } = new();
 		public bool Enable { get; set; } = true;
+		public bool AutomaticEditMode { get; set; } = false;
 
 		public void Save()
 		{
