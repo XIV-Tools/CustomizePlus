@@ -28,10 +28,6 @@ namespace CustomizePlus
 		private static readonly Dictionary<string, BodyScale> NameToScale = new();
 		private static Hook<RenderDelegate>? renderManagerHook;
 
-		//public BodyScale? defaultScale;
-		//public BodyScale? cutsceneDefaultScale;
-		//private static PathResolver resolver;
-
 		public Plugin()
 		{
 			try
@@ -44,8 +40,6 @@ namespace CustomizePlus
 
 				PluginInterface.UiBuilder.Draw += InterfaceManager.Draw;
 				PluginInterface.UiBuilder.OpenConfigUi += ConfigurationInterface.Show;
-
-				//resolver = new PathResolver();
 
 				ChatGui.Print("Customize+ started");
 			}
@@ -83,15 +77,9 @@ namespace CustomizePlus
 					if (NameToScale.ContainsKey(bodyScale.CharacterName))
 						continue;
 
-//					if (bodyScale.CharacterName == "Default")
-						//defaultScale = bodyScale;
-
 					if (bodyScale.BodyScaleEnabled)
 						NameToScale.Add(bodyScale.CharacterName, bodyScale);
 				}
-
-				//NameToScale.TryGetValue("Default", out defaultScale);
-				//NameToScale.TryGetValue("CutsceneDefault", out cutsceneDefaultScale);
 
 				try
 				{
@@ -127,37 +115,11 @@ namespace CustomizePlus
 
 		public static unsafe void Update()
 		{
-			//BodyScale? defaultScale = null;
-			//NameToScale.TryGetValue("Default", out defaultScale);
-			//BodyScale? cutsceneDefaultScale = null;
-			//NameToScale.TryGetValue("CutsceneDefault", out cutsceneDefaultScale);
-			//foreach (BodyScale scale in Configuration.BodyScales)
-			//{
-
-
 			foreach (GameObject obj in ObjectTable)
 			{
-				//var characterName = PathResolver.getName(obj);
 				string characterName = obj.Name.ToString().Replace(" (NPC)", "").Replace(" (GPose)", "");
 
-				/*if (scale.CharacterName == characterName)
-					{
-						Apply(obj, scale);
-						continue;
-					}
-				else if (scale.CharacterName == "Default")
-					{
-						Apply(obj, scale);
-						continue;
-					}
-				*/
 				BodyScale? scale = null;
-
-				//NameToScale.TryGetValue(characterName, out scale);
-				//if (scale == null && obj.ObjectKind == ObjectKind.Player)
-				//{
-				//	characterName = GetCutsceneName(obj);
-				//}
 
 				if (characterName != null)
 				{
@@ -166,82 +128,34 @@ namespace CustomizePlus
 				if (scale == null)
 				{
 					characterName = GetCutsceneName(obj);
-					/*if (characterName == "CutsceneDefault" && cutsceneDefaultScale != null)
-					{
-						scale = cutsceneDefaultScale;
-					} else if (characterName == "Skip")
-					{
-						//Apply(obj, scale);
-						//continue;
-						//scale == null;
-						continue;
-					}
-					else
-					{*/
 					NameToScale.TryGetValue(characterName, out scale);
-					/*}
-					if (scale == null && defaultScale != null)
-					{
-						scale = defaultScale;
-					}
-					else */if (scale == null)
-					{
-						continue;
-					}
 				}
-				
-				//if (scale == null)
-				//{
-				//	continue;
-				//}
-				// var character = obj;
+				if (scale == null)
+				{
+					continue;
+				}
+
 				try
 				{
 					switch (obj.ObjectKind)
 					{
 						case ObjectKind.Player:
-							//var character = (Character)obj;
-							//Apply(character, scale);
-							//continue;
 						case ObjectKind.EventNpc:
 						case ObjectKind.Retainer:
 						case ObjectKind.BattleNpc:
 						case ObjectKind.Cutscene:
 						case ObjectKind.Companion:
 						case ObjectKind.EventObj:
-							//var npc = obj;
-							//Apply(npc);
 							Apply(obj, scale);
 							continue;
 						default:
 							continue;
 					}
-					//var npc = obj;
-					//Apply(npc);
-
 				}
 				catch (Exception ex)
 				{
 					continue;
 				}
-				//if (obj.Name.ToString() != characterName)
-				//	continue;
-				/*try
-				{
-					var character = (Character)obj;
-					Apply(character);
-				} catch {
-					var character = (Npc) obj;
-					Apply(character);
-				}
-				*/
-				// Glamourer.RevertableDesigns.Revert(player);
-				//Glamourer.Penumbra.UpdateCharacters(player, null);
-				//return;
-				//if (obj is Character character)
-				//{
-				//	Apply(character);
-				//}
 			}
 		}
 
@@ -298,19 +212,11 @@ namespace CustomizePlus
 		private static string GetCutsceneName(GameObject gameObject)
 		{
 			string gameObjectName = gameObject.Name.ToString().Replace(" (NPC)", "").Replace(" (GPose)", "");
-			//if (player.ObjectKind == ObjectKind.Player)
 			if (gameObjectName.Length == 0 && gameObject.ObjectKind == ObjectKind.Player)
 			{
-				//return player.Name.ToString();
-				//return gameObject.Name.ToString();
-				//return "Aail Ania";
-
-				//return "CutsceneDefault";
-
 				var player = ObjectTable[0];
 				if (player == null)
 				{
-					//return gameObject.Name.ToString();
 					return "Default";
 				}
 				else
@@ -321,16 +227,9 @@ namespace CustomizePlus
 			} else if (gameObjectName.Length > 0 && gameObject.ObjectKind == ObjectKind.Player)
 			{
 				return "Skip";
-			//	return gameObjectName;
-			//}
-			//return gameObject.Name.ToString();
-			//return "Skip";
-			//return "CutsceneDefault";
-			} else { 
+			} else {
 				return "CutsceneDefault";
-			}	
-
-			//return player.Name.ToString() == gameObject.Name.ToString() ? player.Name.ToString() : "Aail Ania";
+			}
 		}
 	}
 }

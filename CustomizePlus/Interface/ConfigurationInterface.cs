@@ -99,7 +99,7 @@ namespace CustomizePlus.Interface
 
 				ImGui.SetNextItemWidth((ImGui.GetWindowSize().X - 250) / 2);
 				string characterName = bodyScale.CharacterName ?? string.Empty;
-				if (ImGui.InputText("Char", ref characterName, 512, ImGuiInputTextFlags.NoHorizontalScroll))
+				if (ImGui.InputText("Character", ref characterName, 512, ImGuiInputTextFlags.NoHorizontalScroll))
 				{
 					bodyScale.CharacterName = characterName;
 				}
@@ -111,7 +111,7 @@ namespace CustomizePlus.Interface
 
 				ImGui.SetNextItemWidth((ImGui.GetWindowSize().X - 250) / 2);
 				string scaleName = bodyScale.ScaleName ?? string.Empty;
-				if (ImGui.InputText("Scale", ref scaleName, 512, ImGuiInputTextFlags.NoHorizontalScroll))
+				if (ImGui.InputText("Scale Name", ref scaleName, 512, ImGuiInputTextFlags.NoHorizontalScroll))
 				{
 					bodyScale.ScaleName = scaleName;
 				}
