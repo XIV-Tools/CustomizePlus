@@ -14,6 +14,8 @@ namespace CustomizePlus
 	using Dalamud.Game.ClientState;
 	using Dalamud.Game.ClientState.Objects;
 	using Dalamud.Game.ClientState.Objects.Types;
+	using Dalamud.Game.ClientState.Objects.SubKinds;
+	using Dalamud.Game.ClientState.Objects.Enums;
 	using Dalamud.Game.Command;
 	using Dalamud.Game.Gui;
 	using Dalamud.Hooking;
@@ -75,7 +77,8 @@ namespace CustomizePlus
 					if (NameToScale.ContainsKey(bodyScale.CharacterName))
 						continue;
 
-					NameToScale.Add(bodyScale.CharacterName, bodyScale);
+					if (bodyScale.BodyScaleEnabled)
+						NameToScale.Add(bodyScale.CharacterName, bodyScale);
 				}
 
 				try
@@ -114,9 +117,44 @@ namespace CustomizePlus
 		{
 			foreach (GameObject obj in ObjectTable)
 			{
-				if (obj is Character character)
+				string characterName = obj.Name.ToString().Replace(" (NPC)", "").Replace(" (GPose)", "");
+
+				BodyScale? scale = null;
+
+				if (characterName != null)
 				{
-					Apply(character);
+					NameToScale.TryGetValue(characterName, out scale);
+				}
+				if (scale == null)
+				{
+					characterName = GetCutsceneName(obj);
+					NameToScale.TryGetValue(characterName, out scale);
+				}
+				if (scale == null)
+				{
+					continue;
+				}
+
+				try
+				{
+					switch (obj.ObjectKind)
+					{
+						case ObjectKind.Player:
+						case ObjectKind.EventNpc:
+						case ObjectKind.Retainer:
+						case ObjectKind.BattleNpc:
+						case ObjectKind.Cutscene:
+						case ObjectKind.Companion:
+						case ObjectKind.EventObj:
+							Apply(obj, scale);
+							continue;
+						default:
+							continue;
+					}
+				}
+				catch (Exception ex)
+				{
+					continue;
 				}
 			}
 		}
@@ -133,7 +171,7 @@ namespace CustomizePlus
 			PluginInterface.UiBuilder.OpenConfigUi -= ConfigurationInterface.Show;
 		}
 
-		private static void Apply(Character character)
+		private static void Apply(GameObject character)
 		{
 			string characterName = character.Name.ToString();
 			BodyScale? scale = null;
@@ -142,6 +180,11 @@ namespace CustomizePlus
 			if (scale == null)
 				return;
 
+			scale.Apply(character);
+		}
+
+		private static void Apply(GameObject character, BodyScale scale)
+		{
 			scale.Apply(character);
 		}
 
@@ -164,6 +207,29 @@ namespace CustomizePlus
 			}
 
 			return original(a1, a2, a3, a4, a5, a6);
+		}
+
+		private static string GetCutsceneName(GameObject gameObject)
+		{
+			string gameObjectName = gameObject.Name.ToString().Replace(" (NPC)", "").Replace(" (GPose)", "");
+			if (gameObjectName.Length == 0 && gameObject.ObjectKind == ObjectKind.Player)
+			{
+				var player = ObjectTable[0];
+				if (player == null)
+				{
+					return "Default";
+				}
+				else
+				{
+					var pc = (Character)player;
+					return pc.Name.ToString();
+				}
+			} else if (gameObjectName.Length > 0 && gameObject.ObjectKind == ObjectKind.Player)
+			{
+				return "Skip";
+			} else {
+				return "CutsceneDefault";
+			}
 		}
 	}
 }
