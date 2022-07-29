@@ -21,7 +21,7 @@ namespace CustomizePlus
 		public string ScaleName { get; set; } = string.Empty;
 		public bool BodyScaleEnabled { get; set; } = true;
 		public Dictionary<string, HkVector4> Bones { get; } = new();
-		public HkVector4 RootScale { get; set; } = HkVector4.One;
+		public HkVector4 RootScale { get; set; } = HkVector4.Zero;
 
 		public unsafe void Apply(GameObject character)
 		{
@@ -46,11 +46,15 @@ namespace CustomizePlus
 				this.poses[i].Update(obj->Skeleton->PartialSkeletons[i].Pose1);
 			}
 
-			HkVector4 rootScale = obj->Scale;
-			rootScale.X = MathF.Max(this.RootScale.X, 0.01f);
-			rootScale.Y = MathF.Max(this.RootScale.Y, 0.01f);
-			rootScale.Z = MathF.Max(this.RootScale.Z, 0.01f);
-			obj->Scale = rootScale;
+			// Don't apply the root scale if its not set to anything.
+			if (this.RootScale.X != 0 && this.RootScale.Y != 0 && this.RootScale.Z != 0)
+			{
+				HkVector4 rootScale = obj->Scale;
+				rootScale.X = MathF.Max(this.RootScale.X, 0.01f);
+				rootScale.Y = MathF.Max(this.RootScale.Y, 0.01f);
+				rootScale.Z = MathF.Max(this.RootScale.Z, 0.01f);
+				obj->Scale = rootScale;
+			}
 		}
 
 		public void ClearCache()
