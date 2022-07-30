@@ -183,15 +183,15 @@ namespace CustomizePlus.Interface
 				{
 					try
 					{
+						if (!((currentVector4.X == currentVector4.Y) && (currentVector4.X == currentVector4.Z) && (currentVector4.Y == currentVector4.Z)))
+							currentVector4.W = 0;
+
 						if (currentVector4.W != 0)
 						{
 							currentVector4.X = currentVector4.W;
 							currentVector4.Y = currentVector4.W;
 							currentVector4.Z = currentVector4.W;
 						}
-
-						if (currentVector4.X != currentVector4.Y || currentVector4.Y != currentVector4.Z || currentVector4.X != currentVector4.Z)
-							currentVector4.W = 0;
 
 						if (this.boneValuesNew.ContainsKey(boneNameLocalModern))
 						{
