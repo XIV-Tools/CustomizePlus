@@ -116,9 +116,12 @@
     <Reference Include="PeNet.Asn1">
       <HintPath>..\..\..\Dalamud\bin\Debug\PeNet.Asn1.dll</HintPath>
     </Reference>
-    <Reference Include="PInvoke.AdvApi32">
-      <HintPath>..\..\..\Dalamud\bin\Debug\PInvoke.AdvApi32.dll</HintPath>
+    <Reference Include="Penumbra.GameData">
+      <HintPath>..\..\..\Penumbra\Penumbra.GameData\bin\Debug\net5.0-windows\Penumbra.GameData.dll</HintPath>
     </Reference>
+	<Reference Include="PInvoke.AdvApi32">
+		<HintPath>..\..\..\Dalamud\bin\Debug\PInvoke.AdvApi32.dll</HintPath>
+	</Reference>
     <Reference Include="PInvoke.BCrypt">
       <HintPath>..\..\..\Dalamud\bin\Debug\PInvoke.BCrypt.dll</HintPath>
     </Reference>

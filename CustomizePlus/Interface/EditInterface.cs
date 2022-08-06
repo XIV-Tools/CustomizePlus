@@ -22,7 +22,7 @@ namespace CustomizePlus.Interface
 	{
 		protected BodyScale? Scale { get; private set; }
 
-		protected override string Title => $"Edit Scale: {this.newScaleName}";
+		protected override string Title => $"Edit Scale: {this.originalScaleName}";
 		protected BodyScale? ScaleUpdated { get; private set; }
 
 		private int scaleIndex = -1;
@@ -44,8 +44,9 @@ namespace CustomizePlus.Interface
 		private List<string> boneNamesModernUsed = new List<string>();
 		private List<string> boneNamesLegacyUsed = new List<string>();
 		private bool scaleEnabled = false;
+		private bool reset = false;
 
-		public static void Show(BodyScale scale)
+		public void Show(BodyScale scale)
 		{
 			Configuration config = Plugin.Configuration;
 			EditInterface editWnd = Plugin.InterfaceManager.Show<EditInterface>();
@@ -95,6 +96,7 @@ namespace CustomizePlus.Interface
 			string newScaleNameTemp = this.newScaleName;
 			string newScaleCharacterTemp = this.newScaleCharacter;
 			bool enabledTemp = this.scaleEnabled;
+			bool resetTemp = this.reset;
 
 			if (ImGui.Checkbox("Enable", ref enabledTemp))
 			{
@@ -121,20 +123,65 @@ namespace CustomizePlus.Interface
 			ImGui.Separator();
 
 			Vector4 rootScaleLocal = this.newRootScale;
-			Vector3 rootScaleLocalProper = new Vector3((float)rootScaleLocal.X, (float)rootScaleLocal.Y, (float)rootScaleLocal.Z);
-			if(ImGui.DragFloat3("Root", ref rootScaleLocalProper, 0.1f, 0f, 10f))
+
+			if (ImGuiComponents.IconButton(-1, FontAwesomeIcon.Recycle))
 			{
-				rootScaleLocal = new Vector4(rootScaleLocalProper.X, rootScaleLocalProper.Y, rootScaleLocalProper.Z, 0f);
+				rootScaleLocal = new Vector4(1f, 1f, 1f, 1f);
 				this.newRootScale = rootScaleLocal;
 				if (config.AutomaticEditMode)
 				{
-					this.UpdateCurrent("Root", new HkVector4(rootScaleLocal.X, rootScaleLocal.Y, rootScaleLocal.Z, 0f));
+					this.UpdateCurrent("Root", new HkVector4(1f, 1f, 1f, 1f));
+				}
+				this.reset = true;
+			}
+
+			if (ImGui.IsItemHovered())
+				ImGui.SetTooltip($"Reset");
+			
+			ImGui.SameLine();
+
+			Vector4 rootScaleLocalTemp = new Vector4((float)rootScaleLocal.X, (float)rootScaleLocal.Y, (float)rootScaleLocal.Z, (float)rootScaleLocal.W);
+
+			if (ImGui.DragFloat4("Root", ref rootScaleLocalTemp, 0.1f, 0f, 10f))
+			{
+				if (this.reset)
+				{
+					rootScaleLocalTemp = new Vector4(1f, 1f, 1f, 1f);
+					this.reset = false;
+				}
+				else if (!((rootScaleLocalTemp.X == rootScaleLocalTemp.Y) && (rootScaleLocalTemp.X == rootScaleLocalTemp.Z) && (rootScaleLocalTemp.Y == rootScaleLocalTemp.Z)))
+				{
+					rootScaleLocalTemp.W = 0;
+				}
+				else if (rootScaleLocalTemp.W != 0)
+				{
+					rootScaleLocalTemp.X = rootScaleLocalTemp.W;
+					rootScaleLocalTemp.Y = rootScaleLocalTemp.W;
+					rootScaleLocalTemp.Z = rootScaleLocalTemp.W;
+				}
+				rootScaleLocal = new Vector4(rootScaleLocalTemp.X, rootScaleLocalTemp.Y, rootScaleLocalTemp.Z, rootScaleLocalTemp.W);
+				this.newRootScale = rootScaleLocal;
+				if (config.AutomaticEditMode)
+				{
+					this.UpdateCurrent("Root", new HkVector4(rootScaleLocal.X, rootScaleLocal.Y, rootScaleLocal.Z, rootScaleLocalTemp.W));
 				}
 			}
 
 			ImGui.Separator();
-
+			ImGui.BeginTable("Bones",6,ImGuiTableFlags.SizingStretchSame);
+			ImGui.TableNextColumn();
 			ImGui.Text("Bones:");
+			ImGui.TableNextColumn();
+			ImGui.Text("X");
+			ImGui.TableNextColumn();
+			ImGui.Text("Y");
+			ImGui.TableNextColumn();
+			ImGui.Text("Z");
+			ImGui.TableNextColumn();
+			ImGui.Text("All");
+			ImGui.TableNextColumn();
+			ImGui.Text("Name");
+			ImGui.EndTable();
 
 			ImGui.BeginChild("scrolling", new Vector2(0, ImGui.GetFrameHeightWithSpacing() - 56), false);
 
@@ -170,29 +217,23 @@ namespace CustomizePlus.Interface
 
 				Vector4 currentVector4 = currentHkVector.GetAsNumericsVector();
 
-				if (currentVector4.X == currentVector4.Y && currentVector4.Y == currentVector4.Z)
+				if (ImGuiComponents.IconButton(i, FontAwesomeIcon.Recycle))
 				{
-					currentVector4.W = currentVector4.X;
-				} else
-				{
-					currentVector4.W = 0;
+					this.reset = true;
 				}
 
-				ImGui.SetNextItemWidth(ImGui.GetWindowWidth() - 150);
-				if (ImGui.DragFloat4(label, ref currentVector4, 0.001f, 0f, 10f))
+				if (ImGui.IsItemHovered())
+					ImGui.SetTooltip($"Reset");
+
+				if (this.reset)
 				{
+					currentVector4.W = 1F;
+					currentVector4.X = 1F;
+					currentVector4.Y = 1F;
+					currentVector4.Z = 1F;
+					this.reset = false;
 					try
 					{
-						if (!((currentVector4.X == currentVector4.Y) && (currentVector4.X == currentVector4.Z) && (currentVector4.Y == currentVector4.Z)))
-							currentVector4.W = 0;
-
-						if (currentVector4.W != 0)
-						{
-							currentVector4.X = currentVector4.W;
-							currentVector4.Y = currentVector4.W;
-							currentVector4.Z = currentVector4.W;
-						}
-
 						if (this.boneValuesNew.ContainsKey(boneNameLocalModern))
 						{
 							this.boneValuesNew[boneNameLocalModern] = new HkVector4(currentVector4.X, currentVector4.Y, currentVector4.Z, currentVector4.W);
@@ -214,8 +255,71 @@ namespace CustomizePlus.Interface
 					{
 						this.UpdateCurrent(boneNameLocalLegacy, new HkVector4(currentVector4.X, currentVector4.Y, currentVector4.Z, currentVector4.W));
 					}
-
 				}
+				else if (currentVector4.X == currentVector4.Y && currentVector4.Y == currentVector4.Z)
+				{
+					currentVector4.W = currentVector4.X;
+				}
+				else
+				{
+					currentVector4.W = 0;
+				}
+
+				ImGui.SameLine();
+
+				ImGui.SetNextItemWidth(ImGui.GetWindowWidth() - 190);
+				if (ImGui.DragFloat4(label, ref currentVector4, 0.001f, 0f, 10f))
+				{
+					try
+					{
+						if (this.reset)
+						{
+							currentVector4.W = 1F;
+							currentVector4.X = 1F;
+							currentVector4.Y = 1F;
+							currentVector4.Z = 1F;
+							this.reset = false;
+						}
+						else if (!((currentVector4.X == currentVector4.Y) && (currentVector4.X == currentVector4.Z) && (currentVector4.Y == currentVector4.Z)))
+						{
+							currentVector4.W = 0;
+						}
+						else if (currentVector4.W != 0)
+						{
+							currentVector4.X = currentVector4.W;
+							currentVector4.Y = currentVector4.W;
+							currentVector4.Z = currentVector4.W;
+						}
+					}
+					catch (Exception ex)
+					{
+
+					}
+					try
+					{
+						if (this.boneValuesNew.ContainsKey(boneNameLocalModern))
+						{
+							this.boneValuesNew[boneNameLocalModern] = new HkVector4(currentVector4.X, currentVector4.Y, currentVector4.Z, currentVector4.W);
+						}
+						else if (this.boneValuesNew.Remove(boneNameLocalLegacy))
+						{
+							this.boneValuesNew[boneNameLocalLegacy] = new HkVector4(currentVector4.X, currentVector4.Y, currentVector4.Z, currentVector4.W);
+						}
+						else
+						{
+							throw new Exception();
+						}
+					}
+					catch
+					{
+						//throw new Exception();
+					}
+					if (config.AutomaticEditMode)
+					{
+						this.UpdateCurrent(boneNameLocalLegacy, new HkVector4(currentVector4.X, currentVector4.Y, currentVector4.Z, currentVector4.W));
+					}
+				}
+
 
 				ImGui.PopID();
 			}
@@ -227,6 +331,10 @@ namespace CustomizePlus.Interface
 			if (ImGui.Button("Save"))
 			{
 				AddToConfig(this.newScaleName, this.newScaleCharacter);
+				if (this.newScaleCharacter != this.originalScaleCharacter)
+					this.originalScaleCharacter = this.newScaleCharacter;
+				if (this.newScaleName != this.originalScaleName)
+					this.originalScaleName = this.newScaleName;
 				config.Save();
 				Plugin.LoadConfig();
 			}

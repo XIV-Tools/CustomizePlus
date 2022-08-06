@@ -8,8 +8,6 @@ namespace CustomizePlus
 	using System.Collections.Generic;
 	using CustomizePlus.Memory;
 	using Dalamud.Game.ClientState.Objects.Types;
-	using Dalamud.Game.ClientState.Objects.SubKinds;
-	using Dalamud.Game.ClientState.Objects.Enums;
 	using Dalamud.Logging;
 
 	[Serializable]
@@ -23,21 +21,12 @@ namespace CustomizePlus
 		public Dictionary<string, HkVector4> Bones { get; } = new();
 		public HkVector4 RootScale { get; set; } = HkVector4.Zero;
 
+		// This works fine on generic GameObject if previously checked for correct types.
 		public unsafe void Apply(GameObject character)
 		{
 			RenderObject* obj = null;
-			//if (character.ObjectKind == ObjectKind.Player)
-			//{
-			//	obj = RenderObject.FromActor((Character)character);
+			obj = RenderObject.FromActor(character);
 
-			//	if (obj == null)
-			//		return;
-			//} else
-			//{
-				obj = RenderObject.FromActor(character);
-				//RenderSkeleton* skel = RenderSkeleton.FromActor(character);
-			//}
-			
 			for (int i = 0; i < obj->Skeleton->Length; i++)
 			{
 				if (!this.poses.ContainsKey(i))
@@ -133,17 +122,7 @@ namespace CustomizePlus
 						transform.Scale.Z = boneScale.Z;
 
 						pose->Transforms[index] = transform;
-					}/*
-					else if (bone != 1 || )
-					{
-						Transform transform = pose->Transforms[index];
-
-						transform.Scale.X = 1;
-						transform.Scale.Y = 1;
-						transform.Scale.Z = 1;
-
-						pose->Transforms[index] = transform;
-					}*/
+					}
 				}
 			}
 		}
