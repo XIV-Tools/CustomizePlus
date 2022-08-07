@@ -129,7 +129,7 @@ namespace CustomizePlus
 				BodyScale? scale = null;
 				scale = IdentifyBodyScale((ObjectStruct*)ObjectTable.GetObjectAddress(i));
 
-				if (scale == null)
+				if (scale == null || obj == null)
 				{
 					continue;
 				}
@@ -184,7 +184,15 @@ namespace CustomizePlus
 
 		private static void Apply(GameObject character, BodyScale scale)
 		{
-			scale.Apply(character);
+			try
+			{
+				if (character != null && scale != null)
+					scale.Apply(character);
+			}
+			catch (Exception ex)
+			{
+				PluginLog.Debug($"Error in applying: {ex}");
+			}
 		}
 
 		private static IntPtr OnRender(IntPtr a1, int a2, IntPtr a3, byte a4, IntPtr a5, IntPtr a6)
@@ -237,9 +245,10 @@ namespace CustomizePlus
 					var actualName = gameObject->ObjectIndex switch
 					{
 						240 => GetPlayerName(), // character window
-						241 => GetInspectName() ?? GetCardName() ?? GetGlamourName(), // inspect, character card, glamour plate editor.
+						241 => GetInspectName() ?? GetGlamourName(), // GetCardName() ?? // inspect, character card, glamour plate editor. - Card removed due to logic issues
 						242 => GetPlayerName(), // try-on
 						243 => GetPlayerName(), // dye preview
+						244 => GetPlayerName(), // portrait preview
 						>= 200 => GetCutsceneName(gameObject),
 						_ => null,
 					}
