@@ -5,7 +5,6 @@ namespace CustomizePlus.Memory
 {
 	using System;
 	using System.Runtime.InteropServices;
-	using System.Numerics;
 
 	[StructLayout(LayoutKind.Sequential)]
 	public struct HkVector4
@@ -26,16 +25,10 @@ namespace CustomizePlus.Memory
 			this.W = w;
 		}
 
-		public Vector4 GetAsNumericsVector()
-		{
-			return new Vector4(MathF.Round(this.X,3), MathF.Round(this.Y,3), MathF.Round(this.Z,3), MathF.Round(this.W,3));
-		}
-
 		public override string ToString()
 		{
 			return $"({this.X}, {this.Y}, {this.Z}, {this.W})";
 		}
-
 
 		public bool IsApproximately(HkVector4 other, bool includeW, float errorMargin = 0.001f)
 		{
@@ -59,7 +52,5 @@ namespace CustomizePlus.Memory
 			float d = MathF.Abs(a - b);
 			return d < errorMargin;
 		}
-
-
 	}
 }

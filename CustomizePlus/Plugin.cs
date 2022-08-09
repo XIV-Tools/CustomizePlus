@@ -7,6 +7,7 @@
 namespace CustomizePlus
 {
 	using System;
+	using System.Collections.Concurrent;
 	using System.Collections.Generic;
 	using CustomizePlus.Interface;
 	using Dalamud.Game;
@@ -19,13 +20,6 @@ namespace CustomizePlus
 	using Dalamud.IoC;
 	using Dalamud.Logging;
 	using Dalamud.Plugin;
-	using FFXIVClientStructs.FFXIV.Client.UI;
-	using FFXIVClientStructs.FFXIV.Component.GUI;
-	using Penumbra.GameData.ByteString;
-	using Penumbra.GameData.Structs;
-	using CharacterStruct = FFXIVClientStructs.FFXIV.Client.Game.Character.Character;
-	using ObjectKind = Dalamud.Game.ClientState.Objects.Enums.ObjectKind;
-	using ObjectStruct = FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject;
 
 	public sealed class Plugin : IDalamudPlugin
 	{
@@ -45,9 +39,6 @@ namespace CustomizePlus
 				PluginInterface.UiBuilder.Draw += InterfaceManager.Draw;
 				PluginInterface.UiBuilder.OpenConfigUi += ConfigurationInterface.Show;
 
-				if (PluginInterface.IsDevMenuOpen)
-					ConfigurationInterface.Show();
-
 				ChatGui.Print("Customize+ started");
 			}
 			catch (Exception ex)
@@ -64,7 +55,6 @@ namespace CustomizePlus
 		[PluginService] [RequiredVersion("1.0")] public static ChatGui ChatGui { get; private set; } = null!;
 		[PluginService] [RequiredVersion("1.0")] public static ClientState ClientState { get; private set; } = null!;
 		[PluginService] [RequiredVersion("1.0")] public static SigScanner SigScanner { get; private set; } = null!;
-		[PluginService] [RequiredVersion("1.0")] public static GameGui GameGui { get; private set; } = null!;
 
 		public static InterfaceManager InterfaceManager { get; private set; } = new InterfaceManager();
 
@@ -85,8 +75,7 @@ namespace CustomizePlus
 					if (NameToScale.ContainsKey(bodyScale.CharacterName))
 						continue;
 
-					if (bodyScale.BodyScaleEnabled)
-						NameToScale.Add(bodyScale.CharacterName, bodyScale);
+					NameToScale.Add(bodyScale.CharacterName, bodyScale);
 				}
 
 				try
@@ -123,51 +112,13 @@ namespace CustomizePlus
 
 		public static unsafe void Update()
 		{
-			for (var i = 0; i < ObjectTable.Length; i++)
-			{
-				var obj = ObjectTable[i];
-				BodyScale? scale = null;
-				scale = IdentifyBodyScale((ObjectStruct*)ObjectTable.GetObjectAddress(i));
-
-				if (scale == null || obj == null)
-				{
-					continue;
-				}
-
-				try
-				{
-					switch (obj.ObjectKind)
-					{
-						case ObjectKind.Player:
-						case ObjectKind.EventNpc:
-						case ObjectKind.Retainer:
-						case ObjectKind.BattleNpc:
-						case ObjectKind.Cutscene:
-						case ObjectKind.Companion:
-						case ObjectKind.EventObj:
-							Apply(obj, scale);
-							continue;
-						default:
-							continue;
-					}
-				}
-				catch (Exception ex)
-				{
-					PluginLog.LogError($"Error during update:{ex}");
-					continue;
-				}
-			}
-		}
-
-		public static GameObject? FindModelByName(string name)
-		{
 			foreach (GameObject obj in ObjectTable)
 			{
-				if (obj.Name.ToString() == name)
-					return obj;
+				if (obj is Character character)
+				{
+					Apply(character);
+				}
 			}
-
-			return null;
 		}
 
 		public void Dispose()
@@ -182,17 +133,16 @@ namespace CustomizePlus
 			PluginInterface.UiBuilder.OpenConfigUi -= ConfigurationInterface.Show;
 		}
 
-		private static void Apply(GameObject character, BodyScale scale)
+		private static void Apply(Character character)
 		{
-			try
-			{
-				if (character != null && scale != null)
-					scale.Apply(character);
-			}
-			catch (Exception ex)
-			{
-				PluginLog.Debug($"Error in applying: {ex}");
-			}
+			string characterName = character.Name.ToString();
+			BodyScale? scale = null;
+			NameToScale.TryGetValue(characterName, out scale);
+
+			if (scale == null)
+				return;
+
+			scale.Apply(character);
 		}
 
 		private static IntPtr OnRender(IntPtr a1, int a2, IntPtr a3, byte a4, IntPtr a5, IntPtr a6)
@@ -215,135 +165,5 @@ namespace CustomizePlus
 
 			return original(a1, a2, a3, a4, a5, a6);
 		}
-
-		// All functions related to this process for non-named objects adapted from Penumbra logic.
-		private static unsafe BodyScale? IdentifyBodyScale(ObjectStruct* gameObject)
-		{
-			if (gameObject == null)
-			{
-				return null;
-			}
-
-			string? actorName = null;
-			BodyScale? scale = null;
-
-			try
-			{
-				// Login screen. Names are populated after actors are drawn,
-				// so it is not possible to fetch names from the ui list.
-				// Actors are also not named. So use "Player"
-				if (!ClientState.IsLoggedIn)
-				{
-					NameToScale.TryGetValue("Player", out scale);
-				}
-				else
-				{
-					actorName = new Utf8String(gameObject->Name).ToString();
-
-					// All these special cases are relevant for an empty name, so never collide with the above setting.
-					// Only OwnerName can be applied to something with a non-empty name, and that is the specific case we want to handle.
-					var actualName = gameObject->ObjectIndex switch
-					{
-						240 => GetPlayerName(), // character window
-						241 => GetInspectName() ?? GetGlamourName(), // GetCardName() ?? // inspect, character card, glamour plate editor. - Card removed due to logic issues
-						242 => GetPlayerName(), // try-on
-						243 => GetPlayerName(), // dye preview
-						244 => GetPlayerName(), // portrait preview
-						>= 200 => GetCutsceneName(gameObject),
-						_ => null,
-					}
-
-						?? actorName ?? new Utf8String(gameObject->Name).ToString();
-
-					if (actualName == null)
-					{
-						return null;
-					}
-
-					NameToScale.TryGetValue(actualName, out scale);
-				}
-			}
-			catch (Exception e)
-			{
-				PluginLog.Error($"Error identifying bodyscale:\n{e}");
-				return null;
-			}
-
-			return scale;
-		}
-
-		// Checks Customization (not ours) of the cutscene model vs the player model to see if
-		// the player name should be used.
-		private static unsafe string? GetCutsceneName(ObjectStruct* gameObject)
-		{
-			if (gameObject->Name[0] != 0 || gameObject->ObjectKind != (byte)ObjectKind.Player)
-			{
-				return null;
-			}
-
-			var player = ObjectTable[0];
-			if (player == null)
-			{
-				return null;
-			}
-
-			var customize1 = (CustomizeData*)((CharacterStruct*)gameObject)->CustomizeData;
-			var customize2 = (CustomizeData*)((CharacterStruct*)player.Address)->CustomizeData;
-			return customize1->Equals(*customize2) ? player.Name.ToString() : null;
-		}
-
-		private static unsafe string? GetInspectName()
-		{
-			var addon = GameGui.GetAddonByName("CharacterInspect", 1);
-			if (addon == IntPtr.Zero)
-			{
-				return null;
-			}
-
-			var ui = (AtkUnitBase*)addon;
-			if (ui->UldManager.NodeListCount < 60)
-			{
-				return null;
-			}
-
-			var text = (AtkTextNode*)ui->UldManager.NodeList[59];
-			if (text == null || !text->AtkResNode.IsVisible)
-			{
-				text = (AtkTextNode*)ui->UldManager.NodeList[60];
-			}
-
-			return text != null ? text->NodeText.ToString() : null;
-		}
-
-		// Obtain the name displayed in the Character Card from the agent.
-		private static unsafe string? GetCardName()
-		{
-			var uiModule = (UIModule*)GameGui.GetUIModule();
-			var agentModule = uiModule->GetAgentModule();
-			var agent = (byte*)agentModule->GetAgentByInternalID(393);
-			if (agent == null)
-			{
-				return null;
-			}
-
-			var data = *(byte**)(agent + 0x28);
-			if (data == null)
-			{
-				return null;
-			}
-
-			var block = data + 0x7A;
-			return new Utf8String(block).ToString();
-		}
-
-		// Obtain the name of the player character if the glamour plate edit window is open.
-		private static unsafe string? GetGlamourName()
-		{
-			var addon = GameGui.GetAddonByName("MiragePrismMiragePlate", 1);
-			return addon == IntPtr.Zero ? null : GetPlayerName();
-		}
-
-		private static string? GetPlayerName()
-			=> ObjectTable[0]?.Name.ToString();
 	}
 }

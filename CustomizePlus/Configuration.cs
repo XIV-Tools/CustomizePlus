@@ -13,36 +13,9 @@ namespace CustomizePlus
 		public int Version { get; set; } = 0;
 		public List<BodyScale> BodyScales { get; set; } = new();
 		public bool Enable { get; set; } = true;
-		public bool AutomaticEditMode { get; set; } = false;
-		
-		// Upcoming feature
-		/*
-		public bool GroupByScale { get; set; } = false;
-		public bool GroupByCharacter { get; set; } = false;
-		*/
 
 		public void Save()
 		{
-			Plugin.PluginInterface.SavePluginConfig(this);
-		}
-
-		// Used any time a scale is added or enabled to ensure multiple scales for a single character
-		// aren't on at the same time.
-		public void ToggleOffAllOtherMatching(string characterName, string highlanderScaleName)
-		{
-			if (highlanderScaleName == null)
-			{
-				highlanderScaleName = string.Empty;
-			}
-
-			foreach (BodyScale scale in this.BodyScales)
-			{
-				if (characterName == scale.CharacterName && highlanderScaleName != scale.ScaleName)
-				{
-					scale.BodyScaleEnabled = false;
-				}
-			}
-
 			Plugin.PluginInterface.SavePluginConfig(this);
 		}
 	}
