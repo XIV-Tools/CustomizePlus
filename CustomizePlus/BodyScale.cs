@@ -16,15 +16,16 @@ namespace CustomizePlus
 		private readonly ConcurrentDictionary<int, PoseScale> poses = new();
 
 		public string CharacterName { get; set; } = string.Empty;
+		public string ScaleName { get; set; } = string.Empty;
+		public bool BodyScaleEnabled { get; set; } = true;
 		public Dictionary<string, HkVector4> Bones { get; } = new();
 		public HkVector4 RootScale { get; set; } = HkVector4.Zero;
 
-		public unsafe void Apply(Character character)
+		// This works fine on generic GameObject if previously checked for correct types.
+		public unsafe void Apply(GameObject character)
 		{
-			RenderObject* obj = RenderObject.FromActor(character);
-
-			if (obj == null)
-				return;
+			RenderObject* obj = null;
+			obj = RenderObject.FromActor(character);
 
 			for (int i = 0; i < obj->Skeleton->Length; i++)
 			{
