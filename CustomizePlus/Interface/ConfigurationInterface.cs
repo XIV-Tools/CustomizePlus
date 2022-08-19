@@ -68,6 +68,38 @@ namespace CustomizePlus.Interface
 			if (ImGui.IsItemHovered())
 				ImGui.SetTooltip($"Applies changes automatically without saving.");
 
+			ImGui.SameLine();
+
+			bool applyToNpcs = config.ApplyToNpcs;
+			if (ImGui.Checkbox("Apply to NPCS", ref applyToNpcs))
+			{
+				config.ApplyToNpcs = applyToNpcs;
+			}
+
+			if (ImGui.IsItemHovered())
+				ImGui.SetTooltip($"Applies to NPCS (overrides next settings).");
+
+			ImGui.SameLine();
+
+			bool applyToNpcsInBusyAreas = config.ApplyToNpcsInBusyAreas;
+			if (ImGui.Checkbox("Apply to NPCS in Busy Areas", ref applyToNpcsInBusyAreas))
+			{
+				config.ApplyToNpcsInBusyAreas = applyToNpcsInBusyAreas;
+			}
+
+			if (ImGui.IsItemHovered())
+				ImGui.SetTooltip($"Applies to NPCs in busy areas (when NPCs are in index > 200, which occurs when up to 100 characters are rendered.");
+
+			ImGui.SameLine();
+
+			bool applyToNpcsInCutscenes = config.ApplyToNpcsInCutscenes;
+			if (ImGui.Checkbox("Apply to NPCs in Cutscenes", ref applyToNpcsInCutscenes))
+			{
+				config.ApplyToNpcsInCutscenes = applyToNpcsInCutscenes;
+			}
+
+			if (ImGui.IsItemHovered())
+				ImGui.SetTooltip($"Applies to NPCs in busy areas (when NPCs are in index > 200, which occurs when up to 100 characters are rendered.");
 
 			ImGui.SameLine();
 

@@ -39,8 +39,8 @@ namespace CustomizePlus.Interface
 		private BodyScale? scaleStart;
 		private Dictionary<string, HkVector4>? boneValuesOriginal = new Dictionary<string, HkVector4>();
 		private Dictionary<string, HkVector4>? boneValuesNew = new Dictionary<string, HkVector4>();
-		private List<string> boneNamesLegacy = LegacyBoneNameConverter.GetLegacyNames();
-		private List<string> boneNamesModern = LegacyBoneNameConverter.GetModernNames();
+		private readonly List<string> boneNamesLegacy = LegacyBoneNameConverter.GetLegacyNames();
+		private readonly List<string> boneNamesModern = LegacyBoneNameConverter.GetModernNames();
 		private List<string> boneNamesModernUsed = new List<string>();
 		private List<string> boneNamesLegacyUsed = new List<string>();
 		private bool scaleEnabled = false;
@@ -142,7 +142,7 @@ namespace CustomizePlus.Interface
 
 			Vector4 rootScaleLocalTemp = new Vector4((float)rootScaleLocal.X, (float)rootScaleLocal.Y, (float)rootScaleLocal.Z, (float)rootScaleLocal.W);
 
-			if (ImGui.DragFloat4("Root", ref rootScaleLocalTemp, 0.1f, 0f, 10f))
+			if (ImGui.DragFloat4("Root", ref rootScaleLocalTemp, 0.001f, 0f, 10f))
 			{
 				if (this.reset)
 				{
@@ -185,7 +185,7 @@ namespace CustomizePlus.Interface
 
 			ImGui.BeginChild("scrolling", new Vector2(0, ImGui.GetFrameHeightWithSpacing() - 56), false);
 
-			for (int i = 0; i < this.boneValuesNew.Count; i++)
+			for (int i = 0; i < boneValuesNew.Count; i++)
 			{
 				string boneNameLocalLegacy = this.boneNamesLegacyUsed[i];
 

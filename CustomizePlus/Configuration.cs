@@ -14,6 +14,11 @@ namespace CustomizePlus
 		public List<BodyScale> BodyScales { get; set; } = new();
 		public bool Enable { get; set; } = true;
 		public bool AutomaticEditMode { get; set; } = false;
+
+		public bool ApplyToNpcs { get; set; } = false;
+		public bool	ApplyToNpcsInBusyAreas { get; set; } = false;
+		public bool ApplyToNpcsInCutscenes { get; set; } = false;
+
 		
 		// Upcoming feature
 		/*
