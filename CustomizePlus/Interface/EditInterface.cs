@@ -22,7 +22,7 @@ namespace CustomizePlus.Interface
 	{
 		protected BodyScale? Scale { get; private set; }
 
-		protected override string Title => $"Edit Scale: {this.originalScaleName}";
+		protected override string Title => $"(WIP) Edit Scale: {this.originalScaleName}";
 		protected BodyScale? ScaleUpdated { get; private set; }
 
 		private int scaleIndex = -1;
@@ -33,7 +33,7 @@ namespace CustomizePlus.Interface
 		private string originalScaleCharacter = string.Empty;
 		private HkVector4 originalScaleValue = HkVector4.One;
 		private Vector4 newScaleValue = HkVector4.One.GetAsNumericsVector();
-		private Vector4 originalRootScale = new Vector4(1f,1f,1f,0f);
+		private Vector4 originalRootScale = new Vector4(1f, 1f, 1f, 0f);
 		private Vector4 newRootScale = HkVector4.One.GetAsNumericsVector();
 
 		private BodyScale? scaleStart;
@@ -65,10 +65,10 @@ namespace CustomizePlus.Interface
 
 			editWnd.scaleEnabled = scale.BodyScaleEnabled;
 
-			for (int i=0; i<editWnd.boneNamesLegacy.Count && i<editWnd.boneNamesModern.Count; i++)
+			for (int i = 0; i < editWnd.boneNamesLegacy.Count && i < editWnd.boneNamesModern.Count; i++)
 			{
 				HkVector4 tempBone = HkVector4.One;
-				if(scale.Bones.TryGetValue(editWnd.boneNamesLegacy[i], out tempBone))
+				if (scale.Bones.TryGetValue(editWnd.boneNamesLegacy[i], out tempBone))
 				{
 					editWnd.boneValuesOriginal.Add(editWnd.boneNamesLegacy[i], tempBone);
 					editWnd.boneValuesNew.Add(editWnd.boneNamesLegacy[i], tempBone);
@@ -105,20 +105,31 @@ namespace CustomizePlus.Interface
 
 			ImGui.SameLine();
 
-			ImGui.SetNextItemWidth(150);
+			ImGui.SetNextItemWidth(200);
 
-			if(ImGui.InputText("Character Name", ref newScaleCharacterTemp, 1024))
+			if (ImGui.InputText("Character Name", ref newScaleCharacterTemp, 1024))
 			{
 				this.newScaleCharacter = newScaleCharacterTemp;
 			}
 
 			ImGui.SameLine();
 
-			ImGui.SetNextItemWidth(250);
+			ImGui.SetNextItemWidth(300);
 			if (ImGui.InputText("Scale Name", ref newScaleNameTemp, 1024))
 			{
 				this.newScaleName = newScaleNameTemp;
 			}
+
+			ImGui.SameLine();
+
+			bool autoModeEnable = config.AutomaticEditMode;
+			if (ImGui.Checkbox("Automatic Mode", ref autoModeEnable))
+			{
+				config.AutomaticEditMode = autoModeEnable;
+			}
+
+			if (ImGui.IsItemHovered())
+				ImGui.SetTooltip($"Applies changes automatically without saving.");
 
 			ImGui.Separator();
 
@@ -137,7 +148,7 @@ namespace CustomizePlus.Interface
 
 			if (ImGui.IsItemHovered())
 				ImGui.SetTooltip($"Reset");
-			
+
 			ImGui.SameLine();
 
 			Vector4 rootScaleLocalTemp = new Vector4((float)rootScaleLocal.X, (float)rootScaleLocal.Y, (float)rootScaleLocal.Z, (float)rootScaleLocal.W);
@@ -168,7 +179,7 @@ namespace CustomizePlus.Interface
 			}
 
 			ImGui.Separator();
-			ImGui.BeginTable("Bones",6,ImGuiTableFlags.SizingStretchSame);
+			ImGui.BeginTable("Bones", 6, ImGuiTableFlags.SizingStretchSame);
 			ImGui.TableNextColumn();
 			ImGui.Text("Bones:");
 			ImGui.TableNextColumn();
@@ -192,12 +203,19 @@ namespace CustomizePlus.Interface
 				string boneNameLocalModern = this.boneNamesModernUsed[i];
 
 				ImGui.PushID(i);
+
+				if (!this.IsBoneNameEditable(boneNameLocalModern))
+				{
+					ImGui.PopID();
+					continue;
+				}
+
 				HkVector4 currentHkVector = HkVector4.One;
 				string label = "Not Found";
 
 				try
 				{
-					if(this.boneValuesNew.TryGetValue(boneNameLocalLegacy, out currentHkVector))
+					if (this.boneValuesNew.TryGetValue(boneNameLocalLegacy, out currentHkVector))
 					{
 						label = boneNameLocalModern;
 					}
@@ -323,7 +341,7 @@ namespace CustomizePlus.Interface
 
 				ImGui.PopID();
 			}
-			
+
 			ImGui.EndChild();
 
 			ImGui.Separator();
@@ -362,6 +380,10 @@ namespace CustomizePlus.Interface
 			{
 				this.Close();
 			}
+
+			ImGui.SameLine();
+
+			ImGui.Text("    Save and close with new scale name or new character name to create a copy.");
 		}
 
 		private void AddToConfig(string scaleName, string characterName)
@@ -460,6 +482,17 @@ namespace CustomizePlus.Interface
 				return matchIndex;
 			}
 			return -1;
+		}
+
+		private bool IsBoneNameEditable(string boneNameModern)
+		{
+			// Megahack method
+			if (boneNameModern == "Root" || boneNameModern == "Throw" || boneNameModern == "Abdomen" 
+				|| boneNameModern.Contains("Cloth") || boneNameModern.Contains("Scabbard")
+				|| boneNameModern.Contains("Holster") || boneNameModern.Contains("Poleyn") || boneNameModern.Contains("Shield")
+				|| boneNameModern.Contains("Couter") || boneNameModern.Contains("Weapon") || boneNameModern.Contains("Sheathe"))
+				return false;
+			return true;
 		}
 	}
 }

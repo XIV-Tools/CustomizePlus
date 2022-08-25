@@ -22,8 +22,8 @@ namespace CustomizePlus
 	using FFXIVClientStructs.FFXIV.Client.UI;
 	using FFXIVClientStructs.FFXIV.Component.GUI;
 	using Penumbra.GameData.ByteString;
-	using Penumbra.GameData.Structs;
 	using CharacterStruct = FFXIVClientStructs.FFXIV.Client.Game.Character.Character;
+	using CustomizeData = Penumbra.GameData.Structs.CustomizeData;
 	using ObjectKind = Dalamud.Game.ClientState.Objects.Enums.ObjectKind;
 	using ObjectStruct = FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject;
 
@@ -69,8 +69,6 @@ namespace CustomizePlus
 		[PluginService] [RequiredVersion("1.0")] public static ClientState ClientState { get; private set; } = null!;
 		[PluginService] [RequiredVersion("1.0")] public static SigScanner SigScanner { get; private set; } = null!;
 		[PluginService] [RequiredVersion("1.0")] public static GameGui GameGui { get; private set; } = null!;
-
-		[PluginService][RequiredVersion("1.0")] public static TargetManager TargetManager { get; private set; } = null!;
 
 		public static InterfaceManager InterfaceManager { get; private set; } = new InterfaceManager();
 
@@ -126,12 +124,12 @@ namespace CustomizePlus
 						}
 
 						renderManagerHook.Enable();
-						PluginLog.Information("Hooking render function");
+						PluginLog.Debug("Hooking render function");
 					}
 					else
 					{
 						renderManagerHook?.Disable();
-						PluginLog.Information("Unhooking render function");
+						PluginLog.Debug("Unhooking render function");
 					}
 				}
 				catch (Exception e)
@@ -150,31 +148,25 @@ namespace CustomizePlus
 		{
 			for (var i = 0; i < ObjectTable.Length; i++)
 			{
-				/*
-				if (i == 407)
-				{
-					var obj2 = ObjectTable[i];
-					if (obj2 == null)
-						continue;
-					//ObjectStruct* obj3 = (ObjectStruct*)ObjectTable[i];
-					//PluginLog.Information(obj3.IsValid().ToString());
-					//Character player = (Character)ObjectTable[0];
-					TargetManager.SetTarget(obj2);
+				// Always filler Event obj
+				if (i == 245) 
+					continue;
 
-				}*/
-				if (i == 245) //Always filler Event obj
+				// Removed setting until new UI is done
+				// Don't affect EventNPCs when they are given an index above the player range, like in big cities, by config
+				// if (i > 245 && !Configuration.ApplyToNpcsInBusyAreas) 
+				//	continue;
+
+				// Don't affect the cutscene object range, by configuration
+				if (i >= 202 && i < 240 && !Configuration.ApplyToNpcsInCutscenes)
 					continue;
 
 				var obj = ObjectTable[i];
-				//try
-				//{
-				//	(Character)obj.Name
-				//}
-				//if (TryGetValue())
+
 				BodyScale? scale = null;
 				scale = IdentifyBodyScale((ObjectStruct*)ObjectTable.GetObjectAddress(i));
 				
-				if (obj == null)// || scale == null)
+				if (obj == null)
 				{
 					continue;
 				}
@@ -190,7 +182,6 @@ namespace CustomizePlus
 								scale = defaultScale;
 							}
 							else if (scale == null) { continue; }
-							//Apply(obj, scale);
 							scale.Apply(obj, true);
 							continue;
 						case ObjectKind.Retainer:
@@ -203,35 +194,28 @@ namespace CustomizePlus
 								scale = defaultScale;
 							}
 							else if (scale == null) { continue; }
-							//Apply(obj, scale);
 							scale.Apply(obj, true);
 							continue;
 						case ObjectKind.EventNpc:
 						case ObjectKind.BattleNpc:
-							//case ObjectKind.Cutscene:
-							//case ObjectKind.EventObj:
-							bool finalApplyToNpcs = Configuration.ApplyToNpcs && (Configuration.ApplyToNpcsInBusyAreas && i >= 245);
-							bool finalApplyToNpcsCutscene = Configuration.ApplyToNpcsInCutscenes && ObjectTable[201] != null;
-							if (finalApplyToNpcs && scale == null && defaultScale != null && ObjectTable[201] == null)
+						// case ObjectKind.Cutscene:
+						// case ObjectKind.EventObj:
+							if (scale == null && defaultScale != null && (i < 201 || i > 246))
 							{
 								scale = defaultScale;
 							}
-							else if (finalApplyToNpcsCutscene && scale == null && defaultCutsceneScale != null)
+							else if (scale == null && defaultCutsceneScale != null && (i > 200 || i < 245))
 							{
 								scale = defaultCutsceneScale;
 							}
-							else if (!Configuration.ApplyToNpcs || scale == null)
+							if (!Configuration.ApplyToNpcs || scale == null)
 							{
 								continue;
 							}
-							//Apply(obj, scale);
+
 							scale.Apply(obj, false);
 							continue;
 						
-							/*if (scale == null)
-								continue;
-							scale.Apply(obj, false);
-							continue;*/
 						default:
 							continue;
 					}
@@ -300,7 +284,7 @@ namespace CustomizePlus
 			return original(a1, a2, a3, a4, a5, a6);
 		}
 
-		// All functions related to this process for non-named objects adapted from Penumbra logic.
+		// All functions related to this process for non-named objects adapted from Penumbra logic. Credit to Ottermandias et al.
 		private static unsafe BodyScale? IdentifyBodyScale(ObjectStruct* gameObject)
 		{
 			if (gameObject == null)
@@ -322,40 +306,47 @@ namespace CustomizePlus
 				}
 				else
 				{
-					//actorName = new Utf8String(gameObject->Name).ToString();
-					string? actualName = null;
-					// All these special cases are relevant for an empty name, so never collide with the above setting.
-					// Only OwnerName can be applied to something with a non-empty name, and that is the specific case we want to handle.
-					if (GameGui.GetAddonByName("PvPMKSIntroduction", 1) == IntPtr.Zero) {
-						actualName = gameObject->ObjectIndex switch
-						{
-							240 => GetPlayerName(), // character window
-							241 => GetInspectName() ?? GetGlamourName(), // GetCardName() ?? // inspect, character card, glamour plate editor. - Card removed due to logic issues
-							242 => GetPlayerName(), // try-on
-							243 => GetPlayerName(), // dye preview
-							244 => GetPlayerName(), // portrait preview
-							>= 200 => GetCutsceneName(gameObject),
-							_ => null,
-						} ?? new Utf8String(gameObject->Name).ToString();
-					} else 
-					{ 
-						actualName = gameObject->ObjectIndex switch
-						{
-							240 => GetPlayerName(), // character window
-							_ => null,
-						} ?? new Utf8String(gameObject->Name).ToString();
-					}
-					//TODO: Ensure player side only (first group, one of the node textures is blue. Alternately, look for hidden party list UI and get names from there. 
-					//else if (((AtkUnitBase*)GameGui.GetAddonByName("PvPMKSIntroduction", 1))->UldManager.NodeList[]) 
-					//?? 
-					//actorName ?? new Utf8String(gameObject->Name).ToString();
+					actorName = new Utf8String(gameObject->Name).ToString();
 
-					if (actualName == null)
+					if (actorName != null)
 					{
-						return null;
+						NameToScale.TryGetValue(actorName, out scale);
 					}
+					else
+					{
+						string? actualName = null;
 
-					NameToScale.TryGetValue(actualName, out scale);
+						// Check if in pvp intro sequence, which uses 240-244 for the 5 players, and only affect the first if so
+						// TODO: Ensure player side only. First group, where one of the node textures is blue. Alternately, look for hidden party list UI and get names from there.
+						if (GameGui.GetAddonByName("PvPMKSIntroduction", 1) == IntPtr.Zero)
+						{
+							actualName = gameObject->ObjectIndex switch
+							{
+								240 => GetPlayerName(), // character window
+								241 => GetInspectName() ?? GetGlamourName(), // GetCardName() ?? // inspect, character card, glamour plate editor. - Card removed due to logic issues
+								242 => GetPlayerName(), // try-on
+								243 => GetPlayerName(), // dye preview
+								244 => GetPlayerName(), // portrait preview
+								>= 200 => GetCutsceneName(gameObject),
+								_ => null,
+							} ?? new Utf8String(gameObject->Name).ToString();
+						}
+						else
+						{
+							actualName = gameObject->ObjectIndex switch
+							{
+								240 => GetPlayerName(), // character window
+								_ => null,
+							} ?? new Utf8String(gameObject->Name).ToString();
+						}
+
+						if (actualName == null)
+						{
+							return null;
+						}
+
+						NameToScale.TryGetValue(actualName, out scale);
+					}
 				}
 			}
 			catch (Exception e)
