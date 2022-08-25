@@ -105,7 +105,7 @@ namespace CustomizePlus.Interface
 			}
 
 			if (ImGui.IsItemHovered())
-				ImGui.SetTooltip($"Apply scales to NPCs in cutscenes.\nSpecify a scale with the name 'CutsceneDefault' to apply it to all generic characters.");
+				ImGui.SetTooltip($"Apply scales to NPCs in cutscenes.\nSpecify a scale with the name 'DefaultCutscene' to apply it to all generic characters while in a cutscene.");
 			
 			ImGui.Separator();
 			ImGui.Text("Characters:");

@@ -15,9 +15,9 @@ namespace CustomizePlus
 		public bool Enable { get; set; } = true;
 		public bool AutomaticEditMode { get; set; } = false;
 
-		public bool ApplyToNpcs { get; set; } = false;
+		public bool ApplyToNpcs { get; set; } = true;
 		// public bool	ApplyToNpcsInBusyAreas { get; set; } = false;
-		public bool ApplyToNpcsInCutscenes { get; set; } = false;
+		public bool ApplyToNpcsInCutscenes { get; set; } = true;
 
 		
 		// Upcoming feature

@@ -83,11 +83,12 @@ namespace CustomizePlus
 				NameToScale.Clear();
 
 				defaultScale = null;
+				defaultRetainerScale = null;
+				defaultCutsceneScale = null;
 
 				foreach (BodyScale bodyScale in Configuration.BodyScales)
 				{
 					bodyScale.ClearCache();
-
 					if (bodyScale.CharacterName == "Default" && bodyScale.BodyScaleEnabled)
 					{
 						defaultScale = bodyScale;
@@ -157,68 +158,53 @@ namespace CustomizePlus
 				// if (i > 245 && !Configuration.ApplyToNpcsInBusyAreas) 
 				//	continue;
 
-				// Don't affect the cutscene object range, by configuration
+				// Don't affect the cutscene object range, by configuration.
+				// 202 gives leeway as player is not always put in 200 like they should be.
 				if (i >= 202 && i < 240 && !Configuration.ApplyToNpcsInCutscenes)
 					continue;
 
 				var obj = ObjectTable[i];
+	
+				if (obj == null)
+					continue;
 
 				BodyScale? scale = null;
 				scale = IdentifyBodyScale((ObjectStruct*)ObjectTable.GetObjectAddress(i));
-				
-				if (obj == null)
-				{
-					continue;
-				}
-				
+
 				try
 				{
+					bool isCutsceneNpc = false;
 					switch (obj.ObjectKind)
 					{
 						case ObjectKind.Player:
 						case ObjectKind.Companion:
-							if (scale == null && defaultScale != null)
-							{
-								scale = defaultScale;
-							}
-							else if (scale == null) { continue; }
-							scale.Apply(obj, true);
-							continue;
+							scale = scale ?? defaultScale ?? null;
+							break;
 						case ObjectKind.Retainer:
-							if (scale == null && defaultRetainerScale != null)
-							{
-								scale = defaultRetainerScale;
-							}
-							else if (scale == null && defaultScale != null)
-							{
-								scale = defaultScale;
-							}
-							else if (scale == null) { continue; }
-							scale.Apply(obj, true);
-							continue;
+							scale = scale ?? defaultRetainerScale ?? defaultScale ?? null;
+							break;
 						case ObjectKind.EventNpc:
 						case ObjectKind.BattleNpc:
-						// case ObjectKind.Cutscene:
-						// case ObjectKind.EventObj:
-							if (scale == null && defaultScale != null && (i < 201 || i > 246))
-							{
-								scale = defaultScale;
-							}
-							else if (scale == null && defaultCutsceneScale != null && (i > 200 || i < 245))
-							{
-								scale = defaultCutsceneScale;
-							}
-							if (!Configuration.ApplyToNpcs || scale == null)
-							{
+							isCutsceneNpc = i >= 200 && i < 246;
+							// Stop if NPCs disabled by config. Have to double check cutscene range due to the 200/201 issue.
+							if (!Configuration.ApplyToNpcs && !isCutsceneNpc)
 								continue;
-							}
-
-							scale.Apply(obj, false);
-							continue;
-						
+							else if (isCutsceneNpc && !Configuration.ApplyToNpcsInCutscenes)
+								continue;
+							// Choose most appropriate default, or fallback to null.
+							if (isCutsceneNpc)
+								scale = defaultCutsceneScale ?? defaultScale ?? null;
+							else
+								scale = defaultScale ?? null;
+							break;
 						default:
 							continue;
 					}
+					// No scale to apply, move on.
+					if (scale == null)
+						continue;
+					// Don't apply root scales to NPCs in cutscenes or battle NPCs. Both cause animation or camera issues.
+					scale.Apply(obj, !(isCutsceneNpc || (obj.ObjectKind == ObjectKind.BattleNpc)));
 				}
 				catch (Exception ex)
 				{
@@ -297,56 +283,46 @@ namespace CustomizePlus
 
 			try
 			{
-				// Login screen. Names are populated after actors are drawn,
-				// so it is not possible to fetch names from the ui list.
-				// Actors are also not named. So use "Player"
-				if (!ClientState.IsLoggedIn)
+				actorName = new Utf8String(gameObject->Name).ToString();
+
+				if (!string.IsNullOrEmpty(actorName))
 				{
-					NameToScale.TryGetValue("Player", out scale);
+					NameToScale.TryGetValue(actorName, out scale);
 				}
 				else
 				{
-					actorName = new Utf8String(gameObject->Name).ToString();
+					string? actualName = null;
 
-					if (actorName != null)
+					// Check if in pvp intro sequence, which uses 240-244 for the 5 players, and only affect the first if so
+					// TODO: Ensure player side only. First group, where one of the node textures is blue. Alternately, look for hidden party list UI and get names from there.
+					if (GameGui.GetAddonByName("PvPMKSIntroduction", 1) == IntPtr.Zero)
 					{
-						NameToScale.TryGetValue(actorName, out scale);
+						actualName = gameObject->ObjectIndex switch
+						{
+							240 => GetPlayerName(), // character window
+							241 => GetInspectName() ?? GetGlamourName(), // GetCardName() ?? // inspect, character card, glamour plate editor. - Card removed due to logic issues
+							242 => GetPlayerName(), // try-on
+							243 => GetPlayerName(), // dye preview
+							244 => GetPlayerName(), // portrait preview
+							>= 200 => GetCutsceneName(gameObject),
+							_ => null,
+						} ?? new Utf8String(gameObject->Name).ToString();
 					}
 					else
 					{
-						string? actualName = null;
-
-						// Check if in pvp intro sequence, which uses 240-244 for the 5 players, and only affect the first if so
-						// TODO: Ensure player side only. First group, where one of the node textures is blue. Alternately, look for hidden party list UI and get names from there.
-						if (GameGui.GetAddonByName("PvPMKSIntroduction", 1) == IntPtr.Zero)
+						actualName = gameObject->ObjectIndex switch
 						{
-							actualName = gameObject->ObjectIndex switch
-							{
-								240 => GetPlayerName(), // character window
-								241 => GetInspectName() ?? GetGlamourName(), // GetCardName() ?? // inspect, character card, glamour plate editor. - Card removed due to logic issues
-								242 => GetPlayerName(), // try-on
-								243 => GetPlayerName(), // dye preview
-								244 => GetPlayerName(), // portrait preview
-								>= 200 => GetCutsceneName(gameObject),
-								_ => null,
-							} ?? new Utf8String(gameObject->Name).ToString();
-						}
-						else
-						{
-							actualName = gameObject->ObjectIndex switch
-							{
-								240 => GetPlayerName(), // character window
-								_ => null,
-							} ?? new Utf8String(gameObject->Name).ToString();
-						}
-
-						if (actualName == null)
-						{
-							return null;
-						}
-
-						NameToScale.TryGetValue(actualName, out scale);
+							240 => GetPlayerName(), // character window
+							_ => null,
+						} ?? new Utf8String(gameObject->Name).ToString();
 					}
+
+					if (actualName == null)
+					{
+						return null;
+					}
+
+					NameToScale.TryGetValue(actualName, out scale);
 				}
 			}
 			catch (Exception e)

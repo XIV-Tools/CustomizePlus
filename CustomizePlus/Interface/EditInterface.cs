@@ -101,6 +101,12 @@ namespace CustomizePlus.Interface
 			if (ImGui.Checkbox("Enable", ref enabledTemp))
 			{
 				this.scaleEnabled = enabledTemp;
+				if (config.AutomaticEditMode)
+				{
+					AddToConfig(this.newScaleName, this.newScaleCharacter);
+					config.Save();
+					Plugin.LoadConfig();
+				}
 			}
 
 			ImGui.SameLine();
