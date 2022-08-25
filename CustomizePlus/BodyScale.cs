@@ -22,11 +22,15 @@ namespace CustomizePlus
 		public HkVector4 RootScale { get; set; } = HkVector4.Zero;
 
 		// This works fine on generic GameObject if previously checked for correct types.
-		public unsafe void Apply(GameObject character)
+		public unsafe void Apply(GameObject character, bool applyRootScale)
 		{
 			RenderObject* obj = null;
 			obj = RenderObject.FromActor(character);
-
+			if (obj == null)
+			{
+				//PluginLog.Debug($"{character.Address} missing skeleton!");
+				return;
+			}
 			for (int i = 0; i < obj->Skeleton->Length; i++)
 			{
 				if (!this.poses.ContainsKey(i))
@@ -39,9 +43,18 @@ namespace CustomizePlus
 			if (this.RootScale.X != 0 && this.RootScale.Y != 0 && this.RootScale.Z != 0)
 			{
 				HkVector4 rootScale = obj->Scale;
-				rootScale.X = MathF.Max(this.RootScale.X, 0.01f);
-				rootScale.Y = MathF.Max(this.RootScale.Y, 0.01f);
-				rootScale.Z = MathF.Max(this.RootScale.Z, 0.01f);
+				if (applyRootScale)
+				{
+					rootScale.X = MathF.Max(this.RootScale.X, 0.01f);
+					rootScale.Y = MathF.Max(this.RootScale.Y, 0.01f);
+					rootScale.Z = MathF.Max(this.RootScale.Z, 0.01f);
+				}
+				else
+				{
+					rootScale.X = obj->Scale.X;
+					rootScale.Y = obj->Scale.Y;
+					rootScale.Z = obj->Scale.Z;
+				}
 				obj->Scale = rootScale;
 			}
 		}

@@ -22,15 +22,19 @@ namespace CustomizePlus
 	using FFXIVClientStructs.FFXIV.Client.UI;
 	using FFXIVClientStructs.FFXIV.Component.GUI;
 	using Penumbra.GameData.ByteString;
-	using Penumbra.GameData.Structs;
 	using CharacterStruct = FFXIVClientStructs.FFXIV.Client.Game.Character.Character;
+	using CustomizeData = Penumbra.GameData.Structs.CustomizeData;
 	using ObjectKind = Dalamud.Game.ClientState.Objects.Enums.ObjectKind;
 	using ObjectStruct = FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject;
 
 	public sealed class Plugin : IDalamudPlugin
 	{
 		private static readonly Dictionary<string, BodyScale> NameToScale = new();
+		private static Dictionary<GameObject, BodyScale> scaleByObject = new();
 		private static Hook<RenderDelegate>? renderManagerHook;
+		private static BodyScale? defaultScale;
+		private static BodyScale? defaultRetainerScale;
+		private static BodyScale? defaultCutsceneScale;
 
 		public Plugin()
 		{
@@ -78,9 +82,28 @@ namespace CustomizePlus
 			{
 				NameToScale.Clear();
 
+				defaultScale = null;
+				defaultRetainerScale = null;
+				defaultCutsceneScale = null;
+
 				foreach (BodyScale bodyScale in Configuration.BodyScales)
 				{
 					bodyScale.ClearCache();
+					if (bodyScale.CharacterName == "Default" && bodyScale.BodyScaleEnabled)
+					{
+						defaultScale = bodyScale;
+						PluginLog.Debug($"Default scale with name {defaultScale.ScaleName} being used.");
+						continue;
+					} else if (bodyScale.CharacterName == "DefaultRetainer" && bodyScale.BodyScaleEnabled)
+					{
+						defaultRetainerScale = bodyScale;
+						PluginLog.Debug($"Default retainer scale with name {defaultRetainerScale.ScaleName} being used.");
+					}
+					else if (bodyScale.CharacterName == "DefaultCutscene" && bodyScale.BodyScaleEnabled)
+					{
+						defaultCutsceneScale = bodyScale;
+						PluginLog.Debug($"Default cutscene scale with name {defaultCutsceneScale.ScaleName} being used.");
+					}
 
 					if (NameToScale.ContainsKey(bodyScale.CharacterName))
 						continue;
@@ -97,16 +120,17 @@ namespace CustomizePlus
 						{
 							// "Render::Manager::Render"
 							IntPtr renderAddress = SigScanner.ScanText("E8 ?? ?? ?? ?? 48 81 C3 ?? ?? ?? ?? BE ?? ?? ?? ?? 45 33 F6");
-							renderManagerHook = new Hook<RenderDelegate>(renderAddress, OnRender);
+							//renderManagerHook = new Hook<RenderDelegate>(renderAddress, OnRender);
+							renderManagerHook = Hook<RenderDelegate>.FromAddress(renderAddress, OnRender);
 						}
 
 						renderManagerHook.Enable();
-						PluginLog.Information("Hooking render function");
+						PluginLog.Debug("Hooking render function");
 					}
 					else
 					{
 						renderManagerHook?.Disable();
-						PluginLog.Information("Unhooking render function");
+						PluginLog.Debug("Unhooking render function");
 					}
 				}
 				catch (Exception e)
@@ -125,31 +149,62 @@ namespace CustomizePlus
 		{
 			for (var i = 0; i < ObjectTable.Length; i++)
 			{
+				// Always filler Event obj
+				if (i == 245) 
+					continue;
+
+				// Removed setting until new UI is done
+				// Don't affect EventNPCs when they are given an index above the player range, like in big cities, by config
+				// if (i > 245 && !Configuration.ApplyToNpcsInBusyAreas) 
+				//	continue;
+
+				// Don't affect the cutscene object range, by configuration.
+				// 202 gives leeway as player is not always put in 200 like they should be.
+				if (i >= 202 && i < 240 && !Configuration.ApplyToNpcsInCutscenes)
+					continue;
+
 				var obj = ObjectTable[i];
+	
+				if (obj == null)
+					continue;
+
 				BodyScale? scale = null;
 				scale = IdentifyBodyScale((ObjectStruct*)ObjectTable.GetObjectAddress(i));
 
-				if (scale == null || obj == null)
-				{
-					continue;
-				}
-
 				try
 				{
+					bool isCutsceneNpc = false;
 					switch (obj.ObjectKind)
 					{
 						case ObjectKind.Player:
-						case ObjectKind.EventNpc:
-						case ObjectKind.Retainer:
-						case ObjectKind.BattleNpc:
-						case ObjectKind.Cutscene:
 						case ObjectKind.Companion:
-						case ObjectKind.EventObj:
-							Apply(obj, scale);
-							continue;
+							scale = scale ?? defaultScale ?? null;
+							break;
+						case ObjectKind.Retainer:
+							scale = scale ?? defaultRetainerScale ?? defaultScale ?? null;
+							break;
+						case ObjectKind.EventNpc:
+						case ObjectKind.BattleNpc:
+							isCutsceneNpc = i >= 200 && i < 246;
+							// Stop if NPCs disabled by config. Have to double check cutscene range due to the 200/201 issue.
+							if (!Configuration.ApplyToNpcs && !isCutsceneNpc)
+								continue;
+							else if (isCutsceneNpc && !Configuration.ApplyToNpcsInCutscenes)
+								continue;
+							// Choose most appropriate default, or fallback to null.
+							if (isCutsceneNpc)
+								scale = defaultCutsceneScale ?? defaultScale ?? null;
+							else
+								scale = defaultScale ?? null;
+							break;
 						default:
 							continue;
 					}
+					// No scale to apply, move on.
+					if (scale == null)
+						continue;
+					// Don't apply root scales to NPCs in cutscenes or battle NPCs. Both cause animation or camera issues.
+					scale.Apply(obj, !(isCutsceneNpc || (obj.ObjectKind == ObjectKind.BattleNpc)));
 				}
 				catch (Exception ex)
 				{
@@ -186,12 +241,11 @@ namespace CustomizePlus
 		{
 			try
 			{
-				if (character != null && scale != null)
-					scale.Apply(character);
+				scale.Apply(character, true);
 			}
 			catch (Exception ex)
 			{
-				PluginLog.Debug($"Error in applying: {ex}");
+				PluginLog.Debug($"Error in applying scale: {scale.ScaleName} to character {character.ObjectKind}: {ex}");
 			}
 		}
 
@@ -216,7 +270,7 @@ namespace CustomizePlus
 			return original(a1, a2, a3, a4, a5, a6);
 		}
 
-		// All functions related to this process for non-named objects adapted from Penumbra logic.
+		// All functions related to this process for non-named objects adapted from Penumbra logic. Credit to Ottermandias et al.
 		private static unsafe BodyScale? IdentifyBodyScale(ObjectStruct* gameObject)
 		{
 			if (gameObject == null)
@@ -229,31 +283,39 @@ namespace CustomizePlus
 
 			try
 			{
-				// Login screen. Names are populated after actors are drawn,
-				// so it is not possible to fetch names from the ui list.
-				// Actors are also not named. So use "Player"
-				if (!ClientState.IsLoggedIn)
+				actorName = new Utf8String(gameObject->Name).ToString();
+
+				if (!string.IsNullOrEmpty(actorName))
 				{
-					NameToScale.TryGetValue("Player", out scale);
+					NameToScale.TryGetValue(actorName, out scale);
 				}
 				else
 				{
-					actorName = new Utf8String(gameObject->Name).ToString();
+					string? actualName = null;
 
-					// All these special cases are relevant for an empty name, so never collide with the above setting.
-					// Only OwnerName can be applied to something with a non-empty name, and that is the specific case we want to handle.
-					var actualName = gameObject->ObjectIndex switch
+					// Check if in pvp intro sequence, which uses 240-244 for the 5 players, and only affect the first if so
+					// TODO: Ensure player side only. First group, where one of the node textures is blue. Alternately, look for hidden party list UI and get names from there.
+					if (GameGui.GetAddonByName("PvPMKSIntroduction", 1) == IntPtr.Zero)
 					{
-						240 => GetPlayerName(), // character window
-						241 => GetInspectName() ?? GetGlamourName(), // GetCardName() ?? // inspect, character card, glamour plate editor. - Card removed due to logic issues
-						242 => GetPlayerName(), // try-on
-						243 => GetPlayerName(), // dye preview
-						244 => GetPlayerName(), // portrait preview
-						>= 200 => GetCutsceneName(gameObject),
-						_ => null,
+						actualName = gameObject->ObjectIndex switch
+						{
+							240 => GetPlayerName(), // character window
+							241 => GetInspectName() ?? GetGlamourName(), // GetCardName() ?? // inspect, character card, glamour plate editor. - Card removed due to logic issues
+							242 => GetPlayerName(), // try-on
+							243 => GetPlayerName(), // dye preview
+							244 => GetPlayerName(), // portrait preview
+							>= 200 => GetCutsceneName(gameObject),
+							_ => null,
+						} ?? new Utf8String(gameObject->Name).ToString();
 					}
-
-						?? actorName ?? new Utf8String(gameObject->Name).ToString();
+					else
+					{
+						actualName = gameObject->ObjectIndex switch
+						{
+							240 => GetPlayerName(), // character window
+							_ => null,
+						} ?? new Utf8String(gameObject->Name).ToString();
+					}
 
 					if (actualName == null)
 					{
