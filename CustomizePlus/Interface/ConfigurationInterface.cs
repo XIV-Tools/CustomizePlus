@@ -52,6 +52,11 @@ namespace CustomizePlus.Interface
 			if (ImGui.Checkbox("Enable", ref enable))
 			{
 				config.Enable = enable;
+				if (config.AutomaticEditMode)
+				{
+					config.Save();
+					Plugin.LoadConfig();
+				}
 			}
 
 			if (ImGui.IsItemHovered())
@@ -77,10 +82,11 @@ namespace CustomizePlus.Interface
 			}
 
 			if (ImGui.IsItemHovered())
-				ImGui.SetTooltip($"Applies to NPCS (overrides next settings).");
+				ImGui.SetTooltip($"Apply scales to NPCs.\nSpecify a scale with the name 'Default' for it to apply to all NPCs and non-specified players.");
 
 			ImGui.SameLine();
-
+			/*
+			 * May not be needed, was intended for possible FPS fixes
 			bool applyToNpcsInBusyAreas = config.ApplyToNpcsInBusyAreas;
 			if (ImGui.Checkbox("Apply to NPCS in Busy Areas", ref applyToNpcsInBusyAreas))
 			{
@@ -91,7 +97,7 @@ namespace CustomizePlus.Interface
 				ImGui.SetTooltip($"Applies to NPCs in busy areas (when NPCs are in index > 200, which occurs when up to 100 characters are rendered.");
 
 			ImGui.SameLine();
-
+			*/
 			bool applyToNpcsInCutscenes = config.ApplyToNpcsInCutscenes;
 			if (ImGui.Checkbox("Apply to NPCs in Cutscenes", ref applyToNpcsInCutscenes))
 			{
@@ -99,7 +105,10 @@ namespace CustomizePlus.Interface
 			}
 
 			if (ImGui.IsItemHovered())
-				ImGui.SetTooltip($"Applies to NPCs in busy areas (when NPCs are in index > 200, which occurs when up to 100 characters are rendered.");
+				ImGui.SetTooltip($"Apply scales to NPCs in cutscenes.\nSpecify a scale with the name 'CutsceneDefault' to apply it to all generic characters.");
+			
+			ImGui.Separator();
+			ImGui.Text("Characters:");
 
 			ImGui.SameLine();
 
@@ -107,7 +116,6 @@ namespace CustomizePlus.Interface
 			{
 				ImGui.Text("Character Name:");
 				ImGui.InputText(string.Empty, ref this.newScaleCharacter, 1024);
-
 
 				if (ImGui.Button("OK"))
 				{
@@ -140,9 +148,6 @@ namespace CustomizePlus.Interface
 
 			if (ImGui.IsItemHovered())
 				ImGui.SetTooltip("Add a character");
-
-			ImGui.Separator();
-			ImGui.Text("Characters:");
 
 			ImGui.BeginChild("scrolling", new Vector2(0, ImGui.GetFrameHeightWithSpacing() - 56), false);
 
@@ -189,7 +194,7 @@ namespace CustomizePlus.Interface
 				}
 
 				if (ImGui.IsItemHovered())
-					ImGui.SetTooltip($"Enable and disable scale");
+					ImGui.SetTooltip($"Enable and disable scale.\nWill disable all other scales for the same character.");
 
 				ImGui.SameLine();
 				if (ImGuiComponents.IconButton(FontAwesomeIcon.Pen))
@@ -199,7 +204,7 @@ namespace CustomizePlus.Interface
 				}
 
 				if (ImGui.IsItemHovered())
-					ImGui.SetTooltip($"Edit body scale");
+					ImGui.SetTooltip($"Edit body scale (WIP)");
 
 				ImGui.SameLine();
 				if (ImGuiComponents.IconButton(FontAwesomeIcon.FileImport))
@@ -429,7 +434,7 @@ namespace CustomizePlus.Interface
 			return scale;
 		}
 
-		private readonly string defaultFile = @"{""FileExtension"": "".pose"", ""TypeName"": ""Default"", ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"", ""Bones"": {
+		private readonly string defaultFile = @"{""FileExtension"": "".pose"", ""TypeName"": ""Default"", ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""0, 0, 0"", ""Bones"": {
 			""Root"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 1"", ""Scale"": ""1, 1, 1""},
 			""Abdomen"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 1"", ""Scale"": ""1, 1, 1"" },
 			""Throw"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 1"", ""Scale"": ""1, 1, 1"" },
