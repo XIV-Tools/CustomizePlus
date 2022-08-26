@@ -494,7 +494,7 @@ namespace CustomizePlus.Interface
 		{
 			// Megahack method
 			if (boneNameModern == "Root" || boneNameModern == "Throw" || boneNameModern == "Abdomen" 
-				|| boneNameModern.Contains("Cloth") || boneNameModern.Contains("Scabbard")
+				|| boneNameModern.Contains("Cloth") || boneNameModern.Contains("Scabbard") || boneNameModern.Contains("Pauldron")
 				|| boneNameModern.Contains("Holster") || boneNameModern.Contains("Poleyn") || boneNameModern.Contains("Shield")
 				|| boneNameModern.Contains("Couter") || boneNameModern.Contains("Weapon") || boneNameModern.Contains("Sheathe"))
 				return false;

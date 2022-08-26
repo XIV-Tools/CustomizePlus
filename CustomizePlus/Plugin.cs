@@ -193,9 +193,9 @@ namespace CustomizePlus
 								continue;
 							// Choose most appropriate default, or fallback to null.
 							if (isCutsceneNpc)
-								scale = defaultCutsceneScale ?? defaultScale ?? null;
+								scale = scale ?? defaultCutsceneScale ?? defaultScale ?? null;
 							else
-								scale = defaultScale ?? null;
+								scale = scale ?? defaultScale ?? null;
 							break;
 						default:
 							continue;
