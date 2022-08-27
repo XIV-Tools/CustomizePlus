@@ -147,6 +147,13 @@ namespace CustomizePlus
 
 		public static unsafe void Update()
 		{
+			//Determine player object for root scale behavior later. Have to catch errors for zone transitions.
+			uint playerObjId = 0;
+			try
+			{
+				playerObjId = ObjectTable[0].ObjectId;
+			} catch (Exception ex) { }
+
 			for (var i = 0; i < ObjectTable.Length; i++)
 			{
 				// Always filler Event obj
@@ -203,8 +210,9 @@ namespace CustomizePlus
 					// No scale to apply, move on.
 					if (scale == null)
 						continue;
-					// Don't apply root scales to NPCs in cutscenes or battle NPCs. Both cause animation or camera issues.
-					scale.Apply(obj, !(isCutsceneNpc || (obj.ObjectKind == ObjectKind.BattleNpc)));
+					// Don't apply root scales to NPCs in cutscenes or battle NPCs. Both cause animation or camera issues. Exception made for player pets
+					bool applyRootScale = !(isCutsceneNpc || (obj.ObjectKind == ObjectKind.BattleNpc && obj.OwnerId != playerObjId));
+					scale.Apply(obj, applyRootScale);
 				}
 				catch (Exception ex)
 				{
