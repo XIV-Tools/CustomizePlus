@@ -27,7 +27,6 @@ namespace CustomizePlus.Api
 		public const string LabelRevert							= $"CustomizePlus.{nameof(Revert)}";
 		public const string LabelRevertCharacter				= $"CustomizePlus.{nameof(RevertCharacter)}";
 		public const string LabelOnScaleUpdate					= $"CustomizePlus.{nameof(OnScaleUpdate)}";
-
 		private readonly ObjectTable objectTable;
 		private readonly DalamudPluginInterface pluginInterface;
 
@@ -67,7 +66,6 @@ namespace CustomizePlus.Api
 		private void InitializeProviders()
 		{
 			PluginLog.Debug("Initializing c+ ipc providers.");
-
 			try
 			{
 				ProviderGetApiVersion = pluginInterface.GetIpcProvider<int>(LabelProviderApiVersion);
@@ -141,7 +139,6 @@ namespace CustomizePlus.Api
 			{
 				PluginLog.Error(ex, $"Error registering IPC provider for {LabelRevertCharacter}.");
 			}
-
 			try
 			{
 				ProviderOnScaleUpdate = pluginInterface.GetIpcProvider<string?, object?>(LabelOnScaleUpdate);
