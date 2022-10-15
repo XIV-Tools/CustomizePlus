@@ -26,8 +26,8 @@ namespace CustomizePlus.Api
 		public const string LabelSetBodyScaleToCharacter		= $"CustomizePlus.{nameof(SetBodyScaleToCharacter)}";
 		public const string LabelRevert							= $"CustomizePlus.{nameof(Revert)}";
 		public const string LabelRevertCharacter				= $"CustomizePlus.{nameof(RevertCharacter)}";
+		public const string LabelOnScaleUpdate					= $"CustomizePlus.{nameof(OnScaleUpdate)}";
 
-		private readonly ClientState clientState;
 		private readonly ObjectTable objectTable;
 		private readonly DalamudPluginInterface pluginInterface;
 
@@ -39,10 +39,10 @@ namespace CustomizePlus.Api
 		internal ICallGateProvider<string, object>?				ProviderRevert;
 		internal ICallGateProvider<Character?, object>?			ProviderRevertCharacter;
 		internal ICallGateProvider<int>?						ProviderGetApiVersion;
+		internal ICallGateProvider<string?, object?>?			ProviderOnScaleUpdate; //Sends either bodyscale string or null at startup and when scales are saved in the ui
 
-		public CustomizePlusIpc(ClientState clientState, ObjectTable objectTable, DalamudPluginInterface pluginInterface)
+		public CustomizePlusIpc(ObjectTable objectTable, DalamudPluginInterface pluginInterface)
 		{
-			this.clientState = clientState;
 			this.objectTable = objectTable;
 			this.pluginInterface = pluginInterface;
 
@@ -66,6 +66,8 @@ namespace CustomizePlus.Api
 
 		private void InitializeProviders()
 		{
+			PluginLog.Debug("Initializing c+ ipc providers.");
+
 			try
 			{
 				ProviderGetApiVersion = pluginInterface.GetIpcProvider<int>(LabelProviderApiVersion);
@@ -139,6 +141,22 @@ namespace CustomizePlus.Api
 			{
 				PluginLog.Error(ex, $"Error registering IPC provider for {LabelRevertCharacter}.");
 			}
+
+			try
+			{
+				ProviderOnScaleUpdate = pluginInterface.GetIpcProvider<string?, object?>(LabelOnScaleUpdate);
+			} 
+			catch (Exception ex)
+			{
+				PluginLog.Error(ex, $"Error registering IPC provider for {LabelOnScaleUpdate}.");
+			}
+
+		}
+
+		public void OnScaleUpdate(string bodyScaleString)
+		{
+			PluginLog.Debug("Sending c+ ipc scale message.");
+			ProviderOnScaleUpdate?.SendMessage(bodyScaleString);
 		}
 
 		private static int GetApiVersion()
