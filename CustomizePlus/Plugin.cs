@@ -23,6 +23,7 @@ namespace CustomizePlus
 	using Dalamud.Plugin;
 	using FFXIVClientStructs.FFXIV.Client.UI;
 	using FFXIVClientStructs.FFXIV.Component.GUI;
+	using Newtonsoft.Json;
 	using Penumbra.GameData.ByteString;
 	using CharacterStruct = FFXIVClientStructs.FFXIV.Client.Game.Character.Character;
 	using CustomizeData = Penumbra.GameData.Structs.CustomizeData;
@@ -38,13 +39,14 @@ namespace CustomizePlus
 		private static BodyScale? defaultScale;
 		private static BodyScale? defaultRetainerScale;
 		private static BodyScale? defaultCutsceneScale;
-		private static CustomizePlusIpc? customizePlusIpc;
+		private static CustomizePlusIpc ipcManager = null!;
 
 		public Plugin()
 		{
 			try
 			{
 				Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
+				ipcManager = new(ObjectTable, PluginInterface);
 
 				LoadConfig();
 
@@ -55,8 +57,6 @@ namespace CustomizePlus
 
 				if (PluginInterface.IsDevMenuOpen)
 					ConfigurationInterface.Show();
-
-				customizePlusIpc = new CustomizePlusIpc(ClientState, ObjectTable, PluginInterface);
 
 				ChatGui.Print("Customize+ started");
 			}
@@ -132,6 +132,14 @@ namespace CustomizePlus
 
 						renderManagerHook.Enable();
 						PluginLog.Debug("Hooking render function");
+
+						//Get player's body scale string and send IPC message
+						string? playerName = GetPlayerName();
+						if (playerName != null) {	
+							BodyScale? playerScale = GetBodyScale(playerName);
+							ipcManager.OnScaleUpdate(JsonConvert.SerializeObject(playerScale));
+						}
+						
 					}
 					else
 					{
