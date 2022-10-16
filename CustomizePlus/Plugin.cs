@@ -249,7 +249,7 @@ namespace CustomizePlus
 
 		public void Dispose()
 		{
-			customizePlusIpc?.Dispose();
+			ipcManager?.Dispose();
 
 			renderManagerHook?.Disable();
 			renderManagerHook?.Dispose();
