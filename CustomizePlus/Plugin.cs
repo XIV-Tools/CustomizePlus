@@ -7,7 +7,9 @@
 namespace CustomizePlus
 {
 	using System;
+	using System.Collections.Concurrent;
 	using System.Collections.Generic;
+	using CustomizePlus.Api;
 	using CustomizePlus.Interface;
 	using Dalamud.Game;
 	using Dalamud.Game.ClientState;
@@ -21,6 +23,7 @@ namespace CustomizePlus
 	using Dalamud.Plugin;
 	using FFXIVClientStructs.FFXIV.Client.UI;
 	using FFXIVClientStructs.FFXIV.Component.GUI;
+	using Newtonsoft.Json;
 	using Penumbra.GameData.ByteString;
 	using CharacterStruct = FFXIVClientStructs.FFXIV.Client.Game.Character.Character;
 	using CustomizeData = Penumbra.GameData.Structs.CustomizeData;
@@ -31,16 +34,19 @@ namespace CustomizePlus
 	{
 		private static readonly Dictionary<string, BodyScale> NameToScale = new();
 		private static Dictionary<GameObject, BodyScale> scaleByObject = new();
+		private static ConcurrentDictionary<string, BodyScale> scaleOverride = new();
 		private static Hook<RenderDelegate>? renderManagerHook;
 		private static BodyScale? defaultScale;
 		private static BodyScale? defaultRetainerScale;
 		private static BodyScale? defaultCutsceneScale;
+		private static CustomizePlusIpc ipcManager = null!;
 
 		public Plugin()
 		{
 			try
 			{
 				Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
+				ipcManager = new(ObjectTable, PluginInterface);
 
 				LoadConfig();
 
@@ -126,6 +132,14 @@ namespace CustomizePlus
 
 						renderManagerHook.Enable();
 						PluginLog.Debug("Hooking render function");
+
+						//Get player's body scale string and send IPC message
+						string? playerName = GetPlayerName();
+						if (playerName != null) {	
+							BodyScale? playerScale = GetBodyScale(playerName);
+							ipcManager.OnScaleUpdate(JsonConvert.SerializeObject(playerScale));
+						}
+						
 					}
 					else
 					{
@@ -235,6 +249,8 @@ namespace CustomizePlus
 
 		public void Dispose()
 		{
+			ipcManager?.Dispose();
+
 			renderManagerHook?.Disable();
 			renderManagerHook?.Dispose();
 
@@ -293,11 +309,7 @@ namespace CustomizePlus
 			{
 				actorName = new Utf8String(gameObject->Name).ToString();
 
-				if (!string.IsNullOrEmpty(actorName))
-				{
-					NameToScale.TryGetValue(actorName, out scale);
-				}
-				else
+				if (string.IsNullOrEmpty(actorName))
 				{
 					string? actualName = null;
 
@@ -330,8 +342,10 @@ namespace CustomizePlus
 						return null;
 					}
 
-					NameToScale.TryGetValue(actualName, out scale);
+					actorName = actualName;
 				}
+
+				scale = IdentifyBodyScaleByName(actorName);
 			}
 			catch (Exception e)
 			{
@@ -339,6 +353,14 @@ namespace CustomizePlus
 				return null;
 			}
 
+			return scale;
+		}
+
+		private static BodyScale? IdentifyBodyScaleByName(string actorName)
+		{
+			BodyScale? scale = null;
+			if (!scaleOverride.TryGetValue(actorName, out scale))
+				NameToScale.TryGetValue(actorName, out scale);
 			return scale;
 		}
 
@@ -415,5 +437,24 @@ namespace CustomizePlus
 
 		private static string? GetPlayerName()
 			=> ObjectTable[0]?.Name.ToString();
+
+		public static void SetTemporaryCharacterScale(string characterName, BodyScale scale)
+		{
+			if (string.IsNullOrEmpty(characterName))
+				return;
+			scaleOverride[characterName] = scale;
+		}
+
+		public static bool RemoveTemporaryCharacterScale(string characterName)
+		{
+			return scaleOverride.TryRemove(characterName, out _);
+		}
+
+		public static BodyScale? GetBodyScale(string characterName)
+		{
+			if (string.IsNullOrEmpty(characterName))
+				return null;
+			return IdentifyBodyScaleByName(characterName);
+		}
 	}
 }
