@@ -18,7 +18,8 @@ namespace CustomizePlus.Api
 {
 	public class CustomizePlusIpc : IDisposable
 	{
-		public const int CurrentApiVersion = 0;
+		public static readonly string ApiVersion = "1.0";
+
 		public const string LabelProviderApiVersion				= $"CustomizePlus.{nameof(GetApiVersion)}";
 		public const string LabelGetBodyScale					= $"CustomizePlus.{nameof(GetBodyScale)}";
 		public const string LabelGetBodyScaleFromCharacter		= $"CustomizePlus.{nameof(GetBodyScaleFromCharacter)}";
@@ -37,7 +38,7 @@ namespace CustomizePlus.Api
 		internal ICallGateProvider<string, Character?, object>?	ProviderSetBodyScaleToCharacter;
 		internal ICallGateProvider<string, object>?				ProviderRevert;
 		internal ICallGateProvider<Character?, object>?			ProviderRevertCharacter;
-		internal ICallGateProvider<int>?						ProviderGetApiVersion;
+		internal ICallGateProvider<string>?						ProviderGetApiVersion;
 		internal ICallGateProvider<string?, object?>?			ProviderOnScaleUpdate; //Sends either bodyscale string or null at startup and when scales are saved in the ui
 
 		public CustomizePlusIpc(ObjectTable objectTable, DalamudPluginInterface pluginInterface)
@@ -68,7 +69,7 @@ namespace CustomizePlus.Api
 			PluginLog.Debug("Initializing c+ ipc providers.");
 			try
 			{
-				ProviderGetApiVersion = pluginInterface.GetIpcProvider<int>(LabelProviderApiVersion);
+				ProviderGetApiVersion = pluginInterface.GetIpcProvider<string>(LabelProviderApiVersion);
 				ProviderGetApiVersion.RegisterFunc(GetApiVersion);
 			}
 			catch (Exception ex)
@@ -156,12 +157,12 @@ namespace CustomizePlus.Api
 			ProviderOnScaleUpdate?.SendMessage(bodyScaleString);
 		}
 
-		private static int GetApiVersion()
-			=> CurrentApiVersion;
+		private static string GetApiVersion()
+			=> ApiVersion;
 
 		private string? GetBodyScale(string characterName)
 		{
-			BodyScale? bodyScale = Plugin.GetBodyScale(characterName);
+			BodyScale? bodyScale = Plugin.GetPlayerBodyScale(characterName);
 			return bodyScale != null ? JsonConvert.SerializeObject(bodyScale) : null;
 		}
 

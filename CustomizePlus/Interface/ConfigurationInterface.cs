@@ -55,7 +55,7 @@ namespace CustomizePlus.Interface
 				if (config.AutomaticEditMode)
 				{
 					config.Save();
-					Plugin.LoadConfig();
+					Plugin.LoadConfig(true);
 				}
 			}
 
@@ -125,13 +125,13 @@ namespace CustomizePlus.Interface
 
 					// TODO: Build scales from only present bones
 					// scale = this.BuildFromName(scale, characterName);
-					scale = this.BuildDefault(scale);
+					scale = BuildDefault(scale);
 					Plugin.Configuration.BodyScales.Add(scale);
 					Plugin.Configuration.ToggleOffAllOtherMatching(characterName, scale.ScaleName);
 					if (config.AutomaticEditMode)
 					{
 						config.Save();
-						Plugin.LoadConfig();
+						Plugin.LoadConfig(true);
 					}
 					ImGui.CloseCurrentPopup();
 				}
@@ -148,6 +148,17 @@ namespace CustomizePlus.Interface
 
 			if (ImGui.IsItemHovered())
 				ImGui.SetTooltip("Add a character");
+
+			// IPC Testing Window - Hidden unless enabled in json.
+			if (config.DebuggingMode)
+			{
+				ImGui.SameLine();
+				if (ImGuiComponents.IconButton(FontAwesomeIcon.Pen))
+				{
+					IPCTestInterface ipcWindow = new IPCTestInterface();
+					ipcWindow.Show(Plugin.PluginInterface);
+				}
+			}
 
 			ImGui.Separator();
 
@@ -191,7 +202,7 @@ namespace CustomizePlus.Interface
 					config.Save();
 					if (config.AutomaticEditMode)
 					{
-						Plugin.LoadConfig();
+						Plugin.LoadConfig(true);
 					}
 				}
 
@@ -321,13 +332,13 @@ namespace CustomizePlus.Interface
 		{
 			if (characterName == null)
 			{
-				return this.BuildDefault(scale);
+				return BuildDefault(scale);
 			}
 			else
 			{
 				GameObject? obj = Plugin.FindModelByName(characterName);
 				if (obj == null)
-					return this.BuildDefault(scale);
+					return BuildDefault(scale);
 				try
 				{
 					List<string> boneNameList = new();
@@ -361,22 +372,22 @@ namespace CustomizePlus.Interface
 				}
 			}
 			scale.ScaleName = $"Default";
-			return this.BuildDefault(scale);
+			return BuildDefault(scale);
 		}
 
 		// TODO: Change to using real bone dict and not existing JSON logic.
-		private BodyScale BuildDefault(BodyScale scale)
+		public static BodyScale BuildDefault(BodyScale scale)
 		{
-			string json = this.defaultFile;
+			string json = defaultFile;
 
-			scale = this.BuildFromJSON(scale, json);
+			scale = BuildFromJSON(scale, json);
 
 			scale.ScaleName = "Default";
 
 			return scale;
 		}
 
-		private BodyScale BuildFromJSON(BodyScale scale, string json)
+		private static BodyScale BuildFromJSON(BodyScale scale, string json)
 		{
 			if (json == null)
 				return null;
@@ -436,7 +447,7 @@ namespace CustomizePlus.Interface
 			return scale;
 		}
 
-		private readonly string defaultFile = @"{""FileExtension"": "".pose"", ""TypeName"": ""Default"", ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""0, 0, 0"", ""Bones"": {
+		private static readonly string defaultFile = @"{""FileExtension"": "".pose"", ""TypeName"": ""Default"", ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""0, 0, 0"", ""Bones"": {
 			""Root"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 1"", ""Scale"": ""1, 1, 1""},
 			""Abdomen"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 1"", ""Scale"": ""1, 1, 1"" },
 			""Throw"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 1"", ""Scale"": ""1, 1, 1"" },
