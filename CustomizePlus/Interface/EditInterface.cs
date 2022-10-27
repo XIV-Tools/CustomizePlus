@@ -147,7 +147,7 @@ namespace CustomizePlus.Interface
 				this.newRootScale = rootScaleLocal;
 				if (config.AutomaticEditMode)
 				{
-					this.UpdateCurrent("Root", new HkVector4(1f, 1f, 1f, 1f));
+					this.UpdateCurrent("Root", new HkVector4(1f, 1f, 1f, 1f), config.AutomaticEditMode);
 				}
 				this.reset = true;
 			}
@@ -180,7 +180,7 @@ namespace CustomizePlus.Interface
 				this.newRootScale = rootScaleLocal;
 				if (config.AutomaticEditMode)
 				{
-					this.UpdateCurrent("Root", new HkVector4(rootScaleLocal.X, rootScaleLocal.Y, rootScaleLocal.Z, rootScaleLocalTemp.W));
+					this.UpdateCurrent("Root", new HkVector4(rootScaleLocal.X, rootScaleLocal.Y, rootScaleLocal.Z, rootScaleLocalTemp.W), config.AutomaticEditMode);
 				}
 			}
 
@@ -277,7 +277,7 @@ namespace CustomizePlus.Interface
 					}
 					if (config.AutomaticEditMode)
 					{
-						this.UpdateCurrent(boneNameLocalLegacy, new HkVector4(currentVector4.X, currentVector4.Y, currentVector4.Z, currentVector4.W));
+						this.UpdateCurrent(boneNameLocalLegacy, new HkVector4(currentVector4.X, currentVector4.Y, currentVector4.Z, currentVector4.W), config.AutomaticEditMode);
 					}
 				}
 				else if (currentVector4.X == currentVector4.Y && currentVector4.Y == currentVector4.Z)
@@ -340,7 +340,7 @@ namespace CustomizePlus.Interface
 					}
 					if (config.AutomaticEditMode)
 					{
-						this.UpdateCurrent(boneNameLocalLegacy, new HkVector4(currentVector4.X, currentVector4.Y, currentVector4.Z, currentVector4.W));
+						this.UpdateCurrent(boneNameLocalLegacy, new HkVector4(currentVector4.X, currentVector4.Y, currentVector4.Z, currentVector4.W), config.AutomaticEditMode);
 					}
 				}
 
@@ -447,7 +447,7 @@ namespace CustomizePlus.Interface
 			this.newRootScale = this.originalRootScale;
 		}
 
-		private void UpdateCurrent(string boneName, HkVector4 boneValue)
+		private void UpdateCurrent(string boneName, HkVector4 boneValue, bool autoMode = false)
 		{
 			Configuration config = Plugin.Configuration;
 			BodyScale newBody = this.ScaleUpdated;
@@ -468,7 +468,7 @@ namespace CustomizePlus.Interface
 
 			config.BodyScales[this.scaleIndex] = newBody;
 			config.Save();
-			Plugin.LoadConfig();
+			Plugin.LoadConfig(autoMode);
 		}
 
 		private int GetCurrentScaleIndex(string scaleName, string scaleCharacter)
