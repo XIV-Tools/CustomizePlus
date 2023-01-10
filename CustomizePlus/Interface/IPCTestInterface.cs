@@ -22,42 +22,42 @@ namespace CustomizePlus.Interface
 
 	public class IPCTestInterface : WindowBase
 	{
-		private DalamudPluginInterface localPlugin;
-		private bool _subscribed = true;
+		//private DalamudPluginInterface localPlugin;
+		private bool subscribed = true;
 
-		private ICallGateSubscriber<string, string?>? _getBodyScale;
+		private ICallGateSubscriber<string, string>? getBodyScale;
 		//private readonly ICallGateSubscriber<Character?, string?>? ProviderGetBodyScaleFromCharacter;
-		private ICallGateSubscriber<string, string, object>? _setBodyScale;
+		private ICallGateSubscriber<string, string, object>? setBodyScale;
 		//private readonly ICallGateSubscriber<string, Character?, object>? ProviderSetBodyScaleToCharacter;
-		private ICallGateSubscriber<string, object>? _revert;
+		private ICallGateSubscriber<string, object>? revert;
 		//private readonly ICallGateSubscriber<Character?, object>? ProviderRevertCharacter;
 		//private readonly ICallGateSubscriber<string>? _getApiVersion;
 		//private readonly ICallGateSubscriber<string?, object?>? _onScaleUpdate;
 
 		public IPCTestInterface()
 		{
-			//localPlugin = pi;		
+			//localPlugin = pi;
 		}
 
 		private void SubscribeEvents()
 		{
-			if (!_subscribed)
+			if (!subscribed)
 			{
-				_subscribed = true;
+				subscribed = true;
 			}
 		}
 
 		public void UnsubscribeEvents()
 		{
-			if (_subscribed)
+			if (subscribed)
 			{
-				_subscribed = false;
+				subscribed = false;
 			}
 		}
 
-		public void Dispose()
+		public override void Dispose()
 		{
-			_subscribed = false;
+			subscribed = false;
 		}
 
 		protected BodyScale? Scale { get; private set; }
@@ -84,16 +84,16 @@ namespace CustomizePlus.Interface
 		private bool scaleEnabled = false;
 		private bool reset = false;
 
-		private bool AutomaticEditMode = false;
+		private bool automaticEditMode = false;
 
 		public void Show(DalamudPluginInterface pi)
 		{
-			localPlugin = pi;
-			_getBodyScale = localPlugin.GetIpcSubscriber<string, string?>("CustomizePlus.GetBodyScale");
+			DalamudPluginInterface localPlugin = pi;
+			getBodyScale = localPlugin.GetIpcSubscriber<string, string>("CustomizePlus.GetBodyScale");
 			//localPlugin.GetIpcSubscriber<Character?, string?> ProviderGetBodyScaleFromCharacter;
-			_setBodyScale = localPlugin.GetIpcSubscriber<string, string, object>("CustomizePlus.SetBodyScale");
+			setBodyScale = localPlugin.GetIpcSubscriber<string, string, object>("CustomizePlus.SetBodyScale");
 			//localPlugin.GetIpcSubscriber<string, Character?, object> ProviderSetBodyScaleToCharacter;
-			_revert = localPlugin.GetIpcSubscriber<string, object>("CustomizePlus.Revert");
+			revert = localPlugin.GetIpcSubscriber<string, object>("CustomizePlus.Revert");
 			//localPlugin.GetIpcSubscriber<Character?, object>? ProviderRevertCharacter;
 			//_getApiVersion = localPlugin.GetIpcSubscriber<string>("CustomizePlus.GetApiVersion");
 			//_onScaleUpdate = localPlugin.GetIpcSubscriber<string?, object?>("CustomizePlus.OnScaleUpdate"); ;
@@ -164,7 +164,7 @@ namespace CustomizePlus.Interface
 			if (ImGui.Checkbox("Enable", ref enabledTemp))
 			{
 				this.scaleEnabled = enabledTemp;
-				if (AutomaticEditMode)
+				if (automaticEditMode)
 				{
 
 				}
@@ -189,10 +189,10 @@ namespace CustomizePlus.Interface
 
 			ImGui.SameLine();
 
-			bool autoModeEnable = AutomaticEditMode;
+			bool autoModeEnable = automaticEditMode;
 			if (ImGui.Checkbox("Automatic Mode", ref autoModeEnable))
 			{
-				AutomaticEditMode = autoModeEnable;
+				automaticEditMode = autoModeEnable;
 			}
 
 			if (ImGui.IsItemHovered())
@@ -206,7 +206,7 @@ namespace CustomizePlus.Interface
 			{
 				rootScaleLocal = new Vector4(1f, 1f, 1f, 1f);
 				this.newRootScale = rootScaleLocal;
-				if (AutomaticEditMode)
+				if (automaticEditMode)
 				{
 					this.UpdateCurrent("Root", new HkVector4(1f, 1f, 1f, 1f));
 				}
@@ -239,7 +239,7 @@ namespace CustomizePlus.Interface
 				}
 				rootScaleLocal = new Vector4(rootScaleLocalTemp.X, rootScaleLocalTemp.Y, rootScaleLocalTemp.Z, rootScaleLocalTemp.W);
 				this.newRootScale = rootScaleLocal;
-				if (AutomaticEditMode)
+				if (automaticEditMode)
 				{
 					this.UpdateCurrent("Root", new HkVector4(rootScaleLocal.X, rootScaleLocal.Y, rootScaleLocal.Z, rootScaleLocalTemp.W));
 				}
@@ -336,7 +336,7 @@ namespace CustomizePlus.Interface
 					{
 						//throw new Exception();
 					}
-					if (AutomaticEditMode)
+					if (automaticEditMode)
 					{
 						this.UpdateCurrent(boneNameLocalLegacy, new HkVector4(currentVector4.X, currentVector4.Y, currentVector4.Z, currentVector4.W));
 					}
@@ -399,7 +399,7 @@ namespace CustomizePlus.Interface
 					{
 						//throw new Exception();
 					}
-					if (AutomaticEditMode)
+					if (automaticEditMode)
 					{
 						this.UpdateCurrent(boneNameLocalLegacy, new HkVector4(currentVector4.X, currentVector4.Y, currentVector4.Z, currentVector4.W));
 					}
@@ -457,16 +457,16 @@ namespace CustomizePlus.Interface
 
 			var bodyString = JsonConvert.SerializeObject(newBody);
 			//PluginLog.Information($"{pi.PluginNames}");
-			_setBodyScale = pi.GetIpcSubscriber<string, string, object>("CustomizePlus.SetBodyScale");
+			setBodyScale = pi.GetIpcSubscriber<string, string, object>("CustomizePlus.SetBodyScale");
 			//PluginLog.Information($"{_setBodyScale}: -- {bodyString} -- {newBody.CharacterName}");
-			_setBodyScale.InvokeAction(bodyString, newBody.CharacterName);
+			setBodyScale.InvokeAction(bodyString, newBody.CharacterName);
 		}
 
 		private void GetFromIPC(string characterName, DalamudPluginInterface pi)
 		{
-			_getBodyScale = pi.GetIpcSubscriber<string, string>("CustomizePlus.GetBodyScale");
+			getBodyScale = pi.GetIpcSubscriber<string, string>("CustomizePlus.GetBodyScale");
 			//PluginLog.Information($"{_setBodyScale}: -- {bodyString} -- {newBody.CharacterName}");
-			var bodyScaleString = _getBodyScale.InvokeFunc(newScaleCharacter);
+			var bodyScaleString = getBodyScale.InvokeFunc(newScaleCharacter);
 
 			//PluginLog.Information(bodyScaleString);
 			if (bodyScaleString != null)
@@ -487,8 +487,8 @@ namespace CustomizePlus.Interface
 
 		private void RevertToOriginal(string characterName, DalamudPluginInterface pi) // Use to unassign override scale in IPC testing mode
 		{
-			_revert = pi.GetIpcSubscriber<string, object>("CustomizePlus.Revert");
-			_revert.InvokeAction(newScaleCharacter);
+			revert = pi.GetIpcSubscriber<string, object>("CustomizePlus.Revert");
+			revert.InvokeAction(newScaleCharacter);
 		}
 
 		private void UpdateCurrent(string boneName, HkVector4 boneValue)

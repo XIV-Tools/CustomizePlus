@@ -37,8 +37,8 @@ namespace CustomizePlus.Interface
 		private Vector4 newRootScale = HkVector4.One.GetAsNumericsVector();
 
 		private BodyScale? scaleStart;
-		private Dictionary<string, HkVector4>? boneValuesOriginal = new Dictionary<string, HkVector4>();
-		private Dictionary<string, HkVector4>? boneValuesNew = new Dictionary<string, HkVector4>();
+		private Dictionary<string, HkVector4> boneValuesOriginal = new Dictionary<string, HkVector4>();
+		private Dictionary<string, HkVector4> boneValuesNew = new Dictionary<string, HkVector4>();
 		private readonly List<string> boneNamesLegacy = LegacyBoneNameConverter.GetLegacyNames();
 		private readonly List<string> boneNamesModern = LegacyBoneNameConverter.GetModernNames();
 		private List<string> boneNamesModernUsed = new List<string>();

@@ -269,7 +269,7 @@ namespace Anamnesis.Posing
 			List<string> namesList = new List<string>(ModernToLegacy.Count);
 			foreach (string legacyName in LegacyToModern.Values)
 			{
-				string modernName = GetModernName(legacyName);
+				string? modernName = GetModernName(legacyName);
 				if (namesList.Contains(legacyName) || modernName.StartsWith("Viera") || modernName.StartsWith("Hroth"))
 					continue;
 				namesList.Add(legacyName);

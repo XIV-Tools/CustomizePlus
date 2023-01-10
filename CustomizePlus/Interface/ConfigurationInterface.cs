@@ -197,7 +197,7 @@ namespace CustomizePlus.Interface
 				if (ImGui.Checkbox("Enable", ref bodyScaleEnabled))
 				{
 					if (bodyScale.CharacterName != null)
-						config.ToggleOffAllOtherMatching(bodyScale.CharacterName, bodyScale.ScaleName);
+						config.ToggleOffAllOtherMatching(bodyScale.CharacterName, bodyScale.ScaleName == null ? "" : bodyScale.ScaleName);
 					bodyScale.BodyScaleEnabled = bodyScaleEnabled;
 					config.Save();
 					if (config.AutomaticEditMode)
@@ -378,7 +378,7 @@ namespace CustomizePlus.Interface
 		// TODO: Change to using real bone dict and not existing JSON logic.
 		public static BodyScale BuildDefault(BodyScale scale)
 		{
-			string json = defaultFile;
+			string json = DefaultFile;
 
 			scale = BuildFromJSON(scale, json);
 
@@ -387,7 +387,7 @@ namespace CustomizePlus.Interface
 			return scale;
 		}
 
-		private static BodyScale BuildFromJSON(BodyScale scale, string json)
+		private static BodyScale? BuildFromJSON(BodyScale scale, string json)
 		{
 			if (json == null)
 				return null;
@@ -447,7 +447,7 @@ namespace CustomizePlus.Interface
 			return scale;
 		}
 
-		private static readonly string defaultFile = @"{""FileExtension"": "".pose"", ""TypeName"": ""Default"", ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""0, 0, 0"", ""Bones"": {
+		private static readonly string DefaultFile = @"{""FileExtension"": "".pose"", ""TypeName"": ""Default"", ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""0, 0, 0"", ""Bones"": {
 			""Root"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 1"", ""Scale"": ""1, 1, 1""},
 			""Abdomen"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 1"", ""Scale"": ""1, 1, 1"" },
 			""Throw"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 1"", ""Scale"": ""1, 1, 1"" },

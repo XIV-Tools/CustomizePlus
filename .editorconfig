@@ -82,6 +82,15 @@ csharp_style_prefer_tuple_swap = true:suggestion
 # SA1101: Prefix local calls with this
 dotnet_diagnostic.SA1101.severity = silent
 
+# CS8602: Dereference of a possibly null reference.
+dotnet_diagnostic.CS8602.severity = silent
+
+# CS0168: Variable is declared but never used
+dotnet_diagnostic.CS0168.severity = silent
+
+# CS8600: Converting null literal or possible null value to non-nullable type.
+dotnet_diagnostic.CS8600.severity = suggestion
+
 [*.{cs,vb}]
 dotnet_style_operator_placement_when_wrapping = beginning_of_line
 tab_width = 4
