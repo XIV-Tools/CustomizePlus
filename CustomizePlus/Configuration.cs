@@ -19,7 +19,8 @@ namespace CustomizePlus
 		// public bool	ApplyToNpcsInBusyAreas { get; set; } = false;
 		public bool ApplyToNpcsInCutscenes { get; set; } = true;
 
-		
+		public bool DebuggingMode { get; set; } = false;
+
 		// Upcoming feature
 		/*
 		public bool GroupByScale { get; set; } = false;

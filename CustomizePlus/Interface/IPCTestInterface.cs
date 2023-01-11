@@ -14,18 +14,56 @@ namespace CustomizePlus.Interface
 	using Dalamud.Interface;
 	using Dalamud.Interface.Components;
 	using Dalamud.Logging;
+	using Dalamud.Plugin;
 	using ImGuiNET;
 	using Newtonsoft.Json;
 	using static CustomizePlus.BodyScale;
+	using Dalamud.Plugin.Ipc;
 
-	public class EditInterface : WindowBase
+	public class IPCTestInterface : WindowBase
 	{
+		//private DalamudPluginInterface localPlugin;
+		private bool subscribed = true;
+
+		private ICallGateSubscriber<string, string>? getBodyScale;
+		//private readonly ICallGateSubscriber<Character?, string?>? ProviderGetBodyScaleFromCharacter;
+		private ICallGateSubscriber<string, string, object>? setBodyScale;
+		//private readonly ICallGateSubscriber<string, Character?, object>? ProviderSetBodyScaleToCharacter;
+		private ICallGateSubscriber<string, object>? revert;
+		//private readonly ICallGateSubscriber<Character?, object>? ProviderRevertCharacter;
+		//private readonly ICallGateSubscriber<string>? _getApiVersion;
+		//private readonly ICallGateSubscriber<string?, object?>? _onScaleUpdate;
+
+		public IPCTestInterface()
+		{
+			//localPlugin = pi;
+		}
+
+		private void SubscribeEvents()
+		{
+			if (!subscribed)
+			{
+				subscribed = true;
+			}
+		}
+
+		public void UnsubscribeEvents()
+		{
+			if (subscribed)
+			{
+				subscribed = false;
+			}
+		}
+
+		public override void Dispose()
+		{
+			subscribed = false;
+		}
+
 		protected BodyScale? Scale { get; private set; }
 
-		protected override string Title => $"(WIP) Edit Scale: {this.originalScaleName}";
+		protected override string Title => $"(WIP) IPC Test: {this.newScaleCharacter}";
 		protected BodyScale? ScaleUpdated { get; private set; }
-
-		private int scaleIndex = -1;
 
 		private string newScaleName = string.Empty;
 		private string newScaleCharacter = string.Empty;
@@ -37,8 +75,8 @@ namespace CustomizePlus.Interface
 		private Vector4 newRootScale = HkVector4.One.GetAsNumericsVector();
 
 		private BodyScale? scaleStart;
-		private Dictionary<string, HkVector4> boneValuesOriginal = new Dictionary<string, HkVector4>();
-		private Dictionary<string, HkVector4> boneValuesNew = new Dictionary<string, HkVector4>();
+		private Dictionary<string, HkVector4>? boneValuesOriginal = new Dictionary<string, HkVector4>();
+		private Dictionary<string, HkVector4>? boneValuesNew = new Dictionary<string, HkVector4>();
 		private readonly List<string> boneNamesLegacy = LegacyBoneNameConverter.GetLegacyNames();
 		private readonly List<string> boneNamesModern = LegacyBoneNameConverter.GetModernNames();
 		private List<string> boneNamesModernUsed = new List<string>();
@@ -46,15 +84,28 @@ namespace CustomizePlus.Interface
 		private bool scaleEnabled = false;
 		private bool reset = false;
 
-		public void Show(BodyScale scale)
+		private bool automaticEditMode = false;
+
+		public void Show(DalamudPluginInterface pi)
 		{
-			Configuration config = Plugin.Configuration;
-			EditInterface editWnd = Plugin.InterfaceManager.Show<EditInterface>();
+			DalamudPluginInterface localPlugin = pi;
+			getBodyScale = localPlugin.GetIpcSubscriber<string, string>("CustomizePlus.GetBodyScale");
+			//localPlugin.GetIpcSubscriber<Character?, string?> ProviderGetBodyScaleFromCharacter;
+			setBodyScale = localPlugin.GetIpcSubscriber<string, string, object>("CustomizePlus.SetBodyScale");
+			//localPlugin.GetIpcSubscriber<string, Character?, object> ProviderSetBodyScaleToCharacter;
+			revert = localPlugin.GetIpcSubscriber<string, object>("CustomizePlus.Revert");
+			//localPlugin.GetIpcSubscriber<Character?, object>? ProviderRevertCharacter;
+			//_getApiVersion = localPlugin.GetIpcSubscriber<string>("CustomizePlus.GetApiVersion");
+			//_onScaleUpdate = localPlugin.GetIpcSubscriber<string?, object?>("CustomizePlus.OnScaleUpdate"); ;
+			//UnsubscribeEvents();
+			IPCTestInterface editWnd = Plugin.InterfaceManager.Show<IPCTestInterface>();
+
+			var scale = ConfigurationInterface.BuildDefault(new BodyScale());
 			editWnd.Scale = scale;
 			editWnd.ScaleUpdated = scale;
 			if (scale == null)
 			{
-				scale = new BodyScale();
+				
 			}
 
 			editWnd.scaleStart = scale;
@@ -86,13 +137,25 @@ namespace CustomizePlus.Interface
 			editWnd.newScaleName = editWnd.originalScaleName;
 			editWnd.newScaleCharacter = editWnd.originalScaleCharacter;
 
-			editWnd.scaleIndex = -1;
+			
+			//DrawContents();
 		}
 
 		protected override void DrawContents()
 		{
-			Configuration config = Plugin.Configuration;
+			try
+			{
+				SubscribeEvents();
+				DrawScaleEdit(new BodyScale(), Plugin.PluginInterface);
+			}
+			catch (Exception e)
+			{
+				PluginLog.LogError($"Error during IPC Tests:\n{e}");
+			}
+		}
 
+		public void DrawScaleEdit(BodyScale scale, DalamudPluginInterface pi)
+		{
 			string newScaleNameTemp = this.newScaleName;
 			string newScaleCharacterTemp = this.newScaleCharacter;
 			bool enabledTemp = this.scaleEnabled;
@@ -101,11 +164,9 @@ namespace CustomizePlus.Interface
 			if (ImGui.Checkbox("Enable", ref enabledTemp))
 			{
 				this.scaleEnabled = enabledTemp;
-				if (config.AutomaticEditMode)
+				if (automaticEditMode)
 				{
-					AddToConfig(this.newScaleName, this.newScaleCharacter);
-					config.Save();
-					Plugin.LoadConfig(true);
+
 				}
 			}
 
@@ -128,10 +189,10 @@ namespace CustomizePlus.Interface
 
 			ImGui.SameLine();
 
-			bool autoModeEnable = config.AutomaticEditMode;
+			bool autoModeEnable = automaticEditMode;
 			if (ImGui.Checkbox("Automatic Mode", ref autoModeEnable))
 			{
-				config.AutomaticEditMode = autoModeEnable;
+				automaticEditMode = autoModeEnable;
 			}
 
 			if (ImGui.IsItemHovered())
@@ -145,9 +206,9 @@ namespace CustomizePlus.Interface
 			{
 				rootScaleLocal = new Vector4(1f, 1f, 1f, 1f);
 				this.newRootScale = rootScaleLocal;
-				if (config.AutomaticEditMode)
+				if (automaticEditMode)
 				{
-					this.UpdateCurrent("Root", new HkVector4(1f, 1f, 1f, 1f), config.AutomaticEditMode);
+					this.UpdateCurrent("Root", new HkVector4(1f, 1f, 1f, 1f));
 				}
 				this.reset = true;
 			}
@@ -178,9 +239,9 @@ namespace CustomizePlus.Interface
 				}
 				rootScaleLocal = new Vector4(rootScaleLocalTemp.X, rootScaleLocalTemp.Y, rootScaleLocalTemp.Z, rootScaleLocalTemp.W);
 				this.newRootScale = rootScaleLocal;
-				if (config.AutomaticEditMode)
+				if (automaticEditMode)
 				{
-					this.UpdateCurrent("Root", new HkVector4(rootScaleLocal.X, rootScaleLocal.Y, rootScaleLocal.Z, rootScaleLocalTemp.W), config.AutomaticEditMode);
+					this.UpdateCurrent("Root", new HkVector4(rootScaleLocal.X, rootScaleLocal.Y, rootScaleLocal.Z, rootScaleLocalTemp.W));
 				}
 			}
 
@@ -275,9 +336,9 @@ namespace CustomizePlus.Interface
 					{
 						//throw new Exception();
 					}
-					if (config.AutomaticEditMode)
+					if (automaticEditMode)
 					{
-						this.UpdateCurrent(boneNameLocalLegacy, new HkVector4(currentVector4.X, currentVector4.Y, currentVector4.Z, currentVector4.W), config.AutomaticEditMode);
+						this.UpdateCurrent(boneNameLocalLegacy, new HkVector4(currentVector4.X, currentVector4.Y, currentVector4.Z, currentVector4.W));
 					}
 				}
 				else if (currentVector4.X == currentVector4.Y && currentVector4.Y == currentVector4.Z)
@@ -338,9 +399,9 @@ namespace CustomizePlus.Interface
 					{
 						//throw new Exception();
 					}
-					if (config.AutomaticEditMode)
+					if (automaticEditMode)
 					{
-						this.UpdateCurrent(boneNameLocalLegacy, new HkVector4(currentVector4.X, currentVector4.Y, currentVector4.Z, currentVector4.W), config.AutomaticEditMode);
+						this.UpdateCurrent(boneNameLocalLegacy, new HkVector4(currentVector4.X, currentVector4.Y, currentVector4.Z, currentVector4.W));
 					}
 				}
 
@@ -354,47 +415,28 @@ namespace CustomizePlus.Interface
 
 			if (ImGui.Button("Save"))
 			{
-				AddToConfig(this.newScaleName, this.newScaleCharacter);
-				if (this.newScaleCharacter != this.originalScaleCharacter)
-					this.originalScaleCharacter = this.newScaleCharacter;
-				if (this.newScaleName != this.originalScaleName)
-					this.originalScaleName = this.newScaleName;
-				config.Save();
-				Plugin.LoadConfig();
+				ApplyViaIPC(this.newScaleName, this.newScaleCharacter, pi);
 			}
 
-			/* TODO feature: undo of some variety. Option below is a revert to what was present when edit was opened, but needs additonal logic
-			 * ImGui.SameLine();
-			if (ImGui.Button("Revert"))
-			{
-				RevertToOriginal();
-				//config.Save();
-			}
-			*/
-
+			
 			ImGui.SameLine();
-
-			if (ImGui.Button("Save and Close"))
+			if (ImGui.Button("Reset"))
 			{
-				AddToConfig(this.newScaleName, this.newScaleCharacter);
-				config.Save();
-				Plugin.LoadConfig();
-				this.Close();
-			}
-			ImGui.SameLine();
-			if (ImGui.Button("Cancel"))
-			{
-				this.Close();
+				RevertToOriginal(this.newScaleCharacter, pi);
 			}
 
 			ImGui.SameLine();
+			if (ImGui.Button("Load from IPC"))
+			{
+				GetFromIPC(this.newScaleCharacter, pi);
+			}
 
-			ImGui.Text("    Save and close with new scale name or new character name to create a copy.");
+			
 		}
 
-		private void AddToConfig(string scaleName, string characterName)
+		private void ApplyViaIPC(string scaleName, string characterName, DalamudPluginInterface pi)
 		{
-			Configuration config = Plugin.Configuration;
+			//BodyScale newBody = new BodyScale();
 			BodyScale newBody = new BodyScale();
 
 			for (int i = 0; i < this.boneNamesLegacy.Count && i < this.boneValuesNew.Count; i++)
@@ -406,48 +448,50 @@ namespace CustomizePlus.Interface
 
 				newBody.Bones[legacyName] = this.boneValuesNew[legacyName];
 
-				newBody.BodyScaleEnabled = this.scaleEnabled;
-				newBody.ScaleName = scaleName;
-				newBody.CharacterName = characterName;
+				newBody.BodyScaleEnabled = true;
+				newBody.ScaleName = "IPC";
+				newBody.CharacterName = newScaleCharacter;
 			}
 
 			newBody.RootScale = new HkVector4(this.newRootScale.X, this.newRootScale.Y, this.newRootScale.Z, 0);
-			if (this.originalScaleName == scaleName && this.originalScaleCharacter == characterName)
+
+			var bodyString = JsonConvert.SerializeObject(newBody);
+			//PluginLog.Information($"{pi.PluginNames}");
+			setBodyScale = pi.GetIpcSubscriber<string, string, object>("CustomizePlus.SetBodyScale");
+			//PluginLog.Information($"{_setBodyScale}: -- {bodyString} -- {newBody.CharacterName}");
+			setBodyScale.InvokeAction(bodyString, newBody.CharacterName);
+		}
+
+		private void GetFromIPC(string characterName, DalamudPluginInterface pi)
+		{
+			getBodyScale = pi.GetIpcSubscriber<string, string>("CustomizePlus.GetBodyScale");
+			//PluginLog.Information($"{_setBodyScale}: -- {bodyString} -- {newBody.CharacterName}");
+			var bodyScaleString = getBodyScale.InvokeFunc(newScaleCharacter);
+
+			//PluginLog.Information(bodyScaleString);
+			if (bodyScaleString != null)
 			{
-				int matchIndex = -1;
-				for (int i = 0; i < config.BodyScales.Count; i++)
-				{
-					if (config.BodyScales[i].ScaleName == scaleName && config.BodyScales[i].CharacterName == characterName)
-					{
-						matchIndex = i;
-						break;
-					}
-				}
-				if (matchIndex >= 0)
-				{
-					config.BodyScales.RemoveAt(matchIndex);
-					config.BodyScales.Insert(matchIndex, newBody);
-				}
+				BodyScale? bodyScale = JsonConvert.DeserializeObject<BodyScale?>(bodyScaleString);
+				PluginLog.Information($"IPC request for {characterName} found scale named: {bodyScale.ScaleName}");
 			}
 			else
 			{
-				this.originalScaleName = scaleName;
-				this.originalScaleCharacter = characterName;
-				config.BodyScales.Add(newBody);
-				if (this.scaleEnabled)
-				{
-					config.ToggleOffAllOtherMatching(characterName, scaleName);
-				}
+				PluginLog.Information($"No scale found on IPC request for {characterName}");
 			}
+			
+			//if (bodyScale != null)
+			//	this.ScaleUpdated = bodyScale;
+
+			
 		}
 
-		private void RevertToOriginal() //Currently Unused
+		private void RevertToOriginal(string characterName, DalamudPluginInterface pi) // Use to unassign override scale in IPC testing mode
 		{
-			this.boneValuesNew = this.boneValuesOriginal;
-			this.newRootScale = this.originalRootScale;
+			revert = pi.GetIpcSubscriber<string, object>("CustomizePlus.Revert");
+			revert.InvokeAction(newScaleCharacter);
 		}
 
-		private void UpdateCurrent(string boneName, HkVector4 boneValue, bool autoMode = false)
+		private void UpdateCurrent(string boneName, HkVector4 boneValue)
 		{
 			Configuration config = Plugin.Configuration;
 			BodyScale newBody = this.ScaleUpdated;
@@ -461,39 +505,13 @@ namespace CustomizePlus.Interface
 				newBody.Bones[boneName] = boneValue;
 			}
 
-			if (this.scaleIndex == -1 || this.scaleIndex > config.BodyScales.Count)
-			{
-				this.scaleIndex = GetCurrentScaleIndex(this.originalScaleName, this.originalScaleCharacter);
-			}
 
-			config.BodyScales[this.scaleIndex] = newBody;
-			config.Save();
-			Plugin.LoadConfig(autoMode);
-		}
-
-		private int GetCurrentScaleIndex(string scaleName, string scaleCharacter)
-		{
-			Configuration config = Plugin.Configuration;
-			int matchIndex = -1;
-			for (int i = 0; i < config.BodyScales.Count; i++)
-			{
-				if (config.BodyScales[i].ScaleName == scaleName && config.BodyScales[i].CharacterName == scaleCharacter)
-				{
-					matchIndex = i;
-					break;
-				}
-			}
-			if (matchIndex >= 0)
-			{
-				return matchIndex;
-			}
-			return -1;
 		}
 
 		private bool IsBoneNameEditable(string boneNameModern)
 		{
 			// Megahack method
-			if (boneNameModern == "Root" || boneNameModern == "Throw" || boneNameModern == "Abdomen" 
+			if (boneNameModern == "Root" || boneNameModern == "Throw" || boneNameModern == "Abdomen"
 				|| boneNameModern.Contains("Cloth") || boneNameModern.Contains("Scabbard") || boneNameModern.Contains("Pauldron")
 				|| boneNameModern.Contains("Holster") || boneNameModern.Contains("Poleyn") || boneNameModern.Contains("Shield")
 				|| boneNameModern.Contains("Couter") || boneNameModern.Contains("Weapon") || boneNameModern.Contains("Sheathe"))

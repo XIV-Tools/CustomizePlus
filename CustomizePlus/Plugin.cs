@@ -82,7 +82,7 @@ namespace CustomizePlus
 
 		public string Name => "Customize Plus";
 
-		public static void LoadConfig()
+		public static void LoadConfig(bool autoModeUpdate = false)
 		{
 			try
 			{
@@ -133,9 +133,9 @@ namespace CustomizePlus
 						renderManagerHook.Enable();
 						PluginLog.Debug("Hooking render function");
 
-						//Get player's body scale string and send IPC message
+						//Get player's body scale string and send IPC message (only when saving manually to spare server)
 						string? playerName = GetPlayerName();
-						if (playerName != null) {	
+						if (playerName != null && !autoModeUpdate) {
 							BodyScale? playerScale = GetBodyScale(playerName);
 							ipcManager.OnScaleUpdate(JsonConvert.SerializeObject(playerScale));
 						}
@@ -190,7 +190,8 @@ namespace CustomizePlus
 					continue;
 
 				BodyScale? scale = null;
-				scale = IdentifyBodyScale((ObjectStruct*)ObjectTable.GetObjectAddress(i));
+				// Mare Support: Bool check to see if override table from IPC can be used
+				scale = IdentifyBodyScale((ObjectStruct*)ObjectTable.GetObjectAddress(i), playerObjId != obj.ObjectId);
 
 				try
 				{
@@ -295,7 +296,7 @@ namespace CustomizePlus
 		}
 
 		// All functions related to this process for non-named objects adapted from Penumbra logic. Credit to Ottermandias et al.
-		private static unsafe BodyScale? IdentifyBodyScale(ObjectStruct* gameObject)
+		private static unsafe BodyScale? IdentifyBodyScale(ObjectStruct* gameObject, bool allowIPC)
 		{
 			if (gameObject == null)
 			{
@@ -344,8 +345,8 @@ namespace CustomizePlus
 
 					actorName = actualName;
 				}
-
-				scale = IdentifyBodyScaleByName(actorName);
+        
+				scale = IdentifyBodyScaleByName(actorName, allowIPC);
 			}
 			catch (Exception e)
 			{
@@ -356,11 +357,24 @@ namespace CustomizePlus
 			return scale;
 		}
 
-		private static BodyScale? IdentifyBodyScaleByName(string actorName)
+		private static BodyScale? IdentifyBodyScaleByName(string actorName, bool allowIPC = false, bool playerOnly = false)
 		{
 			BodyScale? scale = null;
-			if (!scaleOverride.TryGetValue(actorName, out scale))
+			if (allowIPC)
+			{
+				if (!scaleOverride.TryGetValue(actorName, out scale))
+					NameToScale.TryGetValue(actorName, out scale);
+			}
+			else if (playerOnly && ObjectTable[0] != null)
+			{
+				if (ObjectTable[0].Name.TextValue == actorName)
+					NameToScale.TryGetValue(actorName, out scale);
+			}
+			else
+			{
 				NameToScale.TryGetValue(actorName, out scale);
+			}
+			
 			return scale;
 		}
 
@@ -454,7 +468,14 @@ namespace CustomizePlus
 		{
 			if (string.IsNullOrEmpty(characterName))
 				return null;
-			return IdentifyBodyScaleByName(characterName);
+			return IdentifyBodyScaleByName(characterName, true);
+		}
+
+		public static BodyScale? GetPlayerBodyScale(string characterName)
+		{
+			if (string.IsNullOrEmpty(characterName))
+				return null;
+			return IdentifyBodyScaleByName(characterName, false, true);
 		}
 	}
 }

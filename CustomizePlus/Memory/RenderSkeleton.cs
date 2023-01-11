@@ -39,7 +39,7 @@ namespace CustomizePlus.Memory
 			if (p.Address == IntPtr.Zero)
 				return null;
 
-			IntPtr drawObject = Marshal.ReadIntPtr(p.Address, 0x00F0);
+			IntPtr drawObject = Marshal.ReadIntPtr(p.Address, 0x0100);
 			if (drawObject == IntPtr.Zero)
 				return null;
 
