@@ -19,7 +19,6 @@ namespace CustomizePlus.Api
 	public class CustomizePlusIpc : IDisposable
 	{
 		public static readonly string ApiVersion = "1.0";
-
 		public const string LabelProviderApiVersion				= $"CustomizePlus.{nameof(GetApiVersion)}";
 		public const string LabelGetBodyScale					= $"CustomizePlus.{nameof(GetBodyScale)}";
 		public const string LabelGetBodyScaleFromCharacter		= $"CustomizePlus.{nameof(GetBodyScaleFromCharacter)}";

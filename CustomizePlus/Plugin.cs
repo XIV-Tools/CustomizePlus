@@ -135,7 +135,7 @@ namespace CustomizePlus
 
 						//Get player's body scale string and send IPC message (only when saving manually to spare server)
 						string? playerName = GetPlayerName();
-						if (playerName != null && !autoModeUpdate) {	
+						if (playerName != null && !autoModeUpdate) {
 							BodyScale? playerScale = GetBodyScale(playerName);
 							ipcManager.OnScaleUpdate(JsonConvert.SerializeObject(playerScale));
 						}
@@ -345,7 +345,7 @@ namespace CustomizePlus
 
 					actorName = actualName;
 				}
-
+        
 				scale = IdentifyBodyScaleByName(actorName, allowIPC);
 			}
 			catch (Exception e)
