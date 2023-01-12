@@ -27,6 +27,7 @@ namespace CustomizePlus.Api
 		public const string LabelRevert							= $"CustomizePlus.{nameof(Revert)}";
 		public const string LabelRevertCharacter				= $"CustomizePlus.{nameof(RevertCharacter)}";
 		public const string LabelOnScaleUpdate					= $"CustomizePlus.{nameof(OnScaleUpdate)}";
+		public const string LabelGetTemporaryScale				= $"CustomizePlus.{nameof(GetTemporaryScale)}";
 		private readonly ObjectTable objectTable;
 		private readonly DalamudPluginInterface pluginInterface;
 
@@ -35,6 +36,7 @@ namespace CustomizePlus.Api
 		internal ICallGateProvider<Character?, string?>?		ProviderGetBodyScaleFromCharacter;
 		internal ICallGateProvider<string, string, object>?		ProviderSetBodyScale;
 		internal ICallGateProvider<string, Character?, object>?	ProviderSetBodyScaleToCharacter;
+		internal ICallGateProvider<string, string?>?			ProviderGetTemporaryScale;
 		internal ICallGateProvider<string, object>?				ProviderRevert;
 		internal ICallGateProvider<Character?, object>?			ProviderRevertCharacter;
 		internal ICallGateProvider<string>?						ProviderGetApiVersion;
@@ -60,7 +62,7 @@ namespace CustomizePlus.Api
 			ProviderRevert?.UnregisterAction();
 			ProviderRevertCharacter?.UnregisterAction();
 			ProviderGetApiVersion?.UnregisterFunc();
-
+			ProviderGetTemporaryScale?.UnregisterFunc();
 		}
 
 		private void InitializeProviders()
@@ -148,6 +150,15 @@ namespace CustomizePlus.Api
 				PluginLog.Error(ex, $"Error registering IPC provider for {LabelOnScaleUpdate}.");
 			}
 
+			try
+			{
+				ProviderGetTemporaryScale = pluginInterface.GetIpcProvider<string, string?>(LabelGetTemporaryScale);
+				ProviderGetTemporaryScale.RegisterFunc(GetTemporaryScale);
+			}
+			catch (Exception ex)
+			{
+				PluginLog.Error(ex, $"Error registering IPC provider for {LabelGetTemporaryScale}.");
+			}
 		}
 
 		public void OnScaleUpdate(string bodyScaleString)
@@ -195,6 +206,12 @@ namespace CustomizePlus.Api
 				return;
 
 			Plugin.RemoveTemporaryCharacterScale(characterName);
+		}
+
+		private string? GetTemporaryScale(string characterName)
+		{
+			BodyScale? bodyScale = Plugin.GetTemporaryCharacterScale(characterName);
+			return bodyScale != null ? JsonConvert.SerializeObject(bodyScale) : null;
 		}
 
 		private void RevertCharacter(Character? character)
