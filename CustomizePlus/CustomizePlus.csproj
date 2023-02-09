@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Authors></Authors>
     <Company></Company>
-    <Version>0.0.1.3</Version>
+    <Version>0.0.1.5</Version>
     <Description>CustomizePlus</Description>
     <Copyright></Copyright>
     <PackageProjectUrl>https://github.com/XIV-Tools/CustomizePlus</PackageProjectUrl>
@@ -18,7 +18,6 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-    <OutputPath>$(AppData)\XIVLauncher\devPlugins\CustomizePlus\</OutputPath>
   </PropertyGroup>
 
   <ItemGroup>
@@ -68,11 +67,14 @@
       <Private>false</Private>
 	</Reference>
 	<Reference Include="Penumbra">
-	  <HintPath>..\..\Penumbra\Penumbra\bin\Debug\Penumbra.dll</HintPath>
+	  <HintPath>C:\Users\marth\source\repos\Penumbra\Penumbra\bin\Debug\Penumbra.dll</HintPath>
 		<Private>false</Private>
 	</Reference>
 	<Reference Include="Penumbra.GameData">
-	  <HintPath>..\..\Penumbra\Penumbra\bin\Debug\Penumbra.GameData.dll</HintPath>
+	  <HintPath>C:\Users\marth\source\repos\Penumbra\Penumbra\bin\Debug\Penumbra.GameData.dll</HintPath>
+	</Reference>
+	<Reference Include="Penumbra.String">
+		<HintPath>C:\Users\marth\source\repos\Penumbra\Penumbra\bin\Debug\Penumbra.String.dll</HintPath>
 	</Reference>
   </ItemGroup>
 

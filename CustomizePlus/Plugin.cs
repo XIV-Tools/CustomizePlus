@@ -24,7 +24,7 @@ namespace CustomizePlus
 	using FFXIVClientStructs.FFXIV.Client.UI;
 	using FFXIVClientStructs.FFXIV.Component.GUI;
 	using Newtonsoft.Json;
-	using Penumbra.GameData.ByteString;
+	using Penumbra.String;
 	using CharacterStruct = FFXIVClientStructs.FFXIV.Client.Game.Character.Character;
 	using CustomizeData = Penumbra.GameData.Structs.CustomizeData;
 	using ObjectKind = Dalamud.Game.ClientState.Objects.Enums.ObjectKind;
@@ -308,7 +308,7 @@ namespace CustomizePlus
 
 			try
 			{
-				actorName = new Utf8String(gameObject->Name).ToString();
+				actorName = new ByteString(gameObject->Name).ToString();
 
 				if (string.IsNullOrEmpty(actorName))
 				{
@@ -327,7 +327,7 @@ namespace CustomizePlus
 							244 => GetPlayerName(), // portrait preview
 							>= 200 => GetCutsceneName(gameObject),
 							_ => null,
-						} ?? new Utf8String(gameObject->Name).ToString();
+						} ?? new ByteString(gameObject->Name).ToString();
 					}
 					else
 					{
@@ -335,7 +335,7 @@ namespace CustomizePlus
 						{
 							240 => GetPlayerName(), // character window
 							_ => null,
-						} ?? new Utf8String(gameObject->Name).ToString();
+						} ?? new ByteString(gameObject->Name).ToString();
 					}
 
 					if (actualName == null)
@@ -439,7 +439,7 @@ namespace CustomizePlus
 			}
 
 			var block = data + 0x7A;
-			return new Utf8String(block).ToString();
+			return new ByteString(block).ToString();
 		}
 
 		// Obtain the name of the player character if the glamour plate edit window is open.
