@@ -27,7 +27,7 @@ namespace CustomizePlus.Interface
 		private string newScaleName = string.Empty;
 		private string newScaleCharacter = string.Empty;
 
-		// Change Version when updating the way scales are saved. Import form base64 will then auto fail.
+		// Change Version when updating the way scales are saved. Import from base64 will then auto fail.
 		private byte scaleVersion = 1;
 
 		protected override string Title => "Customize+ Configuration";
@@ -160,29 +160,26 @@ namespace CustomizePlus.Interface
 			if (ImGui.Button("Add Character from Clipboard")) {
 				Byte importVer = 0;
 				string json = null;
-				string characterName = "";
 
 				try {
 					importVer = ImportFromBase64(Clipboard.GetText(),out json);
-					PluginLog.Debug(json);
-					PluginLog.Debug(importVer.ToString());
 					Clipboard.SetText(json);
-				} catch (Exception) {
-					// Something went wrong during Import. Let user know.
+				} catch (Exception e) {
+					PluginLog.Error(e, "An error occured during import conversion. Please check you coppied the right thing!");
 				}
 
 				if (importVer == scaleVersion && json is not null) {
 					BodyScale importScale = BuildFromCustomizeJSON(json);
 					Plugin.Configuration.BodyScales.Add(importScale);
-					Plugin.Configuration.ToggleOffAllOtherMatching(characterName, importScale.ScaleName);
+					Plugin.Configuration.ToggleOffAllOtherMatching(importScale.CharacterName, importScale.ScaleName);
 					if (config.AutomaticEditMode) {
 						config.Save();
 						Plugin.LoadConfig(true);
 					}
 				} else if (importVer == 0 || json is null) {
-					// Something went wrong during Import. Let user know.
+					PluginLog.Error("An error occured during import conversion, but ImportFromBase64 didnt throw an Exception. Please report this to the developers.");
 				} else {
-					// Old version of Scale string used. Let user know.
+					PluginLog.Information("You are trying to import an Outdated scale, these are not supported anymore. Sorry.");
 				}
 			}
 
