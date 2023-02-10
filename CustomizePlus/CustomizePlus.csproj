@@ -68,13 +68,15 @@
 	</Reference>
 	<Reference Include="Penumbra">
 	  <HintPath>..\Penumbra\Penumbra\bin\Debug\Penumbra.dll</HintPath>
-		<Private>false</Private>
+	  <Private>false</Private>
 	</Reference>
 	<Reference Include="Penumbra.GameData">
 	  <HintPath>..\Penumbra\Penumbra\bin\Debug\Penumbra.GameData.dll</HintPath>
+	  <Private>false</Private>
 	</Reference>
 	<Reference Include="Penumbra.String">
-		<HintPath>..\Penumbra\Penumbra\bin\Debug\Penumbra.String.dll</HintPath>
+	  <HintPath>..\Penumbra\Penumbra\bin\Debug\Penumbra.String.dll</HintPath>
+	  <Private>false</Private>
 	</Reference>
   </ItemGroup>
 
