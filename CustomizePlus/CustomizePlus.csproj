@@ -67,14 +67,14 @@
       <Private>false</Private>
 	</Reference>
 	<Reference Include="Penumbra">
-	  <HintPath>C:\Users\marth\source\repos\Penumbra\Penumbra\bin\Debug\Penumbra.dll</HintPath>
+	  <HintPath>..\Penumbra\Penumbra\bin\Debug\Penumbra.dll</HintPath>
 		<Private>false</Private>
 	</Reference>
 	<Reference Include="Penumbra.GameData">
-	  <HintPath>C:\Users\marth\source\repos\Penumbra\Penumbra\bin\Debug\Penumbra.GameData.dll</HintPath>
+	  <HintPath>..\Penumbra\Penumbra\bin\Debug\Penumbra.GameData.dll</HintPath>
 	</Reference>
 	<Reference Include="Penumbra.String">
-		<HintPath>C:\Users\marth\source\repos\Penumbra\Penumbra\bin\Debug\Penumbra.String.dll</HintPath>
+		<HintPath>..\Penumbra\Penumbra\bin\Debug\Penumbra.String.dll</HintPath>
 	</Reference>
   </ItemGroup>
 
