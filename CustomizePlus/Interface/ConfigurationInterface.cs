@@ -159,25 +159,25 @@ namespace CustomizePlus.Interface
 			ImGui.SameLine();
 			if (ImGui.Button("Add Character from Clipboard")) {
 				Byte importVer = 0;
+				BodyScale importScale = null;
 				string json = null;
 
 				try {
 					importVer = ImportFromBase64(Clipboard.GetText(),out json);
-					Clipboard.SetText(json);
+					importScale = BuildFromCustomizeJSON(json) ;
 				} catch (Exception e) {
 					PluginLog.Error(e, "An error occured during import conversion. Please check you coppied the right thing!");
 				}
 
-				if (importVer == scaleVersion && json is not null) {
-					BodyScale importScale = BuildFromCustomizeJSON(json);
+				if (importVer == scaleVersion && importScale != null) {
 					Plugin.Configuration.BodyScales.Add(importScale);
 					Plugin.Configuration.ToggleOffAllOtherMatching(importScale.CharacterName, importScale.ScaleName);
 					if (config.AutomaticEditMode) {
 						config.Save();
 						Plugin.LoadConfig(true);
 					}
-				} else if (importVer == 0 || json is null) {
-					PluginLog.Error("An error occured during import conversion, but ImportFromBase64 didnt throw an Exception. Please report this to the developers.");
+				} else if (importVer == 0 || importScale is null) {
+					PluginLog.Error("An error occured during import conversion, but neither ImportFromBase64 nor BuildFromCustomizeJSON threw an Exception. Please report this to the developers.");
 				} else {
 					PluginLog.Information("You are trying to import an Outdated scale, these are not supported anymore. Sorry.");
 				}
@@ -337,7 +337,6 @@ namespace CustomizePlus.Interface
 				bytes = resultStream.ToArray();
 				version = bytes[0];
 				var json = Encoding.UTF8.GetString(bytes, 1, bytes.Length - 1);
-				PluginLog.Debug(json);
 				data = json;
 			} catch {
 				data = "error";
@@ -462,14 +461,14 @@ namespace CustomizePlus.Interface
 			return BuildDefault(scale);
 		}
 
+		// Scale returns as null if it fails.
 		public static BodyScale BuildFromCustomizeJSON(string json) {
-			BodyScale scale = new BodyScale();
+			BodyScale scale = null;
 
 			JsonSerializerSettings settings = new();
 			settings.NullValueHandling = NullValueHandling.Ignore;
 			settings.Converters.Add(new PoseFile.VectorConverter());
 			scale = JsonConvert.DeserializeObject<BodyScale>(json, settings);
-			PluginLog.Debug("Entered BuildFromCustomJson");
 			return scale;
 		}
 
