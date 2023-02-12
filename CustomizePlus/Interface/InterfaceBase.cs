@@ -4,6 +4,7 @@
 namespace CustomizePlus.Interface
 {
 	using System;
+	using Dalamud.Logging;
 	using ImGuiNET;
 
 	public abstract class InterfaceBase : IDisposable
