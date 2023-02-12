@@ -9,7 +9,6 @@ namespace CustomizePlus.Interface
 	using System.IO.Compression;
 	using System.Numerics;
 	using System.Text;
-	using System.Text.Json.Nodes;
 	using System.Windows.Forms;
     using Anamnesis.Files;
     using Anamnesis.Posing;
@@ -20,7 +19,6 @@ namespace CustomizePlus.Interface
     using Dalamud.Logging;
     using ImGuiNET;
     using Newtonsoft.Json;
-	using static System.Runtime.InteropServices.JavaScript.JSType;
 
 	public class ConfigurationInterface : WindowBase
 	{
