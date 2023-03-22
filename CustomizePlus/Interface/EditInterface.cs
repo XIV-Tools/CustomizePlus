@@ -184,6 +184,40 @@ namespace CustomizePlus.Interface
 				}
 			}
 
+			bool editBodyBones = config.EditBodyBones;
+			bool editAccessoryBones = config.EditAccessoryBones;
+			bool editClothBones = config.EditClothBones;
+			bool editArmorBones = config.EditArmorBones;
+			bool editWeaponBones = config.EditWeaponBones;
+
+			ImGui.Separator();
+			ImGui.Text("Filters:");
+			ImGui.SameLine();
+			if (ImGui.Checkbox("Body", ref editBodyBones))
+			{
+				config.EditBodyBones = editBodyBones;
+			}
+			ImGui.SameLine();
+			if (ImGui.Checkbox("Accessory", ref editAccessoryBones))
+			{
+				config.EditAccessoryBones = editAccessoryBones;
+			}
+			ImGui.SameLine();
+			if (ImGui.Checkbox("Cloth", ref editClothBones))
+			{
+				config.EditClothBones = editClothBones;
+			}
+			ImGui.SameLine();
+			if (ImGui.Checkbox("Armor", ref editArmorBones))
+			{
+				config.EditArmorBones = editArmorBones;
+			}
+			ImGui.SameLine();
+			if (ImGui.Checkbox("Weapon (Broken)", ref editWeaponBones))
+			{
+				config.EditWeaponBones = editWeaponBones;
+			}
+
 			ImGui.Separator();
 			ImGui.BeginTable("Bones", 6, ImGuiTableFlags.SizingStretchSame);
 			ImGui.TableNextColumn();
@@ -210,7 +244,7 @@ namespace CustomizePlus.Interface
 
 				ImGui.PushID(i);
 
-				if (!this.IsBoneNameEditable(boneNameLocalModern))
+				if (!this.IsBoneNameEditable(boneNameLocalModern, config))
 				{
 					ImGui.PopID();
 					continue;
@@ -490,15 +524,23 @@ namespace CustomizePlus.Interface
 			return -1;
 		}
 
-		private bool IsBoneNameEditable(string boneNameModern)
+		private bool IsBoneNameEditable(string boneNameModern, Configuration? config = null)
 		{
+			config = config ?? Plugin.Configuration;
 			// Megahack method
-			if (boneNameModern == "Root" || boneNameModern == "Throw" || boneNameModern == "Abdomen" 
-				|| boneNameModern.Contains("Cloth") || boneNameModern.Contains("Scabbard") || boneNameModern.Contains("Pauldron")
-				|| boneNameModern.Contains("Holster") || boneNameModern.Contains("Poleyn") || boneNameModern.Contains("Shield")
-				|| boneNameModern.Contains("Couter") || boneNameModern.Contains("Weapon") || boneNameModern.Contains("Sheathe"))
+			if (boneNameModern == "Root" || boneNameModern == "Throw" || boneNameModern == "Abdomen")
 				return false;
-			return true;
+			if (boneNameModern.Contains("Earring"))
+				return config.EditAccessoryBones;
+			if (boneNameModern.Contains("Cloth"))
+				return config.EditClothBones;
+			if (boneNameModern.Contains("Pauldron") || boneNameModern.Contains("Poleyn") || boneNameModern.Contains("Couter"))
+				return config.EditArmorBones;
+			if (boneNameModern.Contains("Scabbard") || boneNameModern.Contains("Holster") || boneNameModern.Contains("Shield")
+				|| boneNameModern.Contains("Weapon") || boneNameModern.Contains("Sheathe"))
+				return config.EditWeaponBones;
+
+			return config.EditBodyBones;
 		}
 	}
 }
