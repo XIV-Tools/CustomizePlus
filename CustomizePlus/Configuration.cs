@@ -26,6 +26,11 @@ namespace CustomizePlus
 		public bool GroupByScale { get; set; } = false;
 		public bool GroupByCharacter { get; set; } = false;
 		*/
+		public bool EditBodyBones { get; set; } = true;
+		public bool EditAccessoryBones { get; set; } = false;
+		public bool EditClothBones { get; set; } = false;
+		public bool EditArmorBones { get; set; } = false;
+		public bool EditWeaponBones { get; set; } = false;
 
 		public void Save()
 		{

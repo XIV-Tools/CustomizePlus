@@ -388,6 +388,7 @@ namespace CustomizePlus.Interface
 			scale.ScaleName = name;
 
 			scale.Bones.Clear();
+			scale.Offsets.Clear();
 
 			foreach ((string boneName, PoseFile.Bone? bone) in file.Bones)
 			{
@@ -409,7 +410,11 @@ namespace CustomizePlus.Interface
 				if (!scale.Bones.ContainsKey(modernName))
 					scale.Bones.Add(modernName, boneScale);
 
+				if (!scale.Offsets.ContainsKey(modernName))
+					scale.Offsets.Add(modernName, HkVector4.Zero);
+
 				scale.Bones[modernName] = boneScale;
+				scale.Offsets[modernName] = HkVector4.Zero;
 			}
 		}
 
@@ -518,6 +523,7 @@ namespace CustomizePlus.Interface
 
 			// this.ScaleName = "Default (Failed to get real bones from model)";
 			scale.Bones.Clear();
+			scale.Offsets.Clear();
 
 			foreach ((string boneName, PoseFile.Bone? bone) in file.Bones)
 			{
@@ -539,7 +545,11 @@ namespace CustomizePlus.Interface
 				if (!scale.Bones.ContainsKey(modernName))
 					scale.Bones.Add(modernName, boneScale);
 
+				if (!scale.Offsets.ContainsKey(modernName))
+					scale.Offsets.Add(modernName, HkVector4.Zero);
+
 				scale.Bones[modernName] = boneScale;
+				scale.Offsets[modernName] = HkVector4.Zero;
 			}
 
 			return scale;

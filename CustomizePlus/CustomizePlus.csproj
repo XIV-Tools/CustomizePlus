@@ -73,9 +73,9 @@
 	<Reference Include="Penumbra.GameData">
 	  <HintPath>..\..\Penumbra\Penumbra\bin\Debug\Penumbra.GameData.dll</HintPath>
 	</Reference>
-	<Reference Include="Penumbra.String">
-	  <HintPath>..\..\Penumbra\Penumbra\bin\Debug\Penumbra.String.dll</HintPath>
-	</Reference>
+	  <Reference Include="Penumbra.String">
+		  <HintPath>..\..\Penumbra\Penumbra\bin\Debug\Penumbra.String.dll</HintPath>
+	  </Reference>
   </ItemGroup>
 
   <ItemGroup>
