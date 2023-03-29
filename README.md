@@ -3,8 +3,8 @@ Customize+ is a plugin for Dalamud that allows you to create and apply [Anamnesi
 
 ### Installing
 Add the following URL to the Dalamud Custom Plugin Repositories list:  
-`https://raw.githubusercontent.com/XIV-Tools/DalamudPlugins/main/repo.json`
-And search for Customize+ in the plugin manager.
+`https://raw.githubusercontent.com/XIV-Tools/DalamudPlugins/main/repo.json`  
+Then search for Customize+ in the plugin manager.
 
 ### How do I report an issue with Customize+?
 Please use the [Issue tab](https://github.com/XIV-Tools/CustomizePlus/issues) to report issues with Customize+. Issues reported on Discord will be removed.
