@@ -19,7 +19,7 @@ namespace CustomizePlus.Interface
 	using Newtonsoft.Json;
 	using static CustomizePlus.BodyScale;
 	using Dalamud.Plugin.Ipc;
-
+	/*
 	public class IPCTestInterface : WindowBase
 	{
 		//private DalamudPluginInterface localPlugin;
@@ -75,8 +75,8 @@ namespace CustomizePlus.Interface
 		private Vector4 newRootScale = HkVector4.One.GetAsNumericsVector();
 
 		private BodyScale? scaleStart;
-		private Dictionary<string, HkVector4>? boneValuesOriginal = new Dictionary<string, HkVector4>();
-		private Dictionary<string, HkVector4>? boneValuesNew = new Dictionary<string, HkVector4>();
+		private Dictionary<string, BoneEditsContainer>? boneValuesOriginal = new Dictionary<string, BoneEditsContainer>();
+		private Dictionary<string, BoneEditsContainer>? boneValuesNew = new Dictionary<string, BoneEditsContainer>();
 		private readonly List<string> boneNamesLegacy = LegacyBoneNameConverter.GetLegacyNames();
 		private readonly List<string> boneNamesModern = LegacyBoneNameConverter.GetModernNames();
 		private List<string> boneNamesModernUsed = new List<string>();
@@ -118,11 +118,12 @@ namespace CustomizePlus.Interface
 
 			for (int i = 0; i < editWnd.boneNamesLegacy.Count && i < editWnd.boneNamesModern.Count; i++)
 			{
-				HkVector4 tempBone = HkVector4.One;
-				if (scale.Bones.TryGetValue(editWnd.boneNamesLegacy[i], out tempBone))
+				//HkVector4 tempBone = HkVector4.One;
+				BoneEditsContainer tempContainer = new BoneEditsContainer { Scale = HkVector4.One };
+				if (scale.Bones.TryGetValue(editWnd.boneNamesLegacy[i], out tempContainer))
 				{
-					editWnd.boneValuesOriginal.Add(editWnd.boneNamesLegacy[i], tempBone);
-					editWnd.boneValuesNew.Add(editWnd.boneNamesLegacy[i], tempBone);
+					editWnd.boneValuesOriginal.Add(editWnd.boneNamesLegacy[i], tempContainer);
+					editWnd.boneValuesNew.Add(editWnd.boneNamesLegacy[i], tempContainer);
 					editWnd.boneNamesModernUsed.Add(editWnd.boneNamesModern[i]);
 					editWnd.boneNamesLegacyUsed.Add(editWnd.boneNamesLegacy[i]);
 				}
@@ -518,5 +519,5 @@ namespace CustomizePlus.Interface
 				return false;
 			return true;
 		}
-	}
+	}*/
 }

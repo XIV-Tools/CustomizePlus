@@ -6,6 +6,8 @@ namespace CustomizePlus
 	using System;
 	using System.Collections.Concurrent;
 	using System.Collections.Generic;
+	using System.Numerics;
+	using CustomizePlus.Helpers;
 	using CustomizePlus.Memory;
 	using Dalamud.Game.ClientState.Objects.Types;
 	using Dalamud.Logging;
@@ -18,7 +20,7 @@ namespace CustomizePlus
 		public string CharacterName { get; set; } = string.Empty;
 		public string ScaleName { get; set; } = string.Empty;
 		public bool BodyScaleEnabled { get; set; } = true;
-		public Dictionary<string, HkVector4> Bones { get; } = new();
+		public Dictionary<string, BoneEditsContainer> Bones { get; } = new();
 		public HkVector4 RootScale { get; set; } = HkVector4.Zero;
 
 		// This works fine on generic GameObject if previously checked for correct types.
@@ -69,7 +71,8 @@ namespace CustomizePlus
 			public readonly BodyScale BodyScale;
 			public readonly int Index;
 
-			private readonly Dictionary<int, HkVector4> scaleCache = new();
+			private readonly Dictionary<int, BoneEditsContainer> scaleCache = new();
+
 
 			private bool isInitialized = false;
 
@@ -102,8 +105,16 @@ namespace CustomizePlus
 						{
 							Transform transform = pose->Transforms[index];
 
-							if (transform.Scale.IsApproximately(boneScale, false))
+							//TODO: this check needs to be re-written to support translation as well as rotation.
+							//Or removed altogether
+							/*if (transform.Translation.IsApproximately(boneScale.Position, false))
 								continue;
+
+							if (transform.Rotation.IsApproximately(boneScale.Rotation, false))
+								continue;*/
+
+							/*if (transform.Scale.IsApproximately(boneScale.Scale, false))
+								continue;*/
 
 							this.scaleCache.Add(index, boneScale);
 						}
@@ -126,13 +137,31 @@ namespace CustomizePlus
 				{
 					HkaBone bone = pose->Skeleton->Bones[index];
 
+					string? boneName = bone.GetName();
+
 					if (this.scaleCache.TryGetValue(index, out var boneScale))
 					{
 						Transform transform = pose->Transforms[index];
 
-						transform.Scale.X = boneScale.X;
-						transform.Scale.Y = boneScale.Y;
-						transform.Scale.Z = boneScale.Z;
+						transform.Scale.X = boneScale.Scale.X;
+						transform.Scale.Y = boneScale.Scale.Y;
+						transform.Scale.Z = boneScale.Scale.Z;
+
+						Vector4 originalRotationVector = transform.Rotation.GetAsNumericsVector(false);
+						Quaternion originalBoneRotationQuaternion = new Quaternion(originalRotationVector.X, originalRotationVector.Y, originalRotationVector.Z, originalRotationVector.W);
+						Quaternion rotationOffsetQuaternion = MathHelpers.EulerToQuaternion(new Vector3(boneScale.Rotation.X, boneScale.Rotation.Y, boneScale.Rotation.Z));
+						Quaternion newRotation = rotationOffsetQuaternion * originalBoneRotationQuaternion;
+
+						transform.Rotation.X = newRotation.X;
+						transform.Rotation.Y = newRotation.Y;
+						transform.Rotation.Z = newRotation.Z;
+						transform.Rotation.W = newRotation.W;
+
+						Vector4 adjustedPositionOffset = Vector4.Transform(boneScale.Position.GetAsNumericsVector(), newRotation);
+
+						transform.Translation.X += adjustedPositionOffset.X;
+						transform.Translation.Y += adjustedPositionOffset.Y;
+						transform.Translation.Z += adjustedPositionOffset.Z;
 
 						pose->Transforms[index] = transform;
 					}

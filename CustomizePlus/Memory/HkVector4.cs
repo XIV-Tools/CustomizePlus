@@ -26,9 +26,12 @@ namespace CustomizePlus.Memory
 			this.W = w;
 		}
 
-		public Vector4 GetAsNumericsVector()
+		public Vector4 GetAsNumericsVector(bool round = true)
 		{
-			return new Vector4(MathF.Round(this.X,3), MathF.Round(this.Y,3), MathF.Round(this.Z,3), MathF.Round(this.W,3));
+			if(round)
+				return new Vector4(MathF.Round(this.X, 3), MathF.Round(this.Y, 3), MathF.Round(this.Z, 3), MathF.Round(this.W, 3));
+
+			return new Vector4(this.X, this.Y, this.Z, this.W);
 		}
 
 		public override string ToString()
@@ -59,7 +62,5 @@ namespace CustomizePlus.Memory
 			float d = MathF.Abs(a - b);
 			return d < errorMargin;
 		}
-
-
 	}
 }

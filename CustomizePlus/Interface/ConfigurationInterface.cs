@@ -197,8 +197,8 @@ namespace CustomizePlus.Interface
 				ImGui.SameLine();
 				if (ImGuiComponents.IconButton(FontAwesomeIcon.Pen))
 				{
-					IPCTestInterface ipcWindow = new IPCTestInterface();
-					ipcWindow.Show(Plugin.PluginInterface);
+					/*IPCTestInterface ipcWindow = new IPCTestInterface();
+					ipcWindow.Show(Plugin.PluginInterface);*/
 				}
 			}
 
@@ -428,10 +428,12 @@ namespace CustomizePlus.Interface
 				boneScale.Y = bone.Scale.Y;
 				boneScale.Z = bone.Scale.Z;
 
-				if (!scale.Bones.ContainsKey(modernName))
-					scale.Bones.Add(modernName, boneScale);
+				var editsContainer = new BoneEditsContainer { Position = HkVector4.Zero, Rotation = HkVector4.Zero, Scale = HkVector4.One };
 
-				scale.Bones[modernName] = boneScale;
+				if (!scale.Bones.ContainsKey(modernName))
+					scale.Bones.Add(modernName, editsContainer);
+
+				scale.Bones[modernName] = editsContainer;
 			}
 		}
 
@@ -558,10 +560,12 @@ namespace CustomizePlus.Interface
 				boneScale.Y = bone.Scale.Y;
 				boneScale.Z = bone.Scale.Z;
 
-				if (!scale.Bones.ContainsKey(modernName))
-					scale.Bones.Add(modernName, boneScale);
+				var editsContainer = new BoneEditsContainer {Position = HkVector4.Zero, Rotation = HkVector4.Zero, Scale = HkVector4.One };
 
-				scale.Bones[modernName] = boneScale;
+				if (!scale.Bones.ContainsKey(modernName))
+					scale.Bones.Add(modernName, editsContainer);
+
+				scale.Bones[modernName] = editsContainer;
 			}
 
 			return scale;

@@ -9,6 +9,8 @@ namespace CustomizePlus
 	using System;
 	using System.Collections.Concurrent;
 	using System.Collections.Generic;
+	using System.Runtime.InteropServices;
+	using System.Text;
 	using CustomizePlus.Api;
 	using CustomizePlus.Interface;
 	using Dalamud.Game;
@@ -21,10 +23,13 @@ namespace CustomizePlus
 	using Dalamud.IoC;
 	using Dalamud.Logging;
 	using Dalamud.Plugin;
+	using FFXIVClientStructs.FFXIV.Client.System.String;
 	using FFXIVClientStructs.FFXIV.Client.UI;
+	using FFXIVClientStructs.FFXIV.Common.Lua;
 	using FFXIVClientStructs.FFXIV.Component.GUI;
 	using Newtonsoft.Json;
 	using Penumbra.String;
+
 	using CharacterStruct = FFXIVClientStructs.FFXIV.Client.Game.Character.Character;
 	using CustomizeData = Penumbra.GameData.Structs.CustomizeData;
 	using ObjectKind = Dalamud.Game.ClientState.Objects.Enums.ObjectKind;
