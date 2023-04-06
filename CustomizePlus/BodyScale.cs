@@ -21,10 +21,9 @@ namespace CustomizePlus
 		public string ScaleName { get; set; } = string.Empty;
 		public bool BodyScaleEnabled { get; set; } = true;
 		public Dictionary<string, BoneEditsContainer> Bones { get; } = new();
-		public HkVector4 RootScale { get; set; } = HkVector4.Zero;
 
 		// This works fine on generic GameObject if previously checked for correct types.
-		public unsafe void Apply(GameObject character, bool applyRootScale)
+		public unsafe void ApplyNonRootBonesAndRootScale(GameObject character, bool applyRootScale)
 		{
 			RenderObject* obj = null;
 			obj = RenderObject.FromActor(character);
@@ -41,15 +40,19 @@ namespace CustomizePlus
 				this.poses[i].Update(obj->Skeleton->PartialSkeletons[i].Pose1);
 			}
 
+			BoneEditsContainer rootEditsContainer = Bones["n_root"];
+			if (rootEditsContainer == null)
+				return;
+
 			// Don't apply the root scale if its not set to anything.
-			if (this.RootScale.X != 0 && this.RootScale.Y != 0 && this.RootScale.Z != 0)
+			if (rootEditsContainer.Scale.X != 0 || rootEditsContainer.Scale.Y != 0 || rootEditsContainer.Scale.Z != 0)
 			{
 				HkVector4 rootScale = obj->Scale;
 				if (applyRootScale)
 				{
-					rootScale.X = MathF.Max(this.RootScale.X, 0.01f);
-					rootScale.Y = MathF.Max(this.RootScale.Y, 0.01f);
-					rootScale.Z = MathF.Max(this.RootScale.Z, 0.01f);
+					rootScale.X = MathF.Max(rootEditsContainer.Scale.X, 0.01f);
+					rootScale.Y = MathF.Max(rootEditsContainer.Scale.Y, 0.01f);
+					rootScale.Z = MathF.Max(rootEditsContainer.Scale.Z, 0.01f);
 				}
 				else
 				{
@@ -58,6 +61,36 @@ namespace CustomizePlus
 					rootScale.Z = obj->Scale.Z;
 				}
 				obj->Scale = rootScale;
+			}
+		}
+
+		public unsafe void ApplyRootPosition(GameObject character)
+		{
+			RenderObject* obj = null;
+			obj = RenderObject.FromActor(character);
+			if (obj == null)
+			{
+				//PluginLog.Debug($"{character.Address} missing skeleton!");
+				return;
+			}
+
+			BoneEditsContainer rootEditsContainer = Bones["n_root"];
+			if (rootEditsContainer == null)
+			{
+				PluginLog.Information("root edits null");
+				return;
+			}
+
+			// Don't apply the root position if its not set to anything.
+			if (rootEditsContainer.Position.X != 0 || rootEditsContainer.Position.Y != 0 || rootEditsContainer.Position.Z != 0)
+			{
+				HkVector4 rootPos = obj->Position;
+				PluginLog.Information($"Pos old: {rootPos.X} {rootPos.Y} {rootPos.Z}");
+				rootPos.X += MathF.Max(rootEditsContainer.Position.X, 0.01f);
+				rootPos.Y += MathF.Max(rootEditsContainer.Position.Y, 0.01f);
+				rootPos.Z += MathF.Max(rootEditsContainer.Position.Z, 0.01f);
+				PluginLog.Information($"Pos new: {rootPos.X} {rootPos.Y} {rootPos.Z}");
+				obj->Position = rootPos;
 			}
 		}
 

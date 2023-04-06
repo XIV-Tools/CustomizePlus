@@ -399,7 +399,8 @@ namespace CustomizePlus.Interface
 				file.Scale.Y != 1 &&
 				file.Scale.Z != 1)
 			{
-				scale.RootScale = new HkVector4(file.Scale.X, file.Scale.Y, file.Scale.Z, 1);
+				scale.Bones["n_root"].Scale = new HkVector4(file.Scale.X, file.Scale.Y, file.Scale.Z, 1); //todo: might crash
+				//scale.RootScale = new HkVector4(file.Scale.X, file.Scale.Y, file.Scale.Z, 1);
 			}
 
 			if (file.Bones == null)
@@ -534,7 +535,8 @@ namespace CustomizePlus.Interface
 				file.Scale.Y != 1 &&
 				file.Scale.Z != 1)
 			{
-				scale.RootScale = new HkVector4(file.Scale.X, file.Scale.Y, file.Scale.Z, 1);
+				//scale.RootScale = new HkVector4(file.Scale.X, file.Scale.Y, file.Scale.Z, 1);
+				scale.Bones["n_root"].Scale = new HkVector4(file.Scale.X, file.Scale.Y, file.Scale.Z, 1); //todo: might crash
 			}
 
 			if (file.Bones == null)

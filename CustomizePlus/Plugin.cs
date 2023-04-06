@@ -27,6 +27,7 @@ namespace CustomizePlus
 	using FFXIVClientStructs.FFXIV.Client.UI;
 	using FFXIVClientStructs.FFXIV.Common.Lua;
 	using FFXIVClientStructs.FFXIV.Component.GUI;
+	using Lumina.Excel.GeneratedSheets;
 	using Newtonsoft.Json;
 	using Penumbra.String;
 
@@ -41,6 +42,7 @@ namespace CustomizePlus
 		private static Dictionary<GameObject, BodyScale> scaleByObject = new();
 		private static ConcurrentDictionary<string, BodyScale> scaleOverride = new();
 		private static Hook<RenderDelegate>? renderManagerHook;
+		private static Hook<GameObjectMovementDelegate>? gameObjectMovementHook;
 		private static BodyScale? defaultScale;
 		private static BodyScale? defaultRetainerScale;
 		private static BodyScale? defaultCutsceneScale;
@@ -72,6 +74,8 @@ namespace CustomizePlus
 		}
 
 		private delegate IntPtr RenderDelegate(IntPtr a1, int a2, IntPtr a3, byte a4, IntPtr a5, IntPtr a6);
+		[UnmanagedFunctionPointer(CallingConvention.StdCall)]
+		private unsafe delegate void GameObjectMovementDelegate(IntPtr gameObject);
 
 		[PluginService] [RequiredVersion("1.0")] public static ObjectTable ObjectTable { get; private set; } = null!;
 		[PluginService] [RequiredVersion("1.0")] public static DalamudPluginInterface PluginInterface { get; private set; } = null!;
@@ -89,6 +93,7 @@ namespace CustomizePlus
 
 		public static void LoadConfig(bool autoModeUpdate = false)
 		{
+
 			try
 			{
 				NameToScale.Clear();
@@ -135,6 +140,14 @@ namespace CustomizePlus
 							renderManagerHook = Hook<RenderDelegate>.FromAddress(renderAddress, OnRender);
 						}
 
+						if(gameObjectMovementHook == null)
+						{
+							IntPtr movementAddress = Plugin.SigScanner.ScanText("E8 ?? ?? ?? ?? 48 8B CB E8 ?? ?? ?? ?? 48 8B CB E8 ?? ?? ?? ?? 48 8B 03 48 8B CB FF 50 ?? 83 F8 ?? 75 ??");
+							gameObjectMovementHook = Hook<GameObjectMovementDelegate>.FromAddress(movementAddress, new GameObjectMovementDelegate(OnGameObjectMove));
+						}
+
+						gameObjectMovementHook.Enable();
+
 						renderManagerHook.Enable();
 						PluginLog.Debug("Hooking render function");
 
@@ -149,6 +162,7 @@ namespace CustomizePlus
 					else
 					{
 						renderManagerHook?.Disable();
+						gameObjectMovementHook?.Disable();
 						PluginLog.Debug("Unhooking render function");
 					}
 				}
@@ -166,13 +180,6 @@ namespace CustomizePlus
 
 		public static unsafe void Update()
 		{
-			//Determine player object for root scale behavior later. Have to catch errors for zone transitions.
-			uint playerObjId = 0;
-			try
-			{
-				playerObjId = ObjectTable[0].ObjectId;
-			} catch (Exception ex) { }
-
 			for (var i = 0; i < ObjectTable.Length; i++)
 			{
 				// Always filler Event obj
@@ -194,45 +201,12 @@ namespace CustomizePlus
 				if (obj == null)
 					continue;
 
-				BodyScale? scale = null;
-				// Mare Support: Bool check to see if override table from IPC can be used
-				scale = IdentifyBodyScale((ObjectStruct*)ObjectTable.GetObjectAddress(i), playerObjId != obj.ObjectId);
-
 				try
 				{
-					bool isCutsceneNpc = false;
-					switch (obj.ObjectKind)
-					{
-						case ObjectKind.Player:
-						case ObjectKind.Companion:
-							scale = scale ?? defaultScale ?? null;
-							break;
-						case ObjectKind.Retainer:
-							scale = scale ?? defaultRetainerScale ?? defaultScale ?? null;
-							break;
-						case ObjectKind.EventNpc:
-						case ObjectKind.BattleNpc:
-							isCutsceneNpc = i >= 200 && i < 246;
-							// Stop if NPCs disabled by config. Have to double check cutscene range due to the 200/201 issue.
-							if (!Configuration.ApplyToNpcs && !isCutsceneNpc)
-								continue;
-							else if (isCutsceneNpc && !Configuration.ApplyToNpcsInCutscenes)
-								continue;
-							// Choose most appropriate default, or fallback to null.
-							if (isCutsceneNpc)
-								scale = scale ?? defaultCutsceneScale ?? defaultScale ?? null;
-							else
-								scale = scale ?? defaultScale ?? null;
-							break;
-						default:
-							continue;
-					}
-					// No scale to apply, move on.
+					(BodyScale? scale, bool applyRootScale) = FindScale(i);
 					if (scale == null)
 						continue;
-					// Don't apply root scales to NPCs in cutscenes or battle NPCs. Both cause animation or camera issues. Exception made for player pets
-					bool applyRootScale = !(isCutsceneNpc || (obj.ObjectKind == ObjectKind.BattleNpc && obj.OwnerId != playerObjId));
-					scale.Apply(obj, applyRootScale);
+					scale.ApplyNonRootBonesAndRootScale(obj, applyRootScale);
 				}
 				catch (Exception ex)
 				{
@@ -257,6 +231,9 @@ namespace CustomizePlus
 		{
 			ipcManager?.Dispose();
 
+			gameObjectMovementHook?.Disable();
+			gameObjectMovementHook?.Dispose();
+
 			renderManagerHook?.Disable();
 			renderManagerHook?.Dispose();
 
@@ -267,16 +244,61 @@ namespace CustomizePlus
 			PluginInterface.UiBuilder.OpenConfigUi -= ConfigurationInterface.Show;
 		}
 
-		private static void Apply(GameObject character, BodyScale scale)
+		private static unsafe (BodyScale, bool) FindScale(int objectIndex)
 		{
+			//Determine player object for root scale behavior later. Have to catch errors for zone transitions.
+			uint playerObjId = 0;
 			try
 			{
-				scale.Apply(character, true);
+				playerObjId = ObjectTable[0].ObjectId;
 			}
-			catch (Exception ex)
+			catch (Exception ex) { }
+
+			var obj = ObjectTable[objectIndex];
+
+			if (obj == null)
+				return (null, false);
+
+			BodyScale? scale = null;
+			// Mare Support: Bool check to see if override table from IPC can be used
+			scale = IdentifyBodyScale((ObjectStruct*)ObjectTable.GetObjectAddress(objectIndex), playerObjId != obj.ObjectId);
+
+			bool isCutsceneNpc = false;
+			switch (obj.ObjectKind)
 			{
-				PluginLog.Debug($"Error in applying scale: {scale.ScaleName} to character {character.ObjectKind}: {ex}");
+				case ObjectKind.Player:
+				case ObjectKind.Companion:
+					scale = scale ?? defaultScale ?? null;
+					break;
+				case ObjectKind.Retainer:
+					scale = scale ?? defaultRetainerScale ?? defaultScale ?? null;
+					break;
+				case ObjectKind.EventNpc:
+				case ObjectKind.BattleNpc:
+					isCutsceneNpc = objectIndex >= 200 && objectIndex < 246;
+					// Stop if NPCs disabled by config. Have to double check cutscene range due to the 200/201 issue.
+					if (!Configuration.ApplyToNpcs && !isCutsceneNpc)
+						return (null, false);
+					else if (isCutsceneNpc && !Configuration.ApplyToNpcsInCutscenes)
+						return (null, false);
+					// Choose most appropriate default, or fallback to null.
+					if (isCutsceneNpc)
+						scale = scale ?? defaultCutsceneScale ?? defaultScale ?? null;
+					else
+						scale = scale ?? defaultScale ?? null;
+					break;
+				default:
+					return (null, false);
 			}
+
+			// No scale to apply, move on.
+			if (scale == null)
+				return (null, false);
+
+			// Don't apply root scales to NPCs in cutscenes or battle NPCs. Both cause animation or camera issues. Exception made for player pets
+			bool applyRootScale = !(isCutsceneNpc || (obj.ObjectKind == ObjectKind.BattleNpc && obj.OwnerId != playerObjId));
+
+			return (scale, applyRootScale);
 		}
 
 		private static IntPtr OnRender(IntPtr a1, int a2, IntPtr a3, byte a4, IntPtr a5, IntPtr a6)
@@ -298,6 +320,38 @@ namespace CustomizePlus
 			}
 
 			return original(a1, a2, a3, a4, a5, a6);
+		}
+
+		private static unsafe void OnGameObjectMove(IntPtr gameObjectPtr)
+		{
+			// Call the original function.
+			gameObjectMovementHook.Original(gameObjectPtr);
+
+			var gameObject = ObjectTable.CreateObjectReference(gameObjectPtr);
+
+			if (gameObject == null)
+				return;
+
+			// Always filler Event obj
+			if (gameObject.ObjectIndex == 245)
+				return;
+
+			// Removed setting until new UI is done
+			// Don't affect EventNPCs when they are given an index above the player range, like in big cities, by config
+			// if (gameObject.ObjectIndex > 245 && !Configuration.ApplyToNpcsInBusyAreas) 
+			//	continue;
+
+			// Don't affect the cutscene object range, by configuration.
+			// 202 gives leeway as player is not always put in 200 like they should be.
+			if (gameObject.ObjectIndex >= 202 && gameObject.ObjectIndex < 240 && !Configuration.ApplyToNpcsInCutscenes)
+				return;
+
+			(BodyScale? scale, bool applyRootScale) = FindScale(gameObject.ObjectIndex);
+			if (scale == null)
+				return;
+			scale.ApplyRootPosition(gameObject);
+
+			//PluginLog.Information($"{gameObject.ObjectIndex} = {gameObject.Name.ToString()}");
 		}
 
 		// All functions related to this process for non-named objects adapted from Penumbra logic. Credit to Ottermandias et al.
