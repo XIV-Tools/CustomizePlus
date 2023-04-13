@@ -56,20 +56,23 @@ namespace CustomizePlus.Interface
 			if (this.interfaces.Count <= 0)
 				new InvalidOperationException("Interfaces is empty.");
 
-			bool switchedOff = false;
-
-			// Close all windows, if we closed any window set 'switchedOff' to true so we know we are in the Turning off phase.
-			for (int i = this.interfaces.Count - 1;i >= 0;i--) {
-				if (this.interfaces[i].IsOpen) {
-					this.interfaces[i].Close();
-					switchedOff = true;
-				}
-			}
-
+			// Close all windows, if we closed any window set 'switchedOff' to true so we know we are hiding interfaces.
 			// If we did not turn anything off, we probably want to show our window.
-			if (!switchedOff) {
+			if (!CloseAllInterfaces()) {
 				Show<T>();
 			}
+		}
+
+		// Closes all Interfaces, returns true if at least one Interface was closed.
+		public bool CloseAllInterfaces() {
+			bool interfaceWasClosed = false;
+			foreach (var currentInterface in this.interfaces) {
+				if (currentInterface.IsOpen) {
+					currentInterface.Close();
+					interfaceWasClosed = true;
+				}
+			}
+			return interfaceWasClosed;
 		}
 
 		public InterfaceBase? GetInterface(Type type)
