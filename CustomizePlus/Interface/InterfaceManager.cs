@@ -3,7 +3,6 @@
 
 namespace CustomizePlus.Interface
 {
-	using Dalamud.Logging;
 	using System;
 	using System.Collections.Generic;
 
@@ -49,29 +48,6 @@ namespace CustomizePlus.Interface
 				this.interfaces.Add(ui);
 
 			return ui;
-		}
-
-		// Added this so you can close with /customize. This may need a rework in the future to access the broader usecase of the rest of the methods. But this should serve for now?
-		public void Toggle<T>()
-			where T : InterfaceBase, new()
-		{
-			if (this.interfaces.Count <= 0)
-				new InvalidOperationException("Interfaces is empty.");
-
-			bool switchedOff = false;
-
-			// Close all windows, if we closed any window set 'switchedOff' to true so we know we are in the Turning off phase.
-			for (int i = this.interfaces.Count - 1;i >= 0;i--) {
-				if (this.interfaces[i].IsOpen) {
-					this.interfaces[i].Close();
-					switchedOff = true;
-				}
-			}
-
-			// If we did not turn anything off, we probably want to show our window.
-			if (!switchedOff) {
-				Show<T>();
-			}
 		}
 
 		public InterfaceBase? GetInterface(Type type)
