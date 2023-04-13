@@ -6,8 +6,10 @@ namespace CustomizePlus.Interface
     using System;
     using System.Collections.Generic;
     using System.IO;
-    using System.Numerics;
-    using System.Windows.Forms;
+	using System.IO.Compression;
+	using System.Numerics;
+	using System.Text;
+	using System.Windows.Forms;
     using Anamnesis.Files;
     using Anamnesis.Posing;
     using CustomizePlus.Memory;
@@ -22,6 +24,9 @@ namespace CustomizePlus.Interface
 	{
 		private string newScaleName = string.Empty;
 		private string newScaleCharacter = string.Empty;
+
+		// Change Version when updating the way scales are saved. Import from base64 will then auto fail.
+		private byte scaleVersion = 1;
 
 		protected override string Title => "Customize+ Configuration";
 		protected override bool SingleInstance => true;
@@ -149,6 +154,36 @@ namespace CustomizePlus.Interface
 			if (ImGui.IsItemHovered())
 				ImGui.SetTooltip("Add a character");
 
+			ImGui.SameLine();
+			if (ImGui.Button("Add Character from Clipboard")) {
+				Byte importVer = 0;
+				BodyScale importScale = null;
+				string json = null;
+
+				try {
+					importVer = ImportFromBase64(Clipboard.GetText(),out json);
+					importScale = BuildFromCustomizeJSON(json) ;
+				} catch (Exception e) {
+					PluginLog.Error(e, "An error occured during import conversion. Please check you coppied the right thing!");
+				}
+
+				if (importVer == scaleVersion && importScale != null) {
+					Plugin.Configuration.BodyScales.Add(importScale);
+					Plugin.Configuration.ToggleOffAllOtherMatching(importScale.CharacterName, importScale.ScaleName);
+					if (config.AutomaticEditMode) {
+						config.Save();
+						Plugin.LoadConfig(true);
+					}
+				} else if (importVer == 0 || importScale is null) {
+					PluginLog.Error("An error occured during import conversion, but neither ImportFromBase64 nor BuildFromCustomizeJSON threw an Exception. Please report this to the developers.");
+				} else {
+					PluginLog.Information("You are trying to import an Outdated scale, these are not supported anymore. Sorry.");
+				}
+			}
+
+			if (ImGui.IsItemHovered())
+				ImGui.SetTooltip("Add a character from your Clipboard");
+
 			// IPC Testing Window - Hidden unless enabled in json.
 			if (config.DebuggingMode)
 			{
@@ -229,6 +264,14 @@ namespace CustomizePlus.Interface
 					ImGui.SetTooltip($"Import scale from Anamnesis");
 
 				ImGui.SameLine();
+				if (ImGuiComponents.IconButton(FontAwesomeIcon.FileExport)) {
+					Clipboard.SetText(this.ExportToBase64(bodyScale, scaleVersion));
+				}
+
+				if (ImGui.IsItemHovered())
+					ImGui.SetTooltip($"Export scale to Clipboard.");
+
+				ImGui.SameLine();
 				if (ImGuiComponents.IconButton(FontAwesomeIcon.Trash))
 				{
 					config.BodyScales.Remove(bodyScale);
@@ -257,6 +300,47 @@ namespace CustomizePlus.Interface
 				Plugin.LoadConfig();
 				this.Close();
 			}
+		}
+
+		// Compress any type to a base64 encoding of its compressed json representation, prepended with a version byte.
+		// Returns an empty string on failure.
+		// Original by Ottermandias: OtterGui <3
+		private unsafe string ExportToBase64<T>(T bodyScale, byte version) {
+			try {
+				var json = JsonConvert.SerializeObject(bodyScale, Formatting.None);
+				var bytes = Encoding.UTF8.GetBytes(json);
+				using var compressedStream = new MemoryStream();
+				using (var zipStream = new GZipStream(compressedStream, CompressionMode.Compress)) {
+					zipStream.Write(new ReadOnlySpan<byte>(&version, 1));
+					zipStream.Write(bytes, 0, bytes.Length);
+				}
+
+				return Convert.ToBase64String(compressedStream.ToArray());
+			} catch {
+				return string.Empty;
+			}
+		}
+
+		// Decompress a base64 encoded string to the given type and a prepended version byte if possible.
+		// On failure, data will be String error and version will be byte.MaxValue.
+		// Original by Ottermandias: OtterGui <3
+		public static byte ImportFromBase64(string base64, out string data) {
+			var version = byte.MaxValue;
+			try {
+				var bytes = Convert.FromBase64String(base64);
+				using var compressedStream = new MemoryStream(bytes);
+				using var zipStream = new GZipStream(compressedStream, CompressionMode.Decompress);
+				using var resultStream = new MemoryStream();
+				zipStream.CopyTo(resultStream);
+				bytes = resultStream.ToArray();
+				version = bytes[0];
+				var json = Encoding.UTF8.GetString(bytes, 1, bytes.Length - 1);
+				data = json;
+			} catch {
+				data = "error";
+			}
+
+			return version;
 		}
 
 		private void Import(BodyScale scale)
@@ -373,6 +457,17 @@ namespace CustomizePlus.Interface
 			}
 			scale.ScaleName = $"Default";
 			return BuildDefault(scale);
+		}
+
+		// Scale returns as null if it fails.
+		public static BodyScale BuildFromCustomizeJSON(string json) {
+			BodyScale scale = null;
+
+			JsonSerializerSettings settings = new();
+			settings.NullValueHandling = NullValueHandling.Ignore;
+			settings.Converters.Add(new PoseFile.VectorConverter());
+			scale = JsonConvert.DeserializeObject<BodyScale>(json, settings);
+			return scale;
 		}
 
 		// TODO: Change to using real bone dict and not existing JSON logic.

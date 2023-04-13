@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Authors></Authors>
     <Company></Company>
-    <Version>0.0.1.3</Version>
+    <Version>0.0.1.5</Version>
     <Description>CustomizePlus</Description>
     <Copyright></Copyright>
     <PackageProjectUrl>https://github.com/XIV-Tools/CustomizePlus</PackageProjectUrl>
@@ -18,7 +18,6 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-    <OutputPath>$(AppData)\XIVLauncher\devPlugins\CustomizePlus\</OutputPath>
   </PropertyGroup>
 
   <ItemGroup>
@@ -73,6 +72,9 @@
 	</Reference>
 	<Reference Include="Penumbra.GameData">
 	  <HintPath>..\..\Penumbra\Penumbra\bin\Debug\Penumbra.GameData.dll</HintPath>
+	</Reference>
+	<Reference Include="Penumbra.String">
+	  <HintPath>..\..\Penumbra\Penumbra\bin\Debug\Penumbra.String.dll</HintPath>
 	</Reference>
   </ItemGroup>
 
