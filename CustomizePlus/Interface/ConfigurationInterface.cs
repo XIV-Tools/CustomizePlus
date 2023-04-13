@@ -36,6 +36,10 @@ namespace CustomizePlus.Interface
 			Plugin.InterfaceManager.Show<ConfigurationInterface>();
 		}
 
+		public static void Toggle() {
+			Plugin.InterfaceManager.Toggle<ConfigurationInterface>();
+		}
+
 		protected override void DrawContents()
 		{
 			Configuration config = Plugin.Configuration;

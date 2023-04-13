@@ -50,10 +50,10 @@ namespace CustomizePlus
 
 				LoadConfig();
 
-				CommandManager.AddCommand((s, t) => ConfigurationInterface.Show(), "/customize", "Opens the Customize+ configuration window.");
+				CommandManager.AddCommand((s, t) => ConfigurationInterface.Toggle(), "/customize", "Toggles the Customize+ configuration window.");
 
 				PluginInterface.UiBuilder.Draw += InterfaceManager.Draw;
-				PluginInterface.UiBuilder.OpenConfigUi += ConfigurationInterface.Show;
+				PluginInterface.UiBuilder.OpenConfigUi += ConfigurationInterface.Toggle;
 
 				if (PluginInterface.IsDevMenuOpen)
 					ConfigurationInterface.Show();
