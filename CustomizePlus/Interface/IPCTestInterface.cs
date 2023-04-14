@@ -19,7 +19,7 @@ namespace CustomizePlus.Interface
 	using Newtonsoft.Json;
 	using static CustomizePlus.BodyScale;
 	using Dalamud.Plugin.Ipc;
-	/*
+	
 	public class IPCTestInterface : WindowBase
 	{
 		//private DalamudPluginInterface localPlugin;
@@ -69,14 +69,10 @@ namespace CustomizePlus.Interface
 		private string newScaleCharacter = string.Empty;
 		private string originalScaleName = string.Empty;
 		private string originalScaleCharacter = string.Empty;
-		private HkVector4 originalScaleValue = HkVector4.One;
-		private Vector4 newScaleValue = HkVector4.One.GetAsNumericsVector();
-		private Vector4 originalRootScale = new Vector4(1f, 1f, 1f, 0f);
-		private Vector4 newRootScale = HkVector4.One.GetAsNumericsVector();
+		private BoneEditsContainer rootEditsContainer = new BoneEditsContainer();
 
-		private BodyScale? scaleStart;
-		private Dictionary<string, BoneEditsContainer>? boneValuesOriginal = new Dictionary<string, BoneEditsContainer>();
-		private Dictionary<string, BoneEditsContainer>? boneValuesNew = new Dictionary<string, BoneEditsContainer>();
+		private Dictionary<string, BoneEditsContainer> boneValuesOriginal = new Dictionary<string, BoneEditsContainer>();
+		private Dictionary<string, BoneEditsContainer> boneValuesNew = new Dictionary<string, BoneEditsContainer>();
 		private readonly List<string> boneNamesLegacy = LegacyBoneNameConverter.GetLegacyNames();
 		private readonly List<string> boneNamesModern = LegacyBoneNameConverter.GetModernNames();
 		private List<string> boneNamesModernUsed = new List<string>();
@@ -85,6 +81,8 @@ namespace CustomizePlus.Interface
 		private bool reset = false;
 
 		private bool automaticEditMode = false;
+
+		private EditMode editMode;
 
 		public void Show(DalamudPluginInterface pi)
 		{
@@ -108,7 +106,6 @@ namespace CustomizePlus.Interface
 				
 			}
 
-			editWnd.scaleStart = scale;
 			editWnd.ScaleUpdated = scale;
 			editWnd.originalScaleName = scale.ScaleName;
 			editWnd.originalScaleCharacter = scale.CharacterName;
@@ -129,9 +126,7 @@ namespace CustomizePlus.Interface
 				}
 			}
 
-			editWnd.originalRootScale = scale.RootScale.GetAsNumericsVector();
-
-			editWnd.newRootScale = editWnd.originalRootScale;
+			//editWnd.originalRootScale = scale.RootScale.GetAsNumericsVector();
 
 			editWnd.originalScaleName = scale.ScaleName;
 			editWnd.originalScaleCharacter = scale.CharacterName;
@@ -199,17 +194,25 @@ namespace CustomizePlus.Interface
 			if (ImGui.IsItemHovered())
 				ImGui.SetTooltip($"Applies changes automatically without saving.");
 
-			ImGui.Separator();
+			if (ImGui.RadioButton("Position", editMode == EditMode.Position))
+				editMode = EditMode.Position;
 
-			Vector4 rootScaleLocal = this.newRootScale;
+			ImGui.SameLine();
+			if (ImGui.RadioButton("Rotation", editMode == EditMode.Rotation))
+				editMode = EditMode.Rotation;
+
+			ImGui.SameLine();
+			if (ImGui.RadioButton("Scale", editMode == EditMode.Scale))
+				editMode = EditMode.Scale;
+
+			ImGui.Separator();
 
 			if (ImGuiComponents.IconButton(-1, FontAwesomeIcon.Recycle))
 			{
-				rootScaleLocal = new Vector4(1f, 1f, 1f, 1f);
-				this.newRootScale = rootScaleLocal;
+				this.rootEditsContainer = new BoneEditsContainer();
 				if (automaticEditMode)
 				{
-					this.UpdateCurrent("Root", new HkVector4(1f, 1f, 1f, 1f));
+					this.UpdateCurrent("n_root", this.rootEditsContainer);
 				}
 				this.reset = true;
 			}
@@ -219,31 +222,79 @@ namespace CustomizePlus.Interface
 
 			ImGui.SameLine();
 
-			Vector4 rootScaleLocalTemp = new Vector4((float)rootScaleLocal.X, (float)rootScaleLocal.Y, (float)rootScaleLocal.Z, (float)rootScaleLocal.W);
+			Vector4 rootLocalTemp = HkVector4.One.GetAsNumericsVector();
+			bool isRootControlDisabled = false;
+			switch (editMode)
+			{
+				case EditMode.Position:
+					rootLocalTemp = rootEditsContainer.Position.GetAsNumericsVector();
+					break;
+				case EditMode.Rotation:
+					rootLocalTemp = HkVector4.Zero.GetAsNumericsVector();
+					isRootControlDisabled = true;
+					break;
+				case EditMode.Scale:
+					rootLocalTemp = rootEditsContainer.Scale.GetAsNumericsVector();
+					break;
+			}
 
-			if (ImGui.DragFloat4("Root", ref rootScaleLocalTemp, 0.001f, 0f, 10f))
+			if (isRootControlDisabled)
+				ImGui.BeginDisabled();
+			if (ImGui.DragFloat4("Root", ref rootLocalTemp, 0.001f, 0f, 10f))
 			{
 				if (this.reset)
 				{
-					rootScaleLocalTemp = new Vector4(1f, 1f, 1f, 1f);
+					rootLocalTemp = new Vector4(1f, 1f, 1f, 1f);
 					this.reset = false;
 				}
-				else if (!((rootScaleLocalTemp.X == rootScaleLocalTemp.Y) && (rootScaleLocalTemp.X == rootScaleLocalTemp.Z) && (rootScaleLocalTemp.Y == rootScaleLocalTemp.Z)))
+				else if (!((rootLocalTemp.X == rootLocalTemp.Y) && (rootLocalTemp.X == rootLocalTemp.Z) && (rootLocalTemp.Y == rootLocalTemp.Z)))
 				{
-					rootScaleLocalTemp.W = 0;
+					rootLocalTemp.W = 0;
 				}
-				else if (rootScaleLocalTemp.W != 0)
+				else if (rootLocalTemp.W != 0)
 				{
-					rootScaleLocalTemp.X = rootScaleLocalTemp.W;
-					rootScaleLocalTemp.Y = rootScaleLocalTemp.W;
-					rootScaleLocalTemp.Z = rootScaleLocalTemp.W;
+					rootLocalTemp.X = rootLocalTemp.W;
+					rootLocalTemp.Y = rootLocalTemp.W;
+					rootLocalTemp.Z = rootLocalTemp.W;
 				}
-				rootScaleLocal = new Vector4(rootScaleLocalTemp.X, rootScaleLocalTemp.Y, rootScaleLocalTemp.Z, rootScaleLocalTemp.W);
-				this.newRootScale = rootScaleLocal;
+
+				switch (editMode)
+				{
+					case EditMode.Position:
+						rootEditsContainer.Position = new HkVector4(rootLocalTemp.X, rootLocalTemp.Y, rootLocalTemp.Z, rootLocalTemp.W);
+						break;
+					case EditMode.Rotation:
+						rootEditsContainer.Rotation = new HkVector4(rootLocalTemp.X, rootLocalTemp.Y, rootLocalTemp.Z, rootLocalTemp.W);
+						break;
+					case EditMode.Scale:
+						rootEditsContainer.Scale = new HkVector4(rootLocalTemp.X, rootLocalTemp.Y, rootLocalTemp.Z, rootLocalTemp.W);
+						break;
+				}
+
 				if (automaticEditMode)
 				{
-					this.UpdateCurrent("Root", new HkVector4(rootScaleLocal.X, rootScaleLocal.Y, rootScaleLocal.Z, rootScaleLocalTemp.W));
+					this.UpdateCurrent("n_root", this.rootEditsContainer);
 				}
+			}
+			if (isRootControlDisabled)
+				ImGui.EndDisabled();
+
+			string col1Label = "X";
+			string col2Label = "Y";
+			string col3Label = "Z";
+			string col4Label = "All";
+
+			switch (editMode)
+			{
+				case EditMode.Position:
+					col4Label = "Unused";
+					break;
+				case EditMode.Rotation:
+					col1Label = "Roll";
+					col2Label = "Yaw";
+					col3Label = "Pitch";
+					col4Label = "Unused";
+					break;
 			}
 
 			ImGui.Separator();
@@ -251,13 +302,13 @@ namespace CustomizePlus.Interface
 			ImGui.TableNextColumn();
 			ImGui.Text("Bones:");
 			ImGui.TableNextColumn();
-			ImGui.Text("X");
+			ImGui.Text(col1Label);
 			ImGui.TableNextColumn();
-			ImGui.Text("Y");
+			ImGui.Text(col2Label);
 			ImGui.TableNextColumn();
-			ImGui.Text("Z");
+			ImGui.Text(col3Label);
 			ImGui.TableNextColumn();
-			ImGui.Text("All");
+			ImGui.Text(col4Label);
 			ImGui.TableNextColumn();
 			ImGui.Text("Name");
 			ImGui.EndTable();
@@ -278,30 +329,36 @@ namespace CustomizePlus.Interface
 					continue;
 				}
 
-				HkVector4 currentHkVector = HkVector4.One;
+				BoneEditsContainer currentEditsContainer = new BoneEditsContainer { Position = HkVector4.Zero, Rotation = HkVector4.Zero, Scale = HkVector4.One };
 				string label = "Not Found";
 
 				try
 				{
-					if (this.boneValuesNew.TryGetValue(boneNameLocalLegacy, out currentHkVector))
-					{
+					if (this.boneValuesNew.TryGetValue(boneNameLocalLegacy, out currentEditsContainer))
 						label = boneNameLocalModern;
-					}
-					else if (this.boneValuesNew.TryGetValue(boneNameLocalModern, out currentHkVector))
-					{
+					else if (this.boneValuesNew.TryGetValue(boneNameLocalModern, out currentEditsContainer))
 						label = boneNameLocalModern;
-					}
 					else
-					{
-						currentHkVector = HkVector4.One;
-					}
+						currentEditsContainer = new BoneEditsContainer { Position = HkVector4.Zero, Rotation = HkVector4.Zero, Scale = HkVector4.One };
 				}
 				catch (Exception ex)
 				{
 
 				}
 
-				Vector4 currentVector4 = currentHkVector.GetAsNumericsVector();
+				Vector4 currentVector4 = HkVector4.One.GetAsNumericsVector();
+				switch (editMode)
+				{
+					case EditMode.Position:
+						currentVector4 = currentEditsContainer.Position.GetAsNumericsVector();
+						break;
+					case EditMode.Rotation:
+						currentVector4 = currentEditsContainer.Rotation.GetAsNumericsVector();
+						break;
+					case EditMode.Scale:
+						currentVector4 = currentEditsContainer.Scale.GetAsNumericsVector();
+						break;
+				}
 
 				if (ImGuiComponents.IconButton(i, FontAwesomeIcon.Recycle))
 				{
@@ -313,24 +370,48 @@ namespace CustomizePlus.Interface
 
 				if (this.reset)
 				{
-					currentVector4.W = 1F;
-					currentVector4.X = 1F;
-					currentVector4.Y = 1F;
-					currentVector4.Z = 1F;
+					BoneEditsContainer editsContainer = null;
+
+					switch (editMode)
+					{
+						case EditMode.Position:
+						case EditMode.Rotation:
+							currentVector4.W = 0F;
+							currentVector4.X = 0F;
+							currentVector4.Y = 0F;
+							currentVector4.Z = 0F;
+							break;
+						case EditMode.Scale:
+							currentVector4.W = 1F;
+							currentVector4.X = 1F;
+							currentVector4.Y = 1F;
+							currentVector4.Z = 1F;
+							break;
+					}
 					this.reset = false;
 					try
 					{
 						if (this.boneValuesNew.ContainsKey(boneNameLocalModern))
+							editsContainer = this.boneValuesNew[boneNameLocalModern];
+						else if (this.boneValuesNew.Remove(boneNameLocalLegacy, out BoneEditsContainer removedContainer))
 						{
-							this.boneValuesNew[boneNameLocalModern] = new HkVector4(currentVector4.X, currentVector4.Y, currentVector4.Z, currentVector4.W);
-						}
-						else if (this.boneValuesNew.Remove(boneNameLocalLegacy))
-						{
-							this.boneValuesNew[boneNameLocalLegacy] = new HkVector4(currentVector4.X, currentVector4.Y, currentVector4.Z, currentVector4.W);
+							editsContainer = removedContainer;
+							this.boneValuesNew[boneNameLocalLegacy] = editsContainer;
 						}
 						else
-						{
 							throw new Exception();
+
+						switch (editMode)
+						{
+							case EditMode.Position:
+								editsContainer.Position = new HkVector4(currentVector4.X, currentVector4.Y, currentVector4.Z, currentVector4.W);
+								break;
+							case EditMode.Rotation:
+								editsContainer.Rotation = new HkVector4(currentVector4.X, currentVector4.Y, currentVector4.Z, currentVector4.W);
+								break;
+							case EditMode.Scale:
+								editsContainer.Scale = new HkVector4(currentVector4.X, currentVector4.Y, currentVector4.Z, currentVector4.W);
+								break;
 						}
 					}
 					catch
@@ -339,7 +420,7 @@ namespace CustomizePlus.Interface
 					}
 					if (automaticEditMode)
 					{
-						this.UpdateCurrent(boneNameLocalLegacy, new HkVector4(currentVector4.X, currentVector4.Y, currentVector4.Z, currentVector4.W));
+						this.UpdateCurrent(boneNameLocalLegacy, editsContainer);
 					}
 				}
 				else if (currentVector4.X == currentVector4.Y && currentVector4.Y == currentVector4.Z)
@@ -354,16 +435,43 @@ namespace CustomizePlus.Interface
 				ImGui.SameLine();
 
 				ImGui.SetNextItemWidth(ImGui.GetWindowWidth() - 190);
-				if (ImGui.DragFloat4(label, ref currentVector4, 0.001f, 0f, 10f))
+
+				float minLimit = -10f;
+				float maxLimit = 10f;
+				float increment = 0.001f;
+
+				switch (editMode)
 				{
+					case EditMode.Rotation:
+						minLimit = -360f;
+						maxLimit = 360f;
+						increment = 1f;
+						break;
+				}
+
+				if (ImGui.DragFloat4(label, ref currentVector4, increment, minLimit, maxLimit))
+				{
+					BoneEditsContainer editsContainer = null;
 					try
 					{
 						if (this.reset)
 						{
-							currentVector4.W = 1F;
-							currentVector4.X = 1F;
-							currentVector4.Y = 1F;
-							currentVector4.Z = 1F;
+							switch (editMode)
+							{
+								case EditMode.Position:
+								case EditMode.Rotation:
+									currentVector4.W = 0F;
+									currentVector4.X = 0F;
+									currentVector4.Y = 0F;
+									currentVector4.Z = 0F;
+									break;
+								case EditMode.Scale:
+									currentVector4.W = 1F;
+									currentVector4.X = 1F;
+									currentVector4.Y = 1F;
+									currentVector4.Z = 1F;
+									break;
+							}
 							this.reset = false;
 						}
 						else if (!((currentVector4.X == currentVector4.Y) && (currentVector4.X == currentVector4.Z) && (currentVector4.Y == currentVector4.Z)))
@@ -384,16 +492,26 @@ namespace CustomizePlus.Interface
 					try
 					{
 						if (this.boneValuesNew.ContainsKey(boneNameLocalModern))
+							editsContainer = this.boneValuesNew[boneNameLocalModern];
+						else if (this.boneValuesNew.Remove(boneNameLocalLegacy, out BoneEditsContainer removedContainer))
 						{
-							this.boneValuesNew[boneNameLocalModern] = new HkVector4(currentVector4.X, currentVector4.Y, currentVector4.Z, currentVector4.W);
-						}
-						else if (this.boneValuesNew.Remove(boneNameLocalLegacy))
-						{
-							this.boneValuesNew[boneNameLocalLegacy] = new HkVector4(currentVector4.X, currentVector4.Y, currentVector4.Z, currentVector4.W);
+							editsContainer = removedContainer;
+							this.boneValuesNew[boneNameLocalLegacy] = editsContainer;
 						}
 						else
-						{
 							throw new Exception();
+
+						switch (editMode)
+						{
+							case EditMode.Position:
+								editsContainer.Position = new HkVector4(currentVector4.X, currentVector4.Y, currentVector4.Z, currentVector4.W);
+								break;
+							case EditMode.Rotation:
+								editsContainer.Rotation = new HkVector4(currentVector4.X, currentVector4.Y, currentVector4.Z, currentVector4.W);
+								break;
+							case EditMode.Scale:
+								editsContainer.Scale = new HkVector4(currentVector4.X, currentVector4.Y, currentVector4.Z, currentVector4.W);
+								break;
 						}
 					}
 					catch
@@ -402,7 +520,7 @@ namespace CustomizePlus.Interface
 					}
 					if (automaticEditMode)
 					{
-						this.UpdateCurrent(boneNameLocalLegacy, new HkVector4(currentVector4.X, currentVector4.Y, currentVector4.Z, currentVector4.W));
+						this.UpdateCurrent(boneNameLocalLegacy, editsContainer);
 					}
 				}
 
@@ -444,17 +562,16 @@ namespace CustomizePlus.Interface
 			{
 				string legacyName = boneNamesLegacyUsed[i];
 
-				if (!this.ScaleUpdated.Bones.ContainsKey(legacyName))
-					newBody.Bones.Add(legacyName, this.boneValuesNew[legacyName]);
-
 				newBody.Bones[legacyName] = this.boneValuesNew[legacyName];
-
-				newBody.BodyScaleEnabled = true;
-				newBody.ScaleName = "IPC";
-				newBody.CharacterName = newScaleCharacter;
 			}
 
-			newBody.RootScale = new HkVector4(this.newRootScale.X, this.newRootScale.Y, this.newRootScale.Z, 0);
+			newBody.Bones["n_root"] = this.rootEditsContainer;
+
+			newBody.BodyScaleEnabled = true;
+			newBody.ScaleName = "IPC";
+			newBody.CharacterName = newScaleCharacter;
+
+			//newBody.RootScale = new HkVector4(this.newRootScale.X, this.newRootScale.Y, this.newRootScale.Z, 0);
 
 			var bodyString = JsonConvert.SerializeObject(newBody);
 			//PluginLog.Information($"{pi.PluginNames}");
@@ -492,21 +609,12 @@ namespace CustomizePlus.Interface
 			revert.InvokeAction(newScaleCharacter);
 		}
 
-		private void UpdateCurrent(string boneName, HkVector4 boneValue)
+		private void UpdateCurrent(string boneName, BoneEditsContainer boneValue)
 		{
 			Configuration config = Plugin.Configuration;
 			BodyScale newBody = this.ScaleUpdated;
 
-			if (boneName == "Root")
-			{
-				newBody.RootScale = boneValue;
-			}
-			else
-			{
-				newBody.Bones[boneName] = boneValue;
-			}
-
-
+			newBody.Bones[boneName] = boneValue;
 		}
 
 		private bool IsBoneNameEditable(string boneNameModern)
@@ -519,5 +627,5 @@ namespace CustomizePlus.Interface
 				return false;
 			return true;
 		}
-	}*/
+	}
 }

@@ -197,8 +197,8 @@ namespace CustomizePlus.Interface
 				ImGui.SameLine();
 				if (ImGuiComponents.IconButton(FontAwesomeIcon.Pen))
 				{
-					/*IPCTestInterface ipcWindow = new IPCTestInterface();
-					ipcWindow.Show(Plugin.PluginInterface);*/
+					IPCTestInterface ipcWindow = new IPCTestInterface();
+					ipcWindow.Show(Plugin.PluginInterface);
 				}
 			}
 

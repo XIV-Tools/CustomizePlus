@@ -523,15 +523,14 @@ namespace CustomizePlus.Interface
 			{
 				string legacyName = boneNamesLegacyUsed[i];
 
-				if (!this.ScaleUpdated.Bones.ContainsKey(legacyName))
-					newBody.Bones.Add(legacyName, this.boneValuesNew[legacyName]);
-
 				newBody.Bones[legacyName] = this.boneValuesNew[legacyName];
-
-				newBody.BodyScaleEnabled = this.scaleEnabled;
-				newBody.ScaleName = scaleName;
-				newBody.CharacterName = characterName;
 			}
+
+			newBody.Bones["n_root"] = this.rootEditsContainer;
+
+			newBody.BodyScaleEnabled = this.scaleEnabled;
+			newBody.ScaleName = scaleName;
+			newBody.CharacterName = characterName;
 
 			//newBody.RootScale = new HkVector4(this.newRootScale.X, this.newRootScale.Y, this.newRootScale.Z, 0);
 			if (this.originalScaleName == scaleName && this.originalScaleCharacter == characterName)
