@@ -26,7 +26,7 @@ namespace CustomizePlus.Interface
 		private string newScaleCharacter = string.Empty;
 
 		// Change Version when updating the way scales are saved. Import from base64 will then auto fail.
-		private byte scaleVersion = 1;
+		private byte scaleVersion = 2;
 
 		protected override string Title => "Customize+ Configuration";
 		protected override bool SingleInstance => true;
