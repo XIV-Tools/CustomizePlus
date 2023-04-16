@@ -1,8 +1,8 @@
 ﻿// © Customize+.
 // Licensed under the MIT license.
 
+using CustomizePlus.Data.Configuration.Interfaces;
 using CustomizePlus.Helpers;
-using CustomizePlus.Interface.Configuration;
 using Dalamud.Configuration;
 using Newtonsoft.Json;
 using System;

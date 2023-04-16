@@ -22,6 +22,7 @@ namespace CustomizePlus.Data.Configuration
 		public bool ApplyToNpcsInCutscenes { get; set; } = true;
 
 		public bool DebuggingMode { get; set; } = false;
+		public HashSet<string> ViewedMessageWindows = new();
 
 		// Upcoming feature
 		/*

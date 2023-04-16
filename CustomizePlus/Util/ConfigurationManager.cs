@@ -2,9 +2,9 @@
 // Licensed under the MIT license.
 
 using CustomizePlus.Data.Configuration;
+using CustomizePlus.Data.Configuration.Interfaces;
 using CustomizePlus.Data.Configuration.Version0;
 using CustomizePlus.Helpers;
-using CustomizePlus.Interface.Configuration;
 using Dalamud.Logging;
 using Newtonsoft.Json;
 using System;

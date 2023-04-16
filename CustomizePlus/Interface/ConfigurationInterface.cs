@@ -265,8 +265,7 @@ namespace CustomizePlus.Interface
 					// Edit
 					ImGui.TableNextColumn();
 					if (ImGuiComponents.IconButton(FontAwesomeIcon.Pen)) {
-						EditInterface editWindow = new EditInterface();
-						editWindow.Show(bodyScale);
+						EditInterface.Show(bodyScale);
 					}
 
 					if (ImGui.IsItemHovered())
@@ -370,72 +369,74 @@ namespace CustomizePlus.Interface
 
 		private void Import(BodyScale scale)
 		{
-			OpenFileDialog picker = new();
-			picker.Filter = "Anamnesis Pose (*.pose)|*.pose";
-			picker.CheckFileExists = true;
-			picker.Title = "Customize+ - Import Anamnesis Pose";
-
-			DialogResult result = picker.ShowDialog();
-			if (result != DialogResult.OK)
-				return;
-
-			string json = File.ReadAllText(picker.FileName);
-
-			JsonSerializerSettings settings = new();
-			settings.NullValueHandling = NullValueHandling.Ignore;
-			settings.Converters.Add(new PoseFile.VectorConverter());
-
-			PoseFile? file = JsonConvert.DeserializeObject<PoseFile>(json, settings);
-
-			if (file == null)
-				throw new Exception("Failed to deserialize pose file");
-
-			// Load scale if it it not null, not 0 and not 1.
-			if (file.Scale != null &&
-				file.Scale.X != 0 &&
-				file.Scale.Y != 0 &&
-				file.Scale.Z != 0 &&
-				file.Scale.X != 1 &&
-				file.Scale.Y != 1 &&
-				file.Scale.Z != 1)
+			Action importAction = () =>
 			{
-				scale.Bones["n_root"].Scale = new Vector3(file.Scale.X, file.Scale.Y, file.Scale.Z); //todo: might crash
-				//scale.RootScale = new HkVector4(file.Scale.X, file.Scale.Y, file.Scale.Z, 1);
-			}
+				OpenFileDialog picker = new();
+				picker.Filter = "Anamnesis Pose (*.pose)|*.pose";
+				picker.CheckFileExists = true;
+				picker.Title = "Customize+ - Import Anamnesis Pose";
 
-			if (file.Bones == null)
-				return;
+				DialogResult result = picker.ShowDialog();
+				if (result != DialogResult.OK)
+					return;
 
-			string name = Path.GetFileNameWithoutExtension(picker.FileName);
+				string json = File.ReadAllText(picker.FileName);
 
-			scale.ScaleName = name;
+				JsonSerializerSettings settings = new();
+				settings.NullValueHandling = NullValueHandling.Ignore;
+				settings.Converters.Add(new PoseFile.VectorConverter());
 
-			scale.Bones.Clear();
+				PoseFile? file = JsonConvert.DeserializeObject<PoseFile>(json, settings);
 
-			foreach ((string boneName, PoseFile.Bone? bone) in file.Bones)
-			{
-				if (bone == null)
-					continue;
+				if (file == null)
+					throw new Exception("Failed to deserialize pose file");
 
-				if (bone.Scale == null)
-					continue;
+				if (file.Bones == null)
+					return;
 
-				string? modernName = LegacyBoneNameConverter.GetModernName(boneName);
-				if (modernName == null)
-					modernName = boneName;
+				string name = Path.GetFileNameWithoutExtension(picker.FileName);
 
-				HkVector4 boneScale = new();
-				boneScale.X = bone.Scale.X;
-				boneScale.Y = bone.Scale.Y;
-				boneScale.Z = bone.Scale.Z;
+				scale.ScaleName = name;
 
-				var editsContainer = new BoneEditsContainer { Position = MathHelpers.ZeroVector, Rotation = MathHelpers.ZeroVector, Scale = MathHelpers.OneVector };
+				scale.Bones.Clear();
 
-				if (!scale.Bones.ContainsKey(modernName))
-					scale.Bones.Add(modernName, editsContainer);
+				foreach ((string boneName, PoseFile.Bone? bone) in file.Bones)
+				{
+					if (bone == null)
+						continue;
 
-				scale.Bones[modernName] = editsContainer;
-			}
+					if (bone.Scale == null)
+						continue;
+
+					string? modernName = LegacyBoneNameConverter.GetModernName(boneName);
+					if (modernName == null)
+						modernName = boneName;
+
+					if (modernName == "n_root")
+						continue;
+
+					var editsContainer = new BoneEditsContainer { Position = MathHelpers.ZeroVector, Rotation = MathHelpers.ZeroVector, Scale = new Vector3(bone.Scale.X, bone.Scale.Y, bone.Scale.Z) };
+
+					if (!scale.Bones.ContainsKey(modernName))
+						scale.Bones.Add(modernName, editsContainer);
+
+					scale.Bones[modernName] = editsContainer;
+				}
+
+				// Load scale if it it not null, not 0 and not 1.
+				if (file.Scale != null &&
+					file.Scale.X != 0 &&
+					file.Scale.Y != 0 &&
+					file.Scale.Z != 0 &&
+					file.Scale.X != 1 &&
+					file.Scale.Y != 1 &&
+					file.Scale.Z != 1)
+				{
+					scale.Bones["n_root"] = new BoneEditsContainer { Position = MathHelpers.ZeroVector, Rotation = MathHelpers.ZeroVector, Scale = new Vector3(file.Scale.X, file.Scale.Y, file.Scale.Z) };
+				}
+			};
+
+			MessageWindow.Show("Customize+ is only able to import scale from the *.pose files. Position and rotation will be ignored.", importAction, "ana_import_pos_rot_warning");
 		}
 
 		// TODO: Finish feature. May require additional skeleton code from Anamnesis

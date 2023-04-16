@@ -47,10 +47,10 @@ namespace CustomizePlus.Interface
 
 		private EditMode editMode;
 
-		public void Show(BodyScale scale)
+		public static void Show(BodyScale scale)
 		{
-			editMode = EditMode.Scale;
 			EditInterface editWnd = Plugin.InterfaceManager.Show<EditInterface>();
+			editWnd.editMode = EditMode.Scale;
 			editWnd.Scale = scale;
 			editWnd.ScaleUpdated = scale;
 			if (scale == null)

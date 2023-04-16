@@ -8,7 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using CustomizePlus.Data.Configuration;
 
-namespace CustomizePlus.Interface.Configuration
+namespace CustomizePlus.Data.Configuration.Interfaces
 {
 	internal interface ILegacyConfiguration
 	{
