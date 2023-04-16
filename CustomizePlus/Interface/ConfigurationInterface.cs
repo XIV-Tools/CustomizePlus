@@ -5,7 +5,7 @@ namespace CustomizePlus.Interface
 {
     using System;
     using System.Collections.Generic;
-    using System.IO;
+	using System.IO;
 	using System.IO.Compression;
 	using System.Numerics;
 	using System.Text;
@@ -115,8 +115,11 @@ namespace CustomizePlus.Interface
 
 			if (ImGui.IsItemHovered())
 				ImGui.SetTooltip($"Apply scales to NPCs in cutscenes.\nSpecify a scale with the name 'DefaultCutscene' to apply it to all generic characters while in a cutscene.");
-			
+
+			ImGui.Spacing();
 			ImGui.Separator();
+			ImGui.Spacing();
+
 			ImGui.Text("Characters:");
 
 			ImGui.SameLine();
@@ -199,96 +202,114 @@ namespace CustomizePlus.Interface
 				}
 			}
 
+			ImGui.Spacing();
 			ImGui.Separator();
+			ImGui.Spacing();
 
-			ImGui.BeginChild("scrolling", new Vector2(0, ImGui.GetFrameHeightWithSpacing() - 56), false);
+			ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(5f, 6f));
 
-			for (int i = 0; i < config.BodyScales.Count; i++)
-			{
-				BodyScale bodyScale = config.BodyScales[i];
-				bool bodyScaleEnabled = bodyScale.BodyScaleEnabled;
+			var fontScale = ImGui.GetIO().FontGlobalScale;
+			if (ImGui.BeginTable("Config", 4, ImGuiTableFlags.Borders | ImGuiTableFlags.Resizable | ImGuiTableFlags.ScrollY, new Vector2(0, ImGui.GetFrameHeightWithSpacing() - (70 * fontScale)))) {
+				ImGui.TableSetupColumn("Enabled", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize);
+				ImGui.TableSetupColumn("Character");
+				ImGui.TableSetupColumn("Name");
+				ImGui.TableSetupColumn("Options", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize);
+				ImGui.TableHeadersRow();
 
-				ImGui.PushID(i);
+				for (int i = 0;i < config.BodyScales.Count;i++) {
+					BodyScale bodyScale = config.BodyScales[i];
+					bool bodyScaleEnabled = bodyScale.BodyScaleEnabled;
 
-				ImGui.SetNextItemWidth((ImGui.GetWindowSize().X - 350) / 2);
-				string characterName = bodyScale.CharacterName ?? string.Empty;
-				if (ImGui.InputText("Character", ref characterName, 512, ImGuiInputTextFlags.NoHorizontalScroll))
-				{
-					bodyScale.CharacterName = characterName;
-				}
+					ImGui.PushID(i);
 
-				if (ImGui.IsItemHovered())
-					ImGui.SetTooltip($"The name of the character this body scale should apply to.");
+					ImGui.TableNextRow();
+					ImGui.TableNextColumn();
 
-				ImGui.SameLine();
-
-				ImGui.SetNextItemWidth((ImGui.GetWindowSize().X - 350) / 2);
-				string scaleName = bodyScale.ScaleName ?? string.Empty;
-				if (ImGui.InputText("Scale Name", ref scaleName, 512, ImGuiInputTextFlags.NoHorizontalScroll))
-				{
-					bodyScale.ScaleName = scaleName;
-				}
-
-				if (ImGui.IsItemHovered())
-					ImGui.SetTooltip($"A description of the scale.");
-
-				ImGui.SameLine();
-				if (ImGui.Checkbox("Enable", ref bodyScaleEnabled))
-				{
-					if (bodyScale.CharacterName != null)
-						config.ToggleOffAllOtherMatching(bodyScale.CharacterName, bodyScale.ScaleName == null ? "" : bodyScale.ScaleName);
-					bodyScale.BodyScaleEnabled = bodyScaleEnabled;
-					config.Save();
-					if (config.AutomaticEditMode)
-					{
-						Plugin.LoadConfig(true);
+					// Enable
+					ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (12 * fontScale));
+					if (ImGui.Checkbox("##Enable", ref bodyScaleEnabled)) {
+						if (bodyScale.CharacterName != null)
+							config.ToggleOffAllOtherMatching(bodyScale.CharacterName, bodyScale.ScaleName == null ? "" : bodyScale.ScaleName);
+						bodyScale.BodyScaleEnabled = bodyScaleEnabled;
+						config.Save();
+						if (config.AutomaticEditMode) {
+							Plugin.LoadConfig(true);
+						}
 					}
+
+					if (ImGui.IsItemHovered())
+						ImGui.SetTooltip($"Enable and disable scale.\nWill disable all other scales for the same character.");
+
+					// Character Name
+					ImGui.TableNextColumn();
+					string characterName = bodyScale.CharacterName ?? string.Empty;
+					ImGui.PushItemWidth(-1);
+					if (ImGui.InputText("##Character", ref characterName, 64, ImGuiInputTextFlags.NoHorizontalScroll)) {
+						bodyScale.CharacterName = characterName;
+					}
+
+					if (ImGui.IsItemHovered())
+						ImGui.SetTooltip($"The name of the character this body scale should apply to.");
+
+					// Scale Name
+					ImGui.TableNextColumn();
+					ImGui.PushItemWidth(-1);
+					string scaleName = bodyScale.ScaleName ?? string.Empty;
+					if (ImGui.InputText("##Scale Name", ref scaleName, 64, ImGuiInputTextFlags.NoHorizontalScroll)) {
+						bodyScale.ScaleName = scaleName;
+					}
+
+					if (ImGui.IsItemHovered())
+						ImGui.SetTooltip($"A description of the scale.");
+
+					// Edit
+					ImGui.TableNextColumn();
+					if (ImGuiComponents.IconButton(FontAwesomeIcon.Pen)) {
+						EditInterface editWindow = new EditInterface();
+						editWindow.Show(bodyScale);
+					}
+
+					if (ImGui.IsItemHovered())
+						ImGui.SetTooltip($"Edit body scale (WIP)");
+
+					// Import Ana
+					ImGui.SameLine();
+					if (ImGuiComponents.IconButton(FontAwesomeIcon.FileImport)) {
+						this.Import(bodyScale);
+					}
+
+					if (ImGui.IsItemHovered())
+						ImGui.SetTooltip($"Import scale from Anamnesis");
+
+					// Import Clipboard
+					ImGui.SameLine();
+					if (ImGuiComponents.IconButton(FontAwesomeIcon.FileExport)) {
+						Clipboard.SetText(this.ExportToBase64(bodyScale, scaleVersion));
+					}
+
+					if (ImGui.IsItemHovered())
+						ImGui.SetTooltip($"Export scale to Clipboard.");
+
+					// Remove
+					ImGui.SameLine();
+					if (ImGuiComponents.IconButton(FontAwesomeIcon.Trash)) {
+						config.BodyScales.Remove(bodyScale);
+					}
+
+					if (ImGui.IsItemHovered())
+						ImGui.SetTooltip($"Remove");
+
+					ImGui.PopID();
 				}
 
-				if (ImGui.IsItemHovered())
-					ImGui.SetTooltip($"Enable and disable scale.\nWill disable all other scales for the same character.");
-
-				ImGui.SameLine();
-				if (ImGuiComponents.IconButton(FontAwesomeIcon.Pen))
-				{
-					EditInterface editWindow = new EditInterface();
-					editWindow.Show(bodyScale);
-				}
-
-				if (ImGui.IsItemHovered())
-					ImGui.SetTooltip($"Edit body scale (WIP)");
-
-				ImGui.SameLine();
-				if (ImGuiComponents.IconButton(FontAwesomeIcon.FileImport))
-				{
-					this.Import(bodyScale);
-				}
-
-				if (ImGui.IsItemHovered())
-					ImGui.SetTooltip($"Import scale from Anamnesis");
-
-				ImGui.SameLine();
-				if (ImGuiComponents.IconButton(FontAwesomeIcon.FileExport)) {
-					Clipboard.SetText(this.ExportToBase64(bodyScale, scaleVersion));
-				}
-
-				if (ImGui.IsItemHovered())
-					ImGui.SetTooltip($"Export scale to Clipboard.");
-
-				ImGui.SameLine();
-				if (ImGuiComponents.IconButton(FontAwesomeIcon.Trash))
-				{
-					config.BodyScales.Remove(bodyScale);
-				}
-
-				if (ImGui.IsItemHovered())
-					ImGui.SetTooltip($"Remove");
-
-				ImGui.PopID();
+				ImGui.EndTable();
 			}
 
-			ImGui.EndChild();
+			ImGui.PopStyleVar();
+
+			ImGui.Spacing();
 			ImGui.Separator();
+			ImGui.Spacing();
 
 			if (ImGui.Button("Save"))
 			{
@@ -464,7 +485,7 @@ namespace CustomizePlus.Interface
 		}
 
 		// Scale returns as null if it fails.
-		public static BodyScale BuildFromCustomizeJSON(string json) {
+		public static BodyScale? BuildFromCustomizeJSON(string json) {
 			BodyScale scale = null;
 
 			JsonSerializerSettings settings = new();
