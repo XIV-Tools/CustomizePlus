@@ -1,7 +1,7 @@
 ﻿// © Customize+.
 // Licensed under the MIT license.
 
-namespace CustomizePlus
+namespace CustomizePlus.Extensions
 {
 	using System.Collections.Generic;
 	using Dalamud.Game.Command;

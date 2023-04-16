@@ -2,18 +2,15 @@
 // Licensed under the MIT license.
 
 using CustomizePlus.Helpers;
-using CustomizePlus.Interface.LegacyConfiguration.Data;
+using CustomizePlus.Interface.Configuration;
 using Dalamud.Configuration;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace CustomizePlus.Util.LegacyConfiguration.Data.Version0
+namespace CustomizePlus.Data.Configuration.Version0
 {
 	internal class Version0Configuration : IPluginConfiguration, ILegacyConfiguration
 	{
@@ -36,11 +33,11 @@ namespace CustomizePlus.Util.LegacyConfiguration.Data.Version0
 			return JsonConvert.DeserializeObject<Version0Configuration>(File.ReadAllText(path));
 		}
 
-		public Configuration ConvertToLatestVersion()
+		public PluginConfiguration ConvertToLatestVersion()
 		{
-			Configuration configuration = new Configuration
+			PluginConfiguration configuration = new PluginConfiguration
 			{
-				Version = Configuration.CurrentVersion,
+				Version = PluginConfiguration.CurrentVersion,
 				Enable = Enable,
 				AutomaticEditMode = AutomaticEditMode,
 				ApplyToNpcs = ApplyToNpcs,
@@ -49,7 +46,7 @@ namespace CustomizePlus.Util.LegacyConfiguration.Data.Version0
 				BodyScales = new List<BodyScale>(BodyScales.Count)
 			};
 
-			foreach(var bodyScale in BodyScales)
+			foreach (var bodyScale in BodyScales)
 			{
 				BodyScale newBodyScale = new BodyScale
 				{
@@ -58,7 +55,7 @@ namespace CustomizePlus.Util.LegacyConfiguration.Data.Version0
 					CharacterName = bodyScale.CharacterName
 				};
 
-				foreach(var kvPair in bodyScale.Bones)
+				foreach (var kvPair in bodyScale.Bones)
 				{
 					BoneEditsContainer boneEditsContainer = new BoneEditsContainer
 					{

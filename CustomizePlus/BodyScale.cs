@@ -7,6 +7,7 @@ namespace CustomizePlus
 	using System.Collections.Concurrent;
 	using System.Collections.Generic;
 	using System.Numerics;
+	using CustomizePlus.Data;
 	using CustomizePlus.Helpers;
 	using CustomizePlus.Memory;
 	using Dalamud.Game.ClientState.Objects.Types;
@@ -85,11 +86,11 @@ namespace CustomizePlus
 			if (rootEditsContainer.Position.X != 0 || rootEditsContainer.Position.Y != 0 || rootEditsContainer.Position.Z != 0)
 			{
 				HkVector4 rootPos = obj->Position;
-				PluginLog.Information($"Pos old: {rootPos.X} {rootPos.Y} {rootPos.Z}");
+
 				rootPos.X += MathF.Max(rootEditsContainer.Position.X, 0.01f);
 				rootPos.Y += MathF.Max(rootEditsContainer.Position.Y, 0.01f);
 				rootPos.Z += MathF.Max(rootEditsContainer.Position.Z, 0.01f);
-				PluginLog.Information($"Pos new: {rootPos.X} {rootPos.Y} {rootPos.Z}");
+
 				obj->Position = rootPos;
 			}
 		}

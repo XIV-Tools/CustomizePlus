@@ -1,0 +1,32 @@
+﻿// © Customize+.
+// Licensed under the MIT license.
+
+using System;
+using System.Collections.Generic;
+using Dalamud.Configuration;
+
+namespace CustomizePlus.Data.Configuration
+{
+	[Serializable]
+	public class PluginConfiguration : IPluginConfiguration
+	{
+		public const int CurrentVersion = Constants.ConfigurationVersion;
+
+		public int Version { get; set; } = CurrentVersion;
+		public List<BodyScale> BodyScales { get; set; } = new();
+		public bool Enable { get; set; } = true;
+		public bool AutomaticEditMode { get; set; } = false;
+
+		public bool ApplyToNpcs { get; set; } = true;
+		// public bool	ApplyToNpcsInBusyAreas { get; set; } = false;
+		public bool ApplyToNpcsInCutscenes { get; set; } = true;
+
+		public bool DebuggingMode { get; set; } = false;
+
+		// Upcoming feature
+		/*
+		public bool GroupByScale { get; set; } = false;
+		public bool GroupByCharacter { get; set; } = false;
+		*/
+	}
+}

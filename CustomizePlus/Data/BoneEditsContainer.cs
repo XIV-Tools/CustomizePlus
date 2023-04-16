@@ -9,7 +9,7 @@ using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CustomizePlus
+namespace CustomizePlus.Data
 {
 	[Serializable]
 	public class BoneEditsContainer

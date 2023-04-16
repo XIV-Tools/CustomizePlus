@@ -4,39 +4,44 @@
 // Signautres stolen from:
 // https://github.com/0ceal0t/DXTest/blob/8e9aef4f6f871e7743aafe56deb9e8ad4dc87a0d/SamplePlugin/Plugin.DX.cs
 // I don't know how they work, but they do!
+
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.IO;
+using System.Runtime.InteropServices;
+using System.Text;
+using CustomizePlus.Api;
+using CustomizePlus.Data.Configuration;
+using CustomizePlus.Extensions;
+using CustomizePlus.Helpers;
+using CustomizePlus.Interface;
+using CustomizePlus.Util;
+using Dalamud.Game;
+using Dalamud.Game.ClientState;
+using Dalamud.Game.ClientState.Objects;
+using Dalamud.Game.ClientState.Objects.Types;
+using Dalamud.Game.Command;
+using Dalamud.Game.Gui;
+using Dalamud.Hooking;
+using Dalamud.IoC;
+using Dalamud.Logging;
+using Dalamud.Plugin;
+using FFXIVClientStructs.FFXIV.Client.System.String;
+using FFXIVClientStructs.FFXIV.Client.UI;
+using FFXIVClientStructs.FFXIV.Common.Lua;
+using FFXIVClientStructs.FFXIV.Component.GUI;
+using Lumina.Excel.GeneratedSheets;
+using Newtonsoft.Json;
+using Penumbra.String;
+
+using CharacterStruct = FFXIVClientStructs.FFXIV.Client.Game.Character.Character;
+using CustomizeData = Penumbra.GameData.Structs.CustomizeData;
+using ObjectKind = Dalamud.Game.ClientState.Objects.Enums.ObjectKind;
+using ObjectStruct = FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject;
+
 namespace CustomizePlus
 {
-	using System;
-	using System.Collections.Concurrent;
-	using System.Collections.Generic;
-	using System.Runtime.InteropServices;
-	using System.Text;
-	using CustomizePlus.Api;
-	using CustomizePlus.Interface;
-	using CustomizePlus.Util.LegacyConfiguration;
-	using Dalamud.Game;
-	using Dalamud.Game.ClientState;
-	using Dalamud.Game.ClientState.Objects;
-	using Dalamud.Game.ClientState.Objects.Types;
-	using Dalamud.Game.Command;
-	using Dalamud.Game.Gui;
-	using Dalamud.Hooking;
-	using Dalamud.IoC;
-	using Dalamud.Logging;
-	using Dalamud.Plugin;
-	using FFXIVClientStructs.FFXIV.Client.System.String;
-	using FFXIVClientStructs.FFXIV.Client.UI;
-	using FFXIVClientStructs.FFXIV.Common.Lua;
-	using FFXIVClientStructs.FFXIV.Component.GUI;
-	using Lumina.Excel.GeneratedSheets;
-	using Newtonsoft.Json;
-	using Penumbra.String;
-
-	using CharacterStruct = FFXIVClientStructs.FFXIV.Client.Game.Character.Character;
-	using CustomizeData = Penumbra.GameData.Structs.CustomizeData;
-	using ObjectKind = Dalamud.Game.ClientState.Objects.Enums.ObjectKind;
-	using ObjectStruct = FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject;
-
 	public sealed class Plugin : IDalamudPlugin
 	{
 		private static readonly Dictionary<string, BodyScale> NameToScale = new();
@@ -48,34 +53,6 @@ namespace CustomizePlus
 		private static BodyScale? defaultRetainerScale;
 		private static BodyScale? defaultCutsceneScale;
 		private static CustomizePlusIpc ipcManager = null!;
-
-		public Plugin()
-		{
-			try
-			{
-				LegacyConfigurationConverter configurationConverter = new LegacyConfigurationConverter();
-				configurationConverter.ConvertConfigIfNeeded();
-				Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
-
-				ipcManager = new(ObjectTable, PluginInterface);
-
-				LoadConfig();
-
-				CommandManager.AddCommand((s, t) => ConfigurationInterface.Toggle(), "/customize", "Toggles the Customize+ configuration window.");
-
-				PluginInterface.UiBuilder.Draw += InterfaceManager.Draw;
-				PluginInterface.UiBuilder.OpenConfigUi += ConfigurationInterface.Toggle;
-
-				if (PluginInterface.IsDevMenuOpen)
-					ConfigurationInterface.Show();
-
-				ChatGui.Print("Customize+ started");
-			}
-			catch (Exception ex)
-			{
-				PluginLog.Error(ex, "Error instantiating plugin");
-			}
-		}
 
 		private delegate IntPtr RenderDelegate(IntPtr a1, int a2, IntPtr a3, byte a4, IntPtr a5, IntPtr a6);
 		[UnmanagedFunctionPointer(CallingConvention.StdCall)]
@@ -91,9 +68,47 @@ namespace CustomizePlus
 
 		public static InterfaceManager InterfaceManager { get; private set; } = new InterfaceManager();
 
-		public static Configuration Configuration { get; private set; } = null!;
+		public static ConfigurationManager ConfigurationManager { get; private set; } = new ConfigurationManager();
 
 		public string Name => "Customize Plus";
+
+		public Plugin()
+		{
+			try
+			{
+				try
+				{
+					ConfigurationManager.LoadConfigurationFromFile(PluginInterface.ConfigFile.FullName);
+				}
+				catch (FileNotFoundException ex)
+				{
+					ConfigurationManager.CreateNewConfiguration();
+				}
+				catch (Exception ex)
+				{
+					PluginLog.Error(ex, "Unable to load plugin config");
+					ChatHelper.PrintInChat("There was an error while loading plugin configuration, details have been printed into dalamud console.");
+				}
+
+				ipcManager = new(ObjectTable, PluginInterface);
+
+				LoadConfig();
+
+				CommandManager.AddCommand((s, t) => ConfigurationInterface.Toggle(), "/customize", "Toggles the Customize+ configuration window.");
+
+				PluginInterface.UiBuilder.Draw += InterfaceManager.Draw;
+				PluginInterface.UiBuilder.OpenConfigUi += ConfigurationInterface.Toggle;
+
+				if (PluginInterface.IsDevMenuOpen)
+					ConfigurationInterface.Show();
+
+				ChatHelper.PrintInChat("Started");
+			}
+			catch (Exception ex)
+			{
+				PluginLog.Error(ex, "Error instantiating plugin");
+			}
+		}
 
 		public static void LoadConfig(bool autoModeUpdate = false)
 		{
@@ -105,7 +120,7 @@ namespace CustomizePlus
 				defaultRetainerScale = null;
 				defaultCutsceneScale = null;
 
-				foreach (BodyScale bodyScale in Configuration.BodyScales)
+				foreach (BodyScale bodyScale in ConfigurationManager.Configuration.BodyScales)
 				{
 					bodyScale.ClearCache();
 					if (bodyScale.CharacterName == "Default" && bodyScale.BodyScaleEnabled)
@@ -133,7 +148,7 @@ namespace CustomizePlus
 
 				try
 				{
-					if (Configuration.Enable)
+					if (ConfigurationManager.Configuration.Enable)
 					{
 						if (renderManagerHook == null)
 						{
@@ -196,7 +211,7 @@ namespace CustomizePlus
 
 				// Don't affect the cutscene object range, by configuration.
 				// 202 gives leeway as player is not always put in 200 like they should be.
-				if (i >= 202 && i < 240 && !Configuration.ApplyToNpcsInCutscenes)
+				if (i >= 202 && i < 240 && !ConfigurationManager.Configuration.ApplyToNpcsInCutscenes)
 					continue;
 
 				var obj = ObjectTable[i];
@@ -280,9 +295,9 @@ namespace CustomizePlus
 				case ObjectKind.BattleNpc:
 					isCutsceneNpc = objectIndex >= 200 && objectIndex < 246;
 					// Stop if NPCs disabled by config. Have to double check cutscene range due to the 200/201 issue.
-					if (!Configuration.ApplyToNpcs && !isCutsceneNpc)
+					if (!ConfigurationManager.Configuration.ApplyToNpcs && !isCutsceneNpc)
 						return (null, false);
-					else if (isCutsceneNpc && !Configuration.ApplyToNpcsInCutscenes)
+					else if (isCutsceneNpc && !ConfigurationManager.Configuration.ApplyToNpcsInCutscenes)
 						return (null, false);
 					// Choose most appropriate default, or fallback to null.
 					if (isCutsceneNpc)
@@ -346,7 +361,7 @@ namespace CustomizePlus
 
 			// Don't affect the cutscene object range, by configuration.
 			// 202 gives leeway as player is not always put in 200 like they should be.
-			if (gameObject.ObjectIndex >= 202 && gameObject.ObjectIndex < 240 && !Configuration.ApplyToNpcsInCutscenes)
+			if (gameObject.ObjectIndex >= 202 && gameObject.ObjectIndex < 240 && !ConfigurationManager.Configuration.ApplyToNpcsInCutscenes)
 				return;
 
 			(BodyScale? scale, bool applyRootScale) = FindScale(gameObject.ObjectIndex);

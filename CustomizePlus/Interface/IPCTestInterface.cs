@@ -20,6 +20,8 @@ namespace CustomizePlus.Interface
 	using static CustomizePlus.BodyScale;
 	using Dalamud.Plugin.Ipc;
 	using CustomizePlus.Helpers;
+	using CustomizePlus.Data;
+	using CustomizePlus.Data.Configuration;
 
 	public class IPCTestInterface : WindowBase
 	{
@@ -612,7 +614,6 @@ namespace CustomizePlus.Interface
 
 		private void UpdateCurrent(string boneName, BoneEditsContainer boneValue)
 		{
-			Configuration config = Plugin.Configuration;
 			BodyScale newBody = this.ScaleUpdated;
 
 			newBody.Bones[boneName] = boneValue;

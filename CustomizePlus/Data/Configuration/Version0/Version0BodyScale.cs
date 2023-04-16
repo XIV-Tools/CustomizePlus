@@ -9,7 +9,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CustomizePlus.Util.LegacyConfiguration.Data.Version0
+namespace CustomizePlus.Data.Configuration.Version0
 {
 	[Serializable]
 	public class Version0BodyScale

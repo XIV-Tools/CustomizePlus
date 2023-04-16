@@ -10,6 +10,8 @@ namespace CustomizePlus.Interface
 	using System.Windows.Forms;
 	using Anamnesis.Files;
 	using Anamnesis.Posing;
+	using CustomizePlus.Data;
+	using CustomizePlus.Data.Configuration;
 	using CustomizePlus.Helpers;
 	using CustomizePlus.Memory;
 	using Dalamud.Interface;
@@ -48,7 +50,6 @@ namespace CustomizePlus.Interface
 		public void Show(BodyScale scale)
 		{
 			editMode = EditMode.Scale;
-			Configuration config = Plugin.Configuration;
 			EditInterface editWnd = Plugin.InterfaceManager.Show<EditInterface>();
 			editWnd.Scale = scale;
 			editWnd.ScaleUpdated = scale;
@@ -91,7 +92,7 @@ namespace CustomizePlus.Interface
 
 		protected override void DrawContents()
 		{
-			Configuration config = Plugin.Configuration;
+			PluginConfiguration config = Plugin.ConfigurationManager.Configuration;
 
 			string newScaleNameTemp = this.newScaleName;
 			string newScaleCharacterTemp = this.newScaleCharacter;
@@ -104,7 +105,7 @@ namespace CustomizePlus.Interface
 				if (config.AutomaticEditMode)
 				{
 					AddToConfig(this.newScaleName, this.newScaleCharacter);
-					config.Save();
+					Plugin.ConfigurationManager.SaveConfiguration();
 					Plugin.LoadConfig(true);
 				}
 			}
@@ -553,7 +554,7 @@ namespace CustomizePlus.Interface
 					this.originalScaleCharacter = this.newScaleCharacter;
 				if (this.newScaleName != this.originalScaleName)
 					this.originalScaleName = this.newScaleName;
-				config.Save();
+				Plugin.ConfigurationManager.SaveConfiguration();
 				Plugin.LoadConfig();
 			}
 
@@ -571,7 +572,7 @@ namespace CustomizePlus.Interface
 			if (ImGui.Button("Save and Close"))
 			{
 				AddToConfig(this.newScaleName, this.newScaleCharacter);
-				config.Save();
+				Plugin.ConfigurationManager.SaveConfiguration();
 				Plugin.LoadConfig();
 				this.Close();
 			}
@@ -588,7 +589,7 @@ namespace CustomizePlus.Interface
 
 		private void AddToConfig(string scaleName, string characterName)
 		{
-			Configuration config = Plugin.Configuration;
+			PluginConfiguration config = Plugin.ConfigurationManager.Configuration;
 			BodyScale newBody = new BodyScale();
 
 			for (int i = 0; i < this.boneNamesLegacy.Count && i < this.boneValuesNew.Count; i++)
@@ -629,7 +630,7 @@ namespace CustomizePlus.Interface
 				config.BodyScales.Add(newBody);
 				if (this.scaleEnabled)
 				{
-					config.ToggleOffAllOtherMatching(characterName, scaleName);
+					Plugin.ConfigurationManager.ToggleOffAllOtherMatching(characterName, scaleName);
 				}
 			}
 		}
@@ -642,7 +643,7 @@ namespace CustomizePlus.Interface
 
 		private void UpdateCurrent(string boneName, BoneEditsContainer boneValue, bool autoMode = false)
 		{
-			Configuration config = Plugin.Configuration;
+			PluginConfiguration config = Plugin.ConfigurationManager.Configuration;
 			BodyScale newBody = this.ScaleUpdated;
 
 			newBody.Bones[boneName] = boneValue;
@@ -653,13 +654,13 @@ namespace CustomizePlus.Interface
 			}
 
 			config.BodyScales[this.scaleIndex] = newBody;
-			config.Save();
+			Plugin.ConfigurationManager.SaveConfiguration();
 			Plugin.LoadConfig(autoMode);
 		}
 
 		private int GetCurrentScaleIndex(string scaleName, string scaleCharacter)
 		{
-			Configuration config = Plugin.Configuration;
+			PluginConfiguration config = Plugin.ConfigurationManager.Configuration;
 			int matchIndex = -1;
 			for (int i = 0; i < config.BodyScales.Count; i++)
 			{

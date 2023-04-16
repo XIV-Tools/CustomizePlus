@@ -5,13 +5,15 @@ namespace CustomizePlus.Interface
 {
     using System;
     using System.Collections.Generic;
-	using System.IO;
+    using System.IO;
 	using System.IO.Compression;
 	using System.Numerics;
 	using System.Text;
 	using System.Windows.Forms;
     using Anamnesis.Files;
     using Anamnesis.Posing;
+	using CustomizePlus.Data;
+	using CustomizePlus.Data.Configuration;
 	using CustomizePlus.Helpers;
 	using CustomizePlus.Memory;
     using Dalamud.Game.ClientState.Objects.Types;
@@ -25,10 +27,6 @@ namespace CustomizePlus.Interface
 	{
 		private string newScaleName = string.Empty;
 		private string newScaleCharacter = string.Empty;
-
-		// Change Version when updating the way scales are saved. Import from base64 will then auto fail.
-		// This usually should match Configuration.CurrentVersion
-		private byte scaleVersion = Configuration.CurrentVersion;
 
 		protected override string Title => "Customize+ Configuration";
 		protected override bool SingleInstance => true;
@@ -44,7 +42,7 @@ namespace CustomizePlus.Interface
 
 		protected override void DrawContents()
 		{
-			Configuration config = Plugin.Configuration;
+			PluginConfiguration config = Plugin.ConfigurationManager.Configuration;
 
 			/* Upcoming feature to group by either scale name or character name
 			List<string> uniqueCharacters = new();
@@ -65,7 +63,7 @@ namespace CustomizePlus.Interface
 				config.Enable = enable;
 				if (config.AutomaticEditMode)
 				{
-					config.Save();
+					Plugin.ConfigurationManager.SaveConfiguration();
 					Plugin.LoadConfig(true);
 				}
 			}
@@ -140,11 +138,11 @@ namespace CustomizePlus.Interface
 					// TODO: Build scales from only present bones
 					// scale = this.BuildFromName(scale, characterName);
 					scale = BuildDefault(scale);
-					Plugin.Configuration.BodyScales.Add(scale);
-					Plugin.Configuration.ToggleOffAllOtherMatching(characterName, scale.ScaleName);
+					Plugin.ConfigurationManager.Configuration.BodyScales.Add(scale);
+					Plugin.ConfigurationManager.ToggleOffAllOtherMatching(characterName, scale.ScaleName);
 					if (config.AutomaticEditMode)
 					{
-						config.Save();
+						Plugin.ConfigurationManager.SaveConfiguration();
 						Plugin.LoadConfig(true);
 					}
 					ImGui.CloseCurrentPopup();
@@ -176,11 +174,11 @@ namespace CustomizePlus.Interface
 					PluginLog.Error(e, "An error occured during import conversion. Please check you coppied the right thing!");
 				}
 
-				if (importVer == scaleVersion && importScale != null) {
-					Plugin.Configuration.BodyScales.Add(importScale);
-					Plugin.Configuration.ToggleOffAllOtherMatching(importScale.CharacterName, importScale.ScaleName);
+				if (importVer == (byte)Constants.ImportExportVersion && importScale != null) {
+					Plugin.ConfigurationManager.Configuration.BodyScales.Add(importScale);
+					Plugin.ConfigurationManager.ToggleOffAllOtherMatching(importScale.CharacterName, importScale.ScaleName);
 					if (config.AutomaticEditMode) {
-						config.Save();
+						Plugin.ConfigurationManager.SaveConfiguration();
 						Plugin.LoadConfig(true);
 					}
 				} else if (importVer == 0 || importScale is null) {
@@ -231,9 +229,9 @@ namespace CustomizePlus.Interface
 					ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (12 * fontScale));
 					if (ImGui.Checkbox("##Enable", ref bodyScaleEnabled)) {
 						if (bodyScale.CharacterName != null)
-							config.ToggleOffAllOtherMatching(bodyScale.CharacterName, bodyScale.ScaleName == null ? "" : bodyScale.ScaleName);
+							Plugin.ConfigurationManager.ToggleOffAllOtherMatching(bodyScale.CharacterName, bodyScale.ScaleName == null ? "" : bodyScale.ScaleName);
 						bodyScale.BodyScaleEnabled = bodyScaleEnabled;
-						config.Save();
+						Plugin.ConfigurationManager.SaveConfiguration();
 						if (config.AutomaticEditMode) {
 							Plugin.LoadConfig(true);
 						}
@@ -286,7 +284,7 @@ namespace CustomizePlus.Interface
 					// Import Clipboard
 					ImGui.SameLine();
 					if (ImGuiComponents.IconButton(FontAwesomeIcon.FileExport)) {
-						Clipboard.SetText(this.ExportToBase64(bodyScale, scaleVersion));
+						Clipboard.SetText(this.ExportToBase64(bodyScale, Constants.ImportExportVersion));
 					}
 
 					if (ImGui.IsItemHovered())
@@ -315,7 +313,7 @@ namespace CustomizePlus.Interface
 
 			if (ImGui.Button("Save"))
 			{
-				config.Save();
+				Plugin.ConfigurationManager.SaveConfiguration();
 				Plugin.LoadConfig();
 			}
 
@@ -323,7 +321,7 @@ namespace CustomizePlus.Interface
 
 			if (ImGui.Button("Save and Close"))
 			{
-				config.Save();
+				Plugin.ConfigurationManager.SaveConfiguration();
 				Plugin.LoadConfig();
 				this.Close();
 			}
@@ -490,7 +488,7 @@ namespace CustomizePlus.Interface
 		}
 
 		// Scale returns as null if it fails.
-		public static BodyScale? BuildFromCustomizeJSON(string json) {
+		public static BodyScale BuildFromCustomizeJSON(string json) {
 			BodyScale scale = null;
 
 			JsonSerializerSettings settings = new();

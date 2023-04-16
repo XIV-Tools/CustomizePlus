@@ -8,7 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CustomizePlus.Util.LegacyConfiguration.Data
+namespace CustomizePlus.Data.Configuration
 {
 	/// <summary>
 	/// Wrapper object which allows us to read configuration version no matter the actual configuration file contents
