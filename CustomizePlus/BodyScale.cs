@@ -190,7 +190,7 @@ namespace CustomizePlus
 						transform.Rotation.Z = newRotation.Z;
 						transform.Rotation.W = newRotation.W;
 
-						Vector4 adjustedPositionOffset = Vector4.Transform(boneScale.Position.GetAsNumericsVector(), newRotation);
+						Vector4 adjustedPositionOffset = Vector4.Transform(boneScale.Position, newRotation);
 
 						transform.Translation.X += adjustedPositionOffset.X;
 						transform.Translation.Y += adjustedPositionOffset.Y;

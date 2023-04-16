@@ -5,12 +5,19 @@ namespace CustomizePlus
 {
 	using System;
 	using System.Collections.Generic;
+	using System.IO;
 	using Dalamud.Configuration;
+	using Newtonsoft.Json;
 
 	[Serializable]
 	public class Configuration : IPluginConfiguration
 	{
-		public int Version { get; set; } = 0;
+		/// <summary>
+		/// This usually should match ConfigurationInterface.scaleVersion
+		/// </summary>
+		public const int CurrentVersion = 2;
+
+		public int Version { get; set; } = CurrentVersion;
 		public List<BodyScale> BodyScales { get; set; } = new();
 		public bool Enable { get; set; } = true;
 		public bool AutomaticEditMode { get; set; } = false;

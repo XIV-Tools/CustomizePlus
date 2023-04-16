@@ -10,6 +10,7 @@ namespace CustomizePlus.Interface
 	using System.Windows.Forms;
 	using Anamnesis.Files;
 	using Anamnesis.Posing;
+	using CustomizePlus.Helpers;
 	using CustomizePlus.Memory;
 	using Dalamud.Interface;
 	using Dalamud.Interface.Components;
@@ -67,7 +68,7 @@ namespace CustomizePlus.Interface
 			{
 				PluginLog.Debug($"Loading bone {i}: {editWnd.boneNamesLegacy[i]}");
 
-				BoneEditsContainer tempContainer = new BoneEditsContainer { Position = HkVector4.Zero, Rotation = HkVector4.Zero, Scale = HkVector4.One };
+				BoneEditsContainer tempContainer = new BoneEditsContainer { Position = MathHelpers.ZeroVector, Rotation = MathHelpers.ZeroVector, Scale = MathHelpers.OneVector };
 				if (scale.Bones.TryGetValue(editWnd.boneNamesLegacy[i], out tempContainer))
 				{
 					PluginLog.Debug($"Found scale");
@@ -164,52 +165,59 @@ namespace CustomizePlus.Interface
 
 			ImGui.SameLine();
 
-			Vector4 rootLocalTemp = HkVector4.One.GetAsNumericsVector();
+			Vector3 rootLocalTemp = MathHelpers.OneVector;
+			float rootScaleValueAllAxes = 1; //value used for scale when user just want to scale all axes
 			bool isRootControlDisabled = false;
 			switch (editMode)
 			{
 				case EditMode.Position:
-					rootLocalTemp = rootEditsContainer.Position.GetAsNumericsVector();
+					rootLocalTemp = rootEditsContainer.Position;
+					rootScaleValueAllAxes = 0;
 					break;
 				case EditMode.Rotation:
-					rootLocalTemp = HkVector4.Zero.GetAsNumericsVector();
+					rootLocalTemp = MathHelpers.ZeroVector;
+					rootScaleValueAllAxes = 0;
 					isRootControlDisabled = true;
 					break;
 				case EditMode.Scale:
-					rootLocalTemp = rootEditsContainer.Scale.GetAsNumericsVector();
+					rootLocalTemp = rootEditsContainer.Scale;
+					rootScaleValueAllAxes = (rootLocalTemp.X == rootLocalTemp.Y && rootLocalTemp.X == rootLocalTemp.Z && rootLocalTemp.Y == rootLocalTemp.Z) ? rootLocalTemp.X : 0;
 					break;
 			}
 
 			if (isRootControlDisabled)
 				ImGui.BeginDisabled();
-			if (ImGui.DragFloat4("Root", ref rootLocalTemp, 0.001f, 0f, 10f))
+
+			ImGui.SetNextItemWidth(ImGui.GetWindowWidth() - 425);
+			if (ImGui.DragFloat3("##Root", ref rootLocalTemp, 0.001f, 0f, 10f))
 			{
 				if (this.reset)
 				{
-					rootLocalTemp = new Vector4(1f, 1f, 1f, 1f);
+					rootLocalTemp = new Vector3(1f, 1f, 1f);
+					rootScaleValueAllAxes = 1;
 					this.reset = false;
 				}
-				else if (!((rootLocalTemp.X == rootLocalTemp.Y) && (rootLocalTemp.X == rootLocalTemp.Z) && (rootLocalTemp.Y == rootLocalTemp.Z)))
+				else if (!(rootLocalTemp.X == rootLocalTemp.Y && rootLocalTemp.X == rootLocalTemp.Z && rootLocalTemp.Y == rootLocalTemp.Z))
 				{
-					rootLocalTemp.W = 0;
+					rootScaleValueAllAxes = 0;
 				}
-				else if (rootLocalTemp.W != 0)
+				/*else if (rootScaleValueAllAxes != 0)
 				{
-					rootLocalTemp.X = rootLocalTemp.W;
-					rootLocalTemp.Y = rootLocalTemp.W;
-					rootLocalTemp.Z = rootLocalTemp.W;
-				}
+					rootLocalTemp.X = rootScaleValueAllAxes;
+					rootLocalTemp.Y = rootScaleValueAllAxes;
+					rootLocalTemp.Z = rootScaleValueAllAxes;
+				}*/
 
 				switch (editMode)
 				{
 					case EditMode.Position:
-						rootEditsContainer.Position = new HkVector4(rootLocalTemp.X, rootLocalTemp.Y, rootLocalTemp.Z, rootLocalTemp.W);
+						rootEditsContainer.Position = new Vector3(rootLocalTemp.X, rootLocalTemp.Y, rootLocalTemp.Z);
 						break;
 					case EditMode.Rotation:
-						rootEditsContainer.Rotation = new HkVector4(rootLocalTemp.X, rootLocalTemp.Y, rootLocalTemp.Z, rootLocalTemp.W);
+						rootEditsContainer.Rotation = new Vector3(rootLocalTemp.X, rootLocalTemp.Y, rootLocalTemp.Z);
 						break;
 					case EditMode.Scale:
-						rootEditsContainer.Scale = new HkVector4(rootLocalTemp.X, rootLocalTemp.Y, rootLocalTemp.Z, rootLocalTemp.W);
+						rootEditsContainer.Scale = new Vector3(rootLocalTemp.X, rootLocalTemp.Y, rootLocalTemp.Z);
 						break;
 				}
 
@@ -221,6 +229,34 @@ namespace CustomizePlus.Interface
 			if (isRootControlDisabled)
 				ImGui.EndDisabled();
 
+			ImGui.SameLine();
+			if(editMode != EditMode.Scale)
+				ImGui.BeginDisabled();
+
+			ImGui.SetNextItemWidth(100);
+			if (ImGui.DragFloat("##RootAllAxes", ref rootScaleValueAllAxes, 0.001f, 0f, 10f))
+			{
+				if (rootScaleValueAllAxes != 0)
+				{
+					rootLocalTemp.X = rootScaleValueAllAxes;
+					rootLocalTemp.Y = rootScaleValueAllAxes;
+					rootLocalTemp.Z = rootScaleValueAllAxes;
+				}
+
+				rootEditsContainer.Scale = new Vector3(rootLocalTemp.X, rootLocalTemp.Y, rootLocalTemp.Z);
+
+				if (config.AutomaticEditMode)
+				{
+					this.UpdateCurrent("n_root", this.rootEditsContainer, config.AutomaticEditMode);
+				}
+			}
+
+			if (editMode != EditMode.Scale)
+				ImGui.EndDisabled();
+
+			ImGui.SameLine();
+			ImGui.Text("Root");
+
 			string col1Label = "X";
 			string col2Label = "Y";
 			string col3Label = "Z";
@@ -228,14 +264,10 @@ namespace CustomizePlus.Interface
 
 			switch (editMode)
 			{
-				case EditMode.Position:
-					col4Label = "Unused";
-					break;
 				case EditMode.Rotation:
 					col1Label = "Roll";
 					col2Label = "Yaw";
 					col3Label = "Pitch";
-					col4Label = "Unused";
 					break;
 			}
 
@@ -271,7 +303,7 @@ namespace CustomizePlus.Interface
 					continue;
 				}
 
-				BoneEditsContainer currentEditsContainer = new BoneEditsContainer { Position = HkVector4.Zero, Rotation = HkVector4.Zero, Scale = HkVector4.One };
+				BoneEditsContainer currentEditsContainer = new BoneEditsContainer { Position = MathHelpers.ZeroVector, Rotation = MathHelpers.ZeroVector, Scale = MathHelpers.OneVector };
 				string label = "Not Found";
 
 				try
@@ -281,24 +313,26 @@ namespace CustomizePlus.Interface
 					else if (this.boneValuesNew.TryGetValue(boneNameLocalModern, out currentEditsContainer))
 						label = boneNameLocalModern;
 					else
-						currentEditsContainer = new BoneEditsContainer { Position = HkVector4.Zero, Rotation = HkVector4.Zero, Scale = HkVector4.One };
+						currentEditsContainer = new BoneEditsContainer { Position = MathHelpers.ZeroVector, Rotation = MathHelpers.ZeroVector, Scale = MathHelpers.OneVector };
 				}
 				catch (Exception ex)
 				{
 
 				}
 
-				Vector4 currentVector4 = HkVector4.One.GetAsNumericsVector();
-				switch(editMode)
+				Vector3 currentVector = MathHelpers.OneVector;
+				float currentScaleValueAllAxes = 1; //value used for scale when user just want to scale all axes
+				switch (editMode)
 				{
 					case EditMode.Position:
-						currentVector4 = currentEditsContainer.Position.GetAsNumericsVector();
+						currentVector = currentEditsContainer.Position;
 						break;
 					case EditMode.Rotation:
-						currentVector4 = currentEditsContainer.Rotation.GetAsNumericsVector();
+						currentVector = currentEditsContainer.Rotation;
 						break;
 					case EditMode.Scale:
-						currentVector4 = currentEditsContainer.Scale.GetAsNumericsVector();
+						currentVector = currentEditsContainer.Scale;
+						currentScaleValueAllAxes = (currentVector.X == currentVector.Y && currentVector.X == currentVector.Z && currentVector.Y == currentVector.Z) ? currentVector.X : 0;
 						break;
 				}
 
@@ -318,16 +352,16 @@ namespace CustomizePlus.Interface
 					{
 						case EditMode.Position:
 						case EditMode.Rotation:
-							currentVector4.W = 0F;
-							currentVector4.X = 0F;
-							currentVector4.Y = 0F;
-							currentVector4.Z = 0F;
+							currentScaleValueAllAxes = 0;
+							currentVector.X = 0F;
+							currentVector.Y = 0F;
+							currentVector.Z = 0F;
 							break;
 						case EditMode.Scale:
-							currentVector4.W = 1F;
-							currentVector4.X = 1F;
-							currentVector4.Y = 1F;
-							currentVector4.Z = 1F;
+							currentScaleValueAllAxes = 1;
+							currentVector.X = 1F;
+							currentVector.Y = 1F;
+							currentVector.Z = 1F;
 							break;
 					}
 					this.reset = false;
@@ -346,13 +380,13 @@ namespace CustomizePlus.Interface
 						switch (editMode)
 						{
 							case EditMode.Position:
-								editsContainer.Position = new HkVector4(currentVector4.X, currentVector4.Y, currentVector4.Z, currentVector4.W);
+								editsContainer.Position = new Vector3(currentVector.X, currentVector.Y, currentVector.Z);
 								break;
 							case EditMode.Rotation:
-								editsContainer.Rotation = new HkVector4(currentVector4.X, currentVector4.Y, currentVector4.Z, currentVector4.W);
+								editsContainer.Rotation = new Vector3(currentVector.X, currentVector.Y, currentVector.Z);
 								break;
 							case EditMode.Scale:
-								editsContainer.Scale = new HkVector4(currentVector4.X, currentVector4.Y, currentVector4.Z, currentVector4.W);
+								editsContainer.Scale = new Vector3(currentVector.X, currentVector.Y, currentVector.Z);
 								break;
 						}
 					}
@@ -365,18 +399,18 @@ namespace CustomizePlus.Interface
 						this.UpdateCurrent(boneNameLocalLegacy, editsContainer, config.AutomaticEditMode);
 					}
 				}
-				else if (currentVector4.X == currentVector4.Y && currentVector4.Y == currentVector4.Z)
+				else if (currentVector.X == currentVector.Y && currentVector.Y == currentVector.Z)
 				{
-					currentVector4.W = currentVector4.X;
+					currentScaleValueAllAxes = currentVector.X;
 				}
 				else
 				{
-					currentVector4.W = 0;
+					currentScaleValueAllAxes = 0;
 				}
 
 				ImGui.SameLine();
 
-				ImGui.SetNextItemWidth(ImGui.GetWindowWidth() - 190);
+				ImGui.SetNextItemWidth(ImGui.GetWindowWidth() - 400);
 
 				float minLimit = -10f;
 				float maxLimit = 10f;
@@ -391,7 +425,7 @@ namespace CustomizePlus.Interface
 						break;
 				}
 
-				if (ImGui.DragFloat4(label, ref currentVector4, increment, minLimit, maxLimit))
+				if (ImGui.DragFloat3($"##{label}", ref currentVector, increment, minLimit, maxLimit))
 				{
 					BoneEditsContainer editsContainer = null;
 					try
@@ -402,30 +436,30 @@ namespace CustomizePlus.Interface
 							{
 								case EditMode.Position:
 								case EditMode.Rotation:
-									currentVector4.W = 0F;
-									currentVector4.X = 0F;
-									currentVector4.Y = 0F;
-									currentVector4.Z = 0F;
+									currentScaleValueAllAxes = 0F;
+									currentVector.X = 0F;
+									currentVector.Y = 0F;
+									currentVector.Z = 0F;
 									break;
 								case EditMode.Scale:
-									currentVector4.W = 1F;
-									currentVector4.X = 1F;
-									currentVector4.Y = 1F;
-									currentVector4.Z = 1F;
+									currentScaleValueAllAxes = 1F;
+									currentVector.X = 1F;
+									currentVector.Y = 1F;
+									currentVector.Z = 1F;
 									break;
 							}
 							this.reset = false;
 						}
-						else if (!((currentVector4.X == currentVector4.Y) && (currentVector4.X == currentVector4.Z) && (currentVector4.Y == currentVector4.Z)))
+						else if (!((currentVector.X == currentVector.Y) && (currentVector.X == currentVector.Z) && (currentVector.Y == currentVector.Z)))
 						{
-							currentVector4.W = 0;
+							currentScaleValueAllAxes = 0;
 						}
-						else if (currentVector4.W != 0)
+						/*else if (currentVector.W != 0)
 						{
-							currentVector4.X = currentVector4.W;
-							currentVector4.Y = currentVector4.W;
-							currentVector4.Z = currentVector4.W;
-						}
+							currentVector.X = currentVector.W;
+							currentVector.Y = currentVector.W;
+							currentVector.Z = currentVector.W;
+						}*/
 					}
 					catch (Exception ex)
 					{
@@ -446,13 +480,13 @@ namespace CustomizePlus.Interface
 						switch (editMode)
 						{
 							case EditMode.Position:
-								editsContainer.Position = new HkVector4(currentVector4.X, currentVector4.Y, currentVector4.Z, currentVector4.W);
+								editsContainer.Position = new Vector3(currentVector.X, currentVector.Y, currentVector.Z);
 								break;
 							case EditMode.Rotation:
-								editsContainer.Rotation = new HkVector4(currentVector4.X, currentVector4.Y, currentVector4.Z, currentVector4.W);
+								editsContainer.Rotation = new Vector3(currentVector.X, currentVector.Y, currentVector.Z);
 								break;
 							case EditMode.Scale:
-								editsContainer.Scale = new HkVector4(currentVector4.X, currentVector4.Y, currentVector4.Z, currentVector4.W);
+								editsContainer.Scale = new Vector3(currentVector.X, currentVector.Y, currentVector.Z);
 								break;
 						}
 					}
@@ -466,6 +500,44 @@ namespace CustomizePlus.Interface
 					}
 				}
 
+				ImGui.SameLine();
+				if (editMode != EditMode.Scale)
+					ImGui.BeginDisabled();
+
+				ImGui.SetNextItemWidth(100);
+				if (ImGui.DragFloat($"##{label}AllAxes", ref currentScaleValueAllAxes, 0.001f, 0f, 10f))
+				{
+					if (currentScaleValueAllAxes != 0)
+					{
+						currentVector.X = currentScaleValueAllAxes;
+						currentVector.Y = currentScaleValueAllAxes;
+						currentVector.Z = currentScaleValueAllAxes;
+					}
+
+					BoneEditsContainer editsContainer = null;
+					if (this.boneValuesNew.ContainsKey(boneNameLocalModern))
+						editsContainer = this.boneValuesNew[boneNameLocalModern];
+					else if (this.boneValuesNew.Remove(boneNameLocalLegacy, out BoneEditsContainer removedContainer))
+					{
+						editsContainer = removedContainer;
+						this.boneValuesNew[boneNameLocalLegacy] = editsContainer;
+					}
+					else
+						throw new Exception();
+
+					editsContainer.Scale = new Vector3(currentVector.X, currentVector.Y, currentVector.Z);
+
+					if (config.AutomaticEditMode)
+					{
+						this.UpdateCurrent(boneNameLocalLegacy, editsContainer, config.AutomaticEditMode);
+					}
+				}
+
+				if (editMode != EditMode.Scale)
+					ImGui.EndDisabled();
+
+				ImGui.SameLine();
+				ImGui.Text(label);
 
 				ImGui.PopID();
 			}

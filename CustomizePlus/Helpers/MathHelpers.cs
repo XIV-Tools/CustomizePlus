@@ -1,6 +1,7 @@
 ﻿// © Customize+.
 // Licensed under the MIT license.
 
+using CustomizePlus.Memory;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,6 +13,9 @@ namespace CustomizePlus.Helpers
 {
 	internal class MathHelpers
 	{
+		public static readonly Vector3 ZeroVector = new Vector3(0, 0, 0);
+		public static readonly Vector3 OneVector = new Vector3(1, 1, 1);
+
 		//Borrowed from Anamnesis/Ktisis
 		public static readonly float Deg2Rad = ((float)Math.PI * 2) / 360;
 		public static readonly float Rad2Deg = 360 / ((float)Math.PI * 2);

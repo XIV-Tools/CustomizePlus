@@ -13,6 +13,7 @@ namespace CustomizePlus
 	using System.Text;
 	using CustomizePlus.Api;
 	using CustomizePlus.Interface;
+	using CustomizePlus.Util.LegacyConfiguration;
 	using Dalamud.Game;
 	using Dalamud.Game.ClientState;
 	using Dalamud.Game.ClientState.Objects;
@@ -52,7 +53,10 @@ namespace CustomizePlus
 		{
 			try
 			{
+				LegacyConfigurationConverter configurationConverter = new LegacyConfigurationConverter();
+				configurationConverter.ConvertConfigIfNeeded();
 				Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
+
 				ipcManager = new(ObjectTable, PluginInterface);
 
 				LoadConfig();
@@ -93,7 +97,6 @@ namespace CustomizePlus
 
 		public static void LoadConfig(bool autoModeUpdate = false)
 		{
-
 			try
 			{
 				NameToScale.Clear();

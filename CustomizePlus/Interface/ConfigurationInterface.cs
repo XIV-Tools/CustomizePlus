@@ -12,7 +12,8 @@ namespace CustomizePlus.Interface
 	using System.Windows.Forms;
     using Anamnesis.Files;
     using Anamnesis.Posing;
-    using CustomizePlus.Memory;
+	using CustomizePlus.Helpers;
+	using CustomizePlus.Memory;
     using Dalamud.Game.ClientState.Objects.Types;
     using Dalamud.Interface;
     using Dalamud.Interface.Components;
@@ -26,7 +27,8 @@ namespace CustomizePlus.Interface
 		private string newScaleCharacter = string.Empty;
 
 		// Change Version when updating the way scales are saved. Import from base64 will then auto fail.
-		private byte scaleVersion = 2;
+		// This usually should match Configuration.CurrentVersion
+		private byte scaleVersion = Configuration.CurrentVersion;
 
 		protected override string Title => "Customize+ Configuration";
 		protected override bool SingleInstance => true;
@@ -399,7 +401,7 @@ namespace CustomizePlus.Interface
 				file.Scale.Y != 1 &&
 				file.Scale.Z != 1)
 			{
-				scale.Bones["n_root"].Scale = new HkVector4(file.Scale.X, file.Scale.Y, file.Scale.Z, 1); //todo: might crash
+				scale.Bones["n_root"].Scale = new Vector3(file.Scale.X, file.Scale.Y, file.Scale.Z); //todo: might crash
 				//scale.RootScale = new HkVector4(file.Scale.X, file.Scale.Y, file.Scale.Z, 1);
 			}
 
@@ -429,7 +431,7 @@ namespace CustomizePlus.Interface
 				boneScale.Y = bone.Scale.Y;
 				boneScale.Z = bone.Scale.Z;
 
-				var editsContainer = new BoneEditsContainer { Position = HkVector4.Zero, Rotation = HkVector4.Zero, Scale = HkVector4.One };
+				var editsContainer = new BoneEditsContainer { Position = MathHelpers.ZeroVector, Rotation = MathHelpers.ZeroVector, Scale = MathHelpers.OneVector };
 
 				if (!scale.Bones.ContainsKey(modernName))
 					scale.Bones.Add(modernName, editsContainer);
@@ -536,7 +538,7 @@ namespace CustomizePlus.Interface
 				file.Scale.Z != 1)
 			{
 				//scale.RootScale = new HkVector4(file.Scale.X, file.Scale.Y, file.Scale.Z, 1);
-				scale.Bones["n_root"].Scale = new HkVector4(file.Scale.X, file.Scale.Y, file.Scale.Z, 1); //todo: might crash
+				scale.Bones["n_root"].Scale = new Vector3(file.Scale.X, file.Scale.Y, file.Scale.Z); //todo: might crash
 			}
 
 			if (file.Bones == null)
@@ -562,7 +564,7 @@ namespace CustomizePlus.Interface
 				boneScale.Y = bone.Scale.Y;
 				boneScale.Z = bone.Scale.Z;
 
-				var editsContainer = new BoneEditsContainer {Position = HkVector4.Zero, Rotation = HkVector4.Zero, Scale = HkVector4.One };
+				var editsContainer = new BoneEditsContainer { Position = MathHelpers.ZeroVector, Rotation = MathHelpers.ZeroVector, Scale = MathHelpers.OneVector };
 
 				if (!scale.Bones.ContainsKey(modernName))
 					scale.Bones.Add(modernName, editsContainer);
