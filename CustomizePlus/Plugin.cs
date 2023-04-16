@@ -9,6 +9,7 @@ namespace CustomizePlus
 	using System;
 	using System.Collections.Concurrent;
 	using System.Collections.Generic;
+	using System.Linq;
 	using CustomizePlus.Api;
 	using CustomizePlus.Interface;
 	using Dalamud.Game;
@@ -51,6 +52,7 @@ namespace CustomizePlus
 				LoadConfig();
 
 				CommandManager.AddCommand((s, t) => ConfigurationInterface.Toggle(), "/customize", "Toggles the Customize+ configuration window.");
+				CommandManager.AddCommand((s, t) => ApplyByCommand(t), "/customize-apply", "Apply a specific Scale (usage: /customize-apply {ScaleName})");
 
 				PluginInterface.UiBuilder.Draw += InterfaceManager.Draw;
 				PluginInterface.UiBuilder.OpenConfigUi += ConfigurationInterface.Toggle;
@@ -271,6 +273,40 @@ namespace CustomizePlus
 			catch (Exception ex)
 			{
 				PluginLog.Debug($"Error in applying scale: {scale.ScaleName} to character {character.ObjectKind}: {ex}");
+			}
+		}
+
+		private void ApplyByCommand(string scaleName)
+		{
+			try
+			{
+				if (!Configuration.BodyScales.Any())
+				{
+					PluginLog.Warning($"Can't apply Scale \"{scaleName}\" by command because no Scale were loaded or none exist");
+					return;
+				}
+
+				var scale = Configuration.BodyScales.SingleOrDefault(x => x.ScaleName == scaleName);			
+
+				if (scale == null)
+				{
+					PluginLog.Warning($"Can't apply Scale \"{(string.IsNullOrWhiteSpace(scaleName) ? "empty (none provided)" : scaleName)}\" by command\n" +
+						"Check if the Scale name was provided correctly and said Scale exists");
+					return;
+				}
+
+				Configuration.ToggleOffAllOtherMatching(scale.CharacterName, scale.ScaleName == null ? "" : scale.ScaleName);
+				scale.BodyScaleEnabled = true;
+				Configuration.Save();
+				LoadConfig(true);
+
+				PluginLog.Debug($"Scale \"{scale.ScaleName}\" were successfully applied by command to char \"{scale.CharacterName}\"");
+			}
+			catch (Exception e)
+			{
+				PluginLog.Error($"Error applying Scale by command: \n" +
+					$"Scale name \"{(string.IsNullOrWhiteSpace(scaleName) ? "empty (none provided)" : scaleName)}\"\n" +
+					$"Error: {e}");
 			}
 		}
 
