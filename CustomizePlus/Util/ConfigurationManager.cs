@@ -28,9 +28,10 @@ namespace CustomizePlus.Util
 			Configuration = new PluginConfiguration(); 
 		}
 
-		public void SaveConfiguration()
+		public void SaveConfiguration(string path = null)
 		{
-			DalamudServices.PluginInterface.SavePluginConfig(Configuration);
+			string json = JsonConvert.SerializeObject(Configuration, Formatting.Indented);
+			File.WriteAllText(path ?? DalamudServices.PluginInterface.ConfigFile.FullName, json);
 		}
 
 		public void LoadConfigurationFromFile(string path)
@@ -71,6 +72,7 @@ namespace CustomizePlus.Util
 			if (currentConfigVersion == null || currentConfigVersion == PluginConfiguration.CurrentVersion)
 				return null;
 
+			//TODO: In the future this will need to be rewritten to properly handle multiversion upgrades
 			ILegacyConfiguration legacyConfiguration = null;
 			if (currentConfigVersion == 0)
 				legacyConfiguration = Version0Configuration.LoadFromFile(path);
