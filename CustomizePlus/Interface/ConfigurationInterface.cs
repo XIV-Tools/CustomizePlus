@@ -506,6 +506,8 @@ namespace CustomizePlus.Interface
 				scale.Bones[modernName] = editsContainer;
 			}
 
+			scale.Bones["n_root"] = new BoneEditsContainer { Position = MathHelpers.ZeroVector, Rotation = MathHelpers.ZeroVector, Scale = MathHelpers.OneVector };
+
 			// Load scale if it it not null, not 0 and not 1.
 			if (file.Scale != null &&
 				file.Scale.X != 0 &&
@@ -515,7 +517,7 @@ namespace CustomizePlus.Interface
 				file.Scale.Y != 1 &&
 				file.Scale.Z != 1)
 			{
-				scale.Bones["n_root"] = new BoneEditsContainer { Position = MathHelpers.ZeroVector, Rotation = MathHelpers.ZeroVector, Scale = new Vector3(file.Scale.X, file.Scale.Y, file.Scale.Z) };
+				scale.Bones["n_root"].Scale = new Vector3(file.Scale.X, file.Scale.Y, file.Scale.Z);
 			}
 
 			return scale;
