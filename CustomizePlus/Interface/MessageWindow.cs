@@ -18,11 +18,12 @@ namespace CustomizePlus.Interface
 	{
 		protected override string Title => "Customize+ message";
 		protected override Vector2 MinSize => new Vector2(200, 100);
+		protected override ImGuiWindowFlags WindowFlags => ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoCollapse;
+		protected override bool LockCloseButton => true;
 
 		public string WindowId { get; set; }
 		public string Text { get; set; }
 		public Action OnButtonPressed { get; set; }
-		public Vector2 WindowSize { get; set; }
 
 		/// <summary>
 		/// Show message window
@@ -44,17 +45,16 @@ namespace CustomizePlus.Interface
 			window.Text = text;
 			window.WindowId = windowId;
 			window.OnButtonPressed = onButtonPressed;
-			window.WindowSize = windowSize ?? new Vector2(600, 100);
+			window.ForcedSize = windowSize ?? new Vector2(600, 100);
 		}
 
 		protected override void DrawContents()
 		{
-			ImGui.SetWindowSize(WindowSize);
 			ImGui.Text(Text);
 
 			if(WindowId != null)
 			{
-				ImGui.SetCursorPosX(WindowSize.X / 2 - 130);
+				ImGui.SetCursorPosX(((Vector2)ForcedSize).X / 2 - 130);
 				if (ImGui.Button("I understand, do not show this to me again"))
 				{
 					Plugin.ConfigurationManager.Configuration.ViewedMessageWindows.Add(WindowId.ToLowerInvariant());
@@ -66,7 +66,7 @@ namespace CustomizePlus.Interface
 				return;
 			}
 
-			ImGui.SetCursorPosX(WindowSize.X / 2 - 20);
+			ImGui.SetCursorPosX(((Vector2)ForcedSize).X / 2 - 20);
 			if (ImGui.Button("OK"))
 			{
 				if (OnButtonPressed != null)

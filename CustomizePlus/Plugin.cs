@@ -70,6 +70,7 @@ namespace CustomizePlus
 		public Plugin(DalamudPluginInterface pluginInterface)
 		{
 			DalamudServices.Initialize(pluginInterface);
+			DalamudServices.PluginInterface.UiBuilder.DisableGposeUiHide = true;
 
 			serviceManager = new ServiceManager();
 			serviceManager.Add<GPoseService>();

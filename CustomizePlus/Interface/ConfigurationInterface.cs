@@ -197,8 +197,7 @@ namespace CustomizePlus.Interface
 				ImGui.SameLine();
 				if (ImGuiComponents.IconButton(FontAwesomeIcon.Pen))
 				{
-					IPCTestInterface ipcWindow = new IPCTestInterface();
-					ipcWindow.Show(DalamudServices.PluginInterface);
+					IPCTestInterface.Show(DalamudServices.PluginInterface);
 				}
 			}
 
@@ -389,7 +388,7 @@ namespace CustomizePlus.Interface
 				scale.ScaleName = name;
 			};
 
-			MessageWindow.Show("Customize+ is only able to import scale from the *.pose files. Position and rotation will be ignored.", new Vector2(600, 100), importAction, "ana_import_pos_rot_warning");
+			MessageWindow.Show("Customize+ is only able to import scale from the *.pose files. Position and rotation will be ignored.", new Vector2(570, 100), importAction, "ana_import_pos_rot_warning");
 		}
 
 		// TODO: Finish feature. May require additional skeleton code from Anamnesis

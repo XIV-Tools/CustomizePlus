@@ -87,19 +87,20 @@ namespace CustomizePlus.Interface
 
 		private EditMode editMode;
 
-		public void Show(DalamudPluginInterface pi)
+		public static void Show(DalamudPluginInterface pi)
 		{
 			DalamudPluginInterface localPlugin = pi;
-			getBodyScale = localPlugin.GetIpcSubscriber<string, string>("CustomizePlus.GetBodyScale");
+			IPCTestInterface editWnd = Plugin.InterfaceManager.Show<IPCTestInterface>();
+			editWnd.getBodyScale = localPlugin.GetIpcSubscriber<string, string>("CustomizePlus.GetBodyScale");
 			//localPlugin.GetIpcSubscriber<Character?, string?> ProviderGetBodyScaleFromCharacter;
-			setBodyScale = localPlugin.GetIpcSubscriber<string, string, object>("CustomizePlus.SetBodyScale");
+			editWnd.setBodyScale = localPlugin.GetIpcSubscriber<string, string, object>("CustomizePlus.SetBodyScale");
 			//localPlugin.GetIpcSubscriber<string, Character?, object> ProviderSetBodyScaleToCharacter;
-			revert = localPlugin.GetIpcSubscriber<string, object>("CustomizePlus.Revert");
+			editWnd.revert = localPlugin.GetIpcSubscriber<string, object>("CustomizePlus.Revert");
 			//localPlugin.GetIpcSubscriber<Character?, object>? ProviderRevertCharacter;
 			//_getApiVersion = localPlugin.GetIpcSubscriber<string>("CustomizePlus.GetApiVersion");
 			//_onScaleUpdate = localPlugin.GetIpcSubscriber<string?, object?>("CustomizePlus.OnScaleUpdate"); ;
 			//UnsubscribeEvents();
-			IPCTestInterface editWnd = Plugin.InterfaceManager.Show<IPCTestInterface>();
+
 
 			var scale = ConfigurationInterface.BuildDefault(new BodyScale());
 			editWnd.Scale = scale;

@@ -26,6 +26,7 @@ namespace CustomizePlus.Interface
 		protected BodyScale? Scale { get; private set; }
 
 		protected override string Title => $"(WIP) Edit Scale: {this.originalScaleName}";
+		protected override string DrawTitle => $"{this.Title}###customize_plus_scale_edit_window"; //keep the same ID for all scale editor windows
 		protected BodyScale? ScaleUpdated { get; private set; }
 
 		private int scaleIndex = -1;
