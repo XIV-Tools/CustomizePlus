@@ -18,7 +18,7 @@ namespace CustomizePlus.Services
 	{
 		public override unsafe void Start()
 		{
-			GPoseService.Instance.OnGPoseStateChange += OnGPoseStateChange; ;
+			GPoseService.Instance.OnGPoseStateChange += OnGPoseStateChange;
 			base.Start();
 		}
 

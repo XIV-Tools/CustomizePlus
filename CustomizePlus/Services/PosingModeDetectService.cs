@@ -16,7 +16,7 @@ namespace CustomizePlus.Services
 	/// </summary>
 	internal class PosingModeDetectService : ServiceBase<PosingModeDetectService>
 	{
-		// Taken from Ktisis:
+		// Borrowed from Ktisis:
 		// If this is NOP'd, Anam posing is enabled.
 		internal unsafe static byte* AnamnesisFreezePosition;
 		internal unsafe static byte* AnamnesisFreezeRotation;
