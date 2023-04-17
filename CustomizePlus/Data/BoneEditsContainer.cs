@@ -24,5 +24,10 @@ namespace CustomizePlus.Data
 			Rotation = new Vector3 { X = 0, Y = 0, Z = 0 };
 			Scale = new Vector3 { X = 1, Y = 1, Z = 1 };
 		}
+
+		public BoneEditsContainer DeepCopy()
+		{
+			return new BoneEditsContainer { Position = Position, Rotation = Rotation, Scale = Scale };
+		}
 	}
 }

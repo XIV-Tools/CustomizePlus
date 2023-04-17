@@ -23,11 +23,9 @@ namespace CustomizePlus.Interface
 
 	public class EditInterface : WindowBase
 	{
-		protected BodyScale? Scale { get; private set; }
-
 		protected override string Title => $"(WIP) Edit Scale: {this.originalScaleName}";
 		protected override string DrawTitle => $"{this.Title}###customize_plus_scale_edit_window{this.Index}"; //keep the same ID for all scale editor windows
-		protected BodyScale? ScaleUpdated { get; private set; }
+		protected BodyScale? Scale { get; private set; }
 
 		private int scaleIndex = -1;
 
@@ -52,17 +50,17 @@ namespace CustomizePlus.Interface
 		{
 			EditInterface editWnd = Plugin.InterfaceManager.Show<EditInterface>();
 			editWnd.editMode = EditMode.Scale;
-			editWnd.Scale = scale;
-			editWnd.ScaleUpdated = scale;
+
 			if (scale == null)
 			{
 				scale = new BodyScale();
 			}
 
-			editWnd.ScaleUpdated = scale;
+			editWnd.Scale = scale;
 			editWnd.originalScaleName = scale.ScaleName;
 			editWnd.originalScaleCharacter = scale.CharacterName;
-			editWnd.newScaleCharacter = scale.CharacterName;
+			editWnd.newScaleName = editWnd.originalScaleName;
+			editWnd.newScaleCharacter = editWnd.originalScaleCharacter;
 
 			editWnd.scaleEnabled = scale.BodyScaleEnabled;
 
@@ -82,11 +80,6 @@ namespace CustomizePlus.Interface
 			}
 
 			editWnd.rootEditsContainer = scale.Bones["n_root"];
-
-			editWnd.originalScaleName = scale.ScaleName;
-			editWnd.originalScaleCharacter = scale.CharacterName;
-			editWnd.newScaleName = editWnd.originalScaleName;
-			editWnd.newScaleCharacter = editWnd.originalScaleCharacter;
 
 			editWnd.scaleIndex = -1;
 		}
@@ -149,6 +142,16 @@ namespace CustomizePlus.Interface
 			ImGui.SameLine();
 			if (ImGui.RadioButton("Scale", editMode == EditMode.Scale))
 				editMode = EditMode.Scale;
+
+			if(editMode != EditMode.Scale)
+			{
+				ImGui.SameLine();
+				ImGui.PushFont(UiBuilder.IconFont);
+				ImGui.Text(FontAwesomeIcon.ExclamationTriangle.ToIconString());
+				ImGui.PopFont();
+				ImGui.SameLine();
+				ImGui.Text($"{editMode} is an advanced setting and might not look properly with some animations, use at your own risk.");
+			}
 
 			ImGui.Separator();
 
@@ -550,13 +553,19 @@ namespace CustomizePlus.Interface
 
 			if (ImGui.Button("Save"))
 			{
+				bool forceClose = false;
+				if (this.newScaleCharacter != this.originalScaleCharacter || this.newScaleName != this.originalScaleName)
+					forceClose = true;
+
 				AddToConfig(this.newScaleName, this.newScaleCharacter);
-				if (this.newScaleCharacter != this.originalScaleCharacter)
-					this.originalScaleCharacter = this.newScaleCharacter;
-				if (this.newScaleName != this.originalScaleName)
-					this.originalScaleName = this.newScaleName;
 				Plugin.ConfigurationManager.SaveConfiguration();
 				Plugin.LoadConfig();
+
+				if(forceClose)
+				{
+					MessageWindow.Show("Customize+ detected that you have changed either character name or scale name.\nIn order to properly make a copy, the editing window was automatically closed.", new Vector2(485, 100));
+					this.Close();
+				}
 			}
 
 			/* TODO feature: undo of some variety. Option below is a revert to what was present when edit was opened, but needs additonal logic
@@ -588,26 +597,30 @@ namespace CustomizePlus.Interface
 			ImGui.Text("    Save and close with new scale name or new character name to create a copy.");
 		}
 
+		//TODO: refactoring, this should use existing BodyScale for existing scales
 		private void AddToConfig(string scaleName, string characterName)
 		{
 			PluginConfiguration config = Plugin.ConfigurationManager.Configuration;
 			BodyScale newBody = new BodyScale();
 
+			bool isSameScale = this.originalScaleName == scaleName && this.originalScaleCharacter == characterName;
+
 			for (int i = 0; i < this.boneNamesLegacy.Count && i < this.boneValuesNew.Count; i++)
 			{
 				string legacyName = boneNamesLegacyUsed[i];
 
-				newBody.Bones[legacyName] = this.boneValuesNew[legacyName];
+				//create a deep copy if we are making a copy of scale so we don't reference data from other scale
+				newBody.Bones[legacyName] = isSameScale ? this.boneValuesNew[legacyName] : this.boneValuesNew[legacyName].DeepCopy();
 			}
 
-			newBody.Bones["n_root"] = this.rootEditsContainer;
+			newBody.Bones["n_root"] = isSameScale ? this.rootEditsContainer : this.rootEditsContainer.DeepCopy();
 
 			newBody.BodyScaleEnabled = this.scaleEnabled;
 			newBody.ScaleName = scaleName;
 			newBody.CharacterName = characterName;
 
 			//newBody.RootScale = new HkVector4(this.newRootScale.X, this.newRootScale.Y, this.newRootScale.Z, 0);
-			if (this.originalScaleName == scaleName && this.originalScaleCharacter == characterName)
+			if (isSameScale)
 			{
 				int matchIndex = -1;
 				for (int i = 0; i < config.BodyScales.Count; i++)
@@ -634,6 +647,8 @@ namespace CustomizePlus.Interface
 					Plugin.ConfigurationManager.ToggleOffAllOtherMatching(characterName, scaleName);
 				}
 			}
+
+			this.Scale = newBody;
 		}
 
 		/*private void RevertToOriginal() //Currently Unused
@@ -645,7 +660,7 @@ namespace CustomizePlus.Interface
 		private void UpdateCurrent(string boneName, BoneEditsContainer boneValue, bool autoMode = false)
 		{
 			PluginConfiguration config = Plugin.ConfigurationManager.Configuration;
-			BodyScale newBody = this.ScaleUpdated;
+			BodyScale newBody = this.Scale;
 
 			newBody.Bones[boneName] = boneValue;
 

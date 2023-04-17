@@ -8,6 +8,7 @@ namespace CustomizePlus
 	using System.Collections.Generic;
 	using System.Numerics;
 	using CustomizePlus.Data;
+	using CustomizePlus.Extensions;
 	using CustomizePlus.Helpers;
 	using CustomizePlus.Memory;
 	using CustomizePlus.Services;
@@ -42,9 +43,10 @@ namespace CustomizePlus
 				this.poses[i].Update(obj->Skeleton->PartialSkeletons[i].Pose1);
 			}
 
-			BoneEditsContainer rootEditsContainer = Bones["n_root"];
-			if (rootEditsContainer == null)
+			if (!Bones.ContainsKey("n_root"))
 				return;
+
+			BoneEditsContainer rootEditsContainer = Bones["n_root"];
 
 			// Don't apply the root scale if its not set to anything.
 			if (rootEditsContainer.Scale.X != 0 || rootEditsContainer.Scale.Y != 0 || rootEditsContainer.Scale.Z != 0)
@@ -76,12 +78,10 @@ namespace CustomizePlus
 				return;
 			}
 
-			BoneEditsContainer rootEditsContainer = Bones["n_root"];
-			if (rootEditsContainer == null)
-			{
-				PluginLog.Information("root edits null");
+			if (!Bones.ContainsKey("n_root"))
 				return;
-			}
+
+			BoneEditsContainer rootEditsContainer = Bones["n_root"];
 
 			// Don't apply the root position if its not set to anything.
 			if (rootEditsContainer.Position.X != 0 || rootEditsContainer.Position.Y != 0 || rootEditsContainer.Position.Z != 0)
@@ -140,16 +140,10 @@ namespace CustomizePlus
 						{
 							Transform transform = pose->Transforms[index];
 
-							//TODO: this check needs to be re-written to support translation as well as rotation.
-							//Or removed altogether
-							/*if (transform.Translation.IsApproximately(boneScale.Position, false))
+							if (transform.Scale.IsApproximately(boneScale.Scale) &&
+								boneScale.Position.IsApproximately(MathHelpers.ZeroVector) &&
+								boneScale.Rotation.IsApproximately(MathHelpers.ZeroVector))
 								continue;
-
-							if (transform.Rotation.IsApproximately(boneScale.Rotation, false))
-								continue;*/
-
-							/*if (transform.Scale.IsApproximately(boneScale.Scale, false))
-								continue;*/
 
 							this.scaleCache.Add(index, boneScale);
 						}

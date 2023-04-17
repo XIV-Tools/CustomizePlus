@@ -38,29 +38,5 @@ namespace CustomizePlus.Memory
 		{
 			return $"({this.X}, {this.Y}, {this.Z}, {this.W})";
 		}
-
-
-		public bool IsApproximately(HkVector4 other, bool includeW, float errorMargin = 0.001f)
-		{
-			if (includeW)
-			{
-				return IsApproximately(this.X, other.X, errorMargin)
-					&& IsApproximately(this.Y, other.Y, errorMargin)
-					&& IsApproximately(this.Z, other.Z, errorMargin)
-					&& IsApproximately(this.W, other.W, errorMargin);
-			}
-			else
-			{
-				return IsApproximately(this.X, other.X, errorMargin)
-					&& IsApproximately(this.Y, other.Y, errorMargin)
-					&& IsApproximately(this.Z, other.Z, errorMargin);
-			}
-		}
-
-		private static bool IsApproximately(float a, float b, float errorMargin)
-		{
-			float d = MathF.Abs(a - b);
-			return d < errorMargin;
-		}
 	}
 }
