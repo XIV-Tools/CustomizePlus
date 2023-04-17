@@ -119,7 +119,6 @@ namespace CustomizePlus.Interface
 
 			for (int i = 0; i < editWnd.boneNamesLegacy.Count && i < editWnd.boneNamesModern.Count; i++)
 			{
-				//HkVector4 tempBone = HkVector4.One;
 				BoneEditsContainer tempContainer = new BoneEditsContainer { Scale = MathHelpers.OneVector };
 				if (scale.Bones.TryGetValue(editWnd.boneNamesLegacy[i], out tempContainer))
 				{
@@ -129,8 +128,6 @@ namespace CustomizePlus.Interface
 					editWnd.boneNamesLegacyUsed.Add(editWnd.boneNamesLegacy[i]);
 				}
 			}
-
-			//editWnd.originalRootScale = scale.RootScale.GetAsNumericsVector();
 
 			editWnd.originalScaleName = scale.ScaleName;
 			editWnd.originalScaleCharacter = scale.CharacterName;

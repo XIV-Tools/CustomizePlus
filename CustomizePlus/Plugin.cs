@@ -163,7 +163,6 @@ namespace CustomizePlus
 						{
 							// "Render::Manager::Render"
 							IntPtr renderAddress = DalamudServices.SigScanner.ScanText("E8 ?? ?? ?? ?? 48 81 C3 ?? ?? ?? ?? BE ?? ?? ?? ?? 45 33 F6");
-							//renderManagerHook = new Hook<RenderDelegate>(renderAddress, OnRender);
 							renderManagerHook = Hook<RenderDelegate>.FromAddress(renderAddress, OnRender);
 						}
 
@@ -357,6 +356,7 @@ namespace CustomizePlus
 			return original(a1, a2, a3, a4, a5, a6);
 		}
 
+		//todo: doesn't work in cutscenes, something getting called after this and resets changes
 		private static unsafe void OnGameObjectMove(IntPtr gameObjectPtr)
 		{
 			// Call the original function.
@@ -388,8 +388,6 @@ namespace CustomizePlus
 			if (scale == null)
 				return;
 			scale.ApplyRootPosition(gameObject);
-
-			//PluginLog.Information($"{gameObject.ObjectIndex} = {gameObject.Name.ToString()}");
 		}
 
 		// All functions related to this process for non-named objects adapted from Penumbra logic. Credit to Ottermandias et al.

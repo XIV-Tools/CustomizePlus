@@ -206,12 +206,6 @@ namespace CustomizePlus.Interface
 				{
 					rootScaleValueAllAxes = 0;
 				}
-				/*else if (rootScaleValueAllAxes != 0)
-				{
-					rootLocalTemp.X = rootScaleValueAllAxes;
-					rootLocalTemp.Y = rootScaleValueAllAxes;
-					rootLocalTemp.Z = rootScaleValueAllAxes;
-				}*/
 
 				switch (editMode)
 				{
@@ -459,12 +453,6 @@ namespace CustomizePlus.Interface
 						{
 							currentScaleValueAllAxes = 0;
 						}
-						/*else if (currentVector.W != 0)
-						{
-							currentVector.X = currentVector.W;
-							currentVector.Y = currentVector.W;
-							currentVector.Z = currentVector.W;
-						}*/
 					}
 					catch (Exception ex)
 					{
@@ -619,7 +607,6 @@ namespace CustomizePlus.Interface
 			newBody.ScaleName = scaleName;
 			newBody.CharacterName = characterName;
 
-			//newBody.RootScale = new HkVector4(this.newRootScale.X, this.newRootScale.Y, this.newRootScale.Z, 0);
 			if (isSameScale)
 			{
 				int matchIndex = -1;
