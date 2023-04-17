@@ -18,7 +18,7 @@ namespace CustomizePlus.Helpers
 			stringBuilder.AddUiForeground(45);
 			stringBuilder.AddText($"[Customize+] {message}");
 			stringBuilder.AddUiForegroundOff();
-			Plugin.ChatGui.Print(stringBuilder.BuiltString);
+			DalamudServices.ChatGui.Print(stringBuilder.BuiltString);
 		}
 	}
 }

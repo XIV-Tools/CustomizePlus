@@ -30,7 +30,7 @@ namespace CustomizePlus.Util
 
 		public void SaveConfiguration()
 		{
-			Plugin.PluginInterface.SavePluginConfig(Configuration);
+			DalamudServices.PluginInterface.SavePluginConfig(Configuration);
 		}
 
 		public void LoadConfigurationFromFile(string path)
@@ -98,10 +98,10 @@ namespace CustomizePlus.Util
 		/// <returns></returns>
 		private int? GetCurrentConfigurationVersion()
 		{
-			if (!Plugin.PluginInterface.ConfigFile.Exists)
+			if (!DalamudServices.PluginInterface.ConfigFile.Exists)
 				return null;
 
-			return JsonConvert.DeserializeObject<ConfigurationVersion>(File.ReadAllText(Plugin.PluginInterface.ConfigFile.FullName)).Version;
+			return JsonConvert.DeserializeObject<ConfigurationVersion>(File.ReadAllText(DalamudServices.PluginInterface.ConfigFile.FullName)).Version;
 		}
 	}
 }

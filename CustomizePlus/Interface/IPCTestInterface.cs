@@ -145,7 +145,7 @@ namespace CustomizePlus.Interface
 			try
 			{
 				SubscribeEvents();
-				DrawScaleEdit(new BodyScale(), Plugin.PluginInterface);
+				DrawScaleEdit(new BodyScale(), DalamudServices.PluginInterface);
 			}
 			catch (Exception e)
 			{

@@ -10,6 +10,7 @@ namespace CustomizePlus
 	using CustomizePlus.Data;
 	using CustomizePlus.Helpers;
 	using CustomizePlus.Memory;
+	using CustomizePlus.Services;
 	using Dalamud.Game.ClientState.Objects.Types;
 	using Dalamud.Logging;
 
@@ -181,21 +182,25 @@ namespace CustomizePlus
 						transform.Scale.Y = boneScale.Scale.Y;
 						transform.Scale.Z = boneScale.Scale.Z;
 
-						Vector4 originalRotationVector = transform.Rotation.GetAsNumericsVector(false);
-						Quaternion originalBoneRotationQuaternion = new Quaternion(originalRotationVector.X, originalRotationVector.Y, originalRotationVector.Z, originalRotationVector.W);
-						Quaternion rotationOffsetQuaternion = MathHelpers.EulerToQuaternion(new Vector3(boneScale.Rotation.X, boneScale.Rotation.Y, boneScale.Rotation.Z));
-						Quaternion newRotation = rotationOffsetQuaternion * originalBoneRotationQuaternion;
+						//Apply position and rotation only when PosingModeDetectService does not detect posing mode
+						if (GPoseService.Instance.GPoseState != GPoseState.Inside || !PosingModeDetectService.Instance.IsInPosingMode)
+						{
+							Vector4 originalRotationVector = transform.Rotation.GetAsNumericsVector(false);
+							Quaternion originalBoneRotationQuaternion = new Quaternion(originalRotationVector.X, originalRotationVector.Y, originalRotationVector.Z, originalRotationVector.W);
+							Quaternion rotationOffsetQuaternion = MathHelpers.EulerToQuaternion(new Vector3(boneScale.Rotation.X, boneScale.Rotation.Y, boneScale.Rotation.Z));
+							Quaternion newRotation = rotationOffsetQuaternion * originalBoneRotationQuaternion;
 
-						transform.Rotation.X = newRotation.X;
-						transform.Rotation.Y = newRotation.Y;
-						transform.Rotation.Z = newRotation.Z;
-						transform.Rotation.W = newRotation.W;
+							transform.Rotation.X = newRotation.X;
+							transform.Rotation.Y = newRotation.Y;
+							transform.Rotation.Z = newRotation.Z;
+							transform.Rotation.W = newRotation.W;
 
-						Vector4 adjustedPositionOffset = Vector4.Transform(boneScale.Position, newRotation);
+							Vector4 adjustedPositionOffset = Vector4.Transform(boneScale.Position, newRotation);
 
-						transform.Translation.X += adjustedPositionOffset.X;
-						transform.Translation.Y += adjustedPositionOffset.Y;
-						transform.Translation.Z += adjustedPositionOffset.Z;
+							transform.Translation.X += adjustedPositionOffset.X;
+							transform.Translation.Y += adjustedPositionOffset.Y;
+							transform.Translation.Z += adjustedPositionOffset.Z;
+						}
 
 						pose->Transforms[index] = transform;
 					}

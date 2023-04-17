@@ -27,7 +27,7 @@ namespace CustomizePlus.Extensions
 		{
 			foreach (string command in BoundCommands)
 			{
-				Plugin.CommandManager.RemoveHandler(command);
+				DalamudServices.CommandManager.RemoveHandler(command);
 			}
 		}
 	}

@@ -11,16 +11,27 @@ using System.Threading.Tasks;
 
 namespace CustomizePlus.Interface
 {
+	/// <summary>
+	/// Very basic message window implementation to show the window which might be shown once or multiple times and can execute some action after being closed
+	/// </summary>
 	public class MessageWindow : WindowBase
 	{
 		protected override string Title => "Customize+ message";
-		protected override Vector2 MinSize => new Vector2(50, 100);
+		protected override Vector2 MinSize => new Vector2(200, 100);
 
 		public string WindowId { get; set; }
 		public string Text { get; set; }
 		public Action OnButtonPressed { get; set; }
+		public Vector2 WindowSize { get; set; }
 
-		public static void Show(string text, Action onButtonPressed, string windowId = null)
+		/// <summary>
+		/// Show message window
+		/// </summary>
+		/// <param name="text">Window test</param>
+		/// <param name="windowSize">Optional window size</param>
+		/// <param name="onButtonPressed">Action to be executed when button is pressed</param>
+		/// <param name="windowId">Window id, if set will only show this window once and never again</param>
+		public static void Show(string text, Vector2? windowSize = null, Action? onButtonPressed = null, string windowId = null)
 		{
 			if (windowId != null && Plugin.ConfigurationManager.Configuration.ViewedMessageWindows.Contains(windowId.ToLowerInvariant()))
 			{
@@ -33,20 +44,17 @@ namespace CustomizePlus.Interface
 			window.Text = text;
 			window.WindowId = windowId;
 			window.OnButtonPressed = onButtonPressed;
+			window.WindowSize = windowSize ?? new Vector2(600, 100);
 		}
 
 		protected override void DrawContents()
 		{
-			ImGui.SetWindowSize(new Vector2(600, 100));
+			ImGui.SetWindowSize(WindowSize);
 			ImGui.Text(Text);
 
-			//https://github.com/ocornut/imgui/discussions/3862
-			float avail = ImGui.GetContentRegionAvail().X;
-			float off = (avail - 400) * 1f;
-			if (off > 0.0f)
-				ImGui.SetCursorPosX(ImGui.GetCursorPosX() + off);
 			if(WindowId != null)
 			{
+				ImGui.SetCursorPosX(WindowSize.X / 2 - 130);
 				if (ImGui.Button("I understand, do not show this to me again"))
 				{
 					Plugin.ConfigurationManager.Configuration.ViewedMessageWindows.Add(WindowId.ToLowerInvariant());
@@ -58,6 +66,7 @@ namespace CustomizePlus.Interface
 				return;
 			}
 
+			ImGui.SetCursorPosX(WindowSize.X / 2 - 20);
 			if (ImGui.Button("OK"))
 			{
 				if (OnButtonPressed != null)

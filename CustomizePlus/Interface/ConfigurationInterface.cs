@@ -198,7 +198,7 @@ namespace CustomizePlus.Interface
 				if (ImGuiComponents.IconButton(FontAwesomeIcon.Pen))
 				{
 					IPCTestInterface ipcWindow = new IPCTestInterface();
-					ipcWindow.Show(Plugin.PluginInterface);
+					ipcWindow.Show(DalamudServices.PluginInterface);
 				}
 			}
 
@@ -436,7 +436,7 @@ namespace CustomizePlus.Interface
 				}
 			};
 
-			MessageWindow.Show("Customize+ is only able to import scale from the *.pose files. Position and rotation will be ignored.", importAction, "ana_import_pos_rot_warning");
+			MessageWindow.Show("Customize+ is only able to import scale from the *.pose files. Position and rotation will be ignored.", new Vector2(600, 100), importAction, "ana_import_pos_rot_warning");
 		}
 
 		// TODO: Finish feature. May require additional skeleton code from Anamnesis
@@ -510,7 +510,7 @@ namespace CustomizePlus.Interface
 
 			return scale;
 		}
-
+		//todo: refactoring
 		private static BodyScale? BuildFromJSON(BodyScale scale, string json)
 		{
 			if (json == null)

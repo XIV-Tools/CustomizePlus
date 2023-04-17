@@ -12,10 +12,12 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 using CustomizePlus.Api;
+using CustomizePlus.Core;
 using CustomizePlus.Data.Configuration;
 using CustomizePlus.Extensions;
 using CustomizePlus.Helpers;
 using CustomizePlus.Interface;
+using CustomizePlus.Services;
 using CustomizePlus.Util;
 using Dalamud.Game;
 using Dalamud.Game.ClientState;
@@ -53,18 +55,11 @@ namespace CustomizePlus
 		private static BodyScale? defaultRetainerScale;
 		private static BodyScale? defaultCutsceneScale;
 		private static CustomizePlusIpc ipcManager = null!;
+		private static ServiceManager serviceManager { get; set; } = null!;
 
 		private delegate IntPtr RenderDelegate(IntPtr a1, int a2, IntPtr a3, byte a4, IntPtr a5, IntPtr a6);
 		[UnmanagedFunctionPointer(CallingConvention.StdCall)]
 		private unsafe delegate void GameObjectMovementDelegate(IntPtr gameObject);
-
-		[PluginService] [RequiredVersion("1.0")] public static ObjectTable ObjectTable { get; private set; } = null!;
-		[PluginService] [RequiredVersion("1.0")] public static DalamudPluginInterface PluginInterface { get; private set; } = null!;
-		[PluginService] [RequiredVersion("1.0")] public static CommandManager CommandManager { get; private set; } = null!;
-		[PluginService] [RequiredVersion("1.0")] public static ChatGui ChatGui { get; private set; } = null!;
-		[PluginService] [RequiredVersion("1.0")] public static ClientState ClientState { get; private set; } = null!;
-		[PluginService] [RequiredVersion("1.0")] public static SigScanner SigScanner { get; private set; } = null!;
-		[PluginService] [RequiredVersion("1.0")] public static GameGui GameGui { get; private set; } = null!;
 
 		public static InterfaceManager InterfaceManager { get; private set; } = new InterfaceManager();
 
@@ -72,13 +67,26 @@ namespace CustomizePlus
 
 		public string Name => "Customize Plus";
 
-		public Plugin()
+		public Plugin(DalamudPluginInterface pluginInterface)
 		{
+			DalamudServices.Initialize(pluginInterface);
+
+			serviceManager = new ServiceManager();
+			serviceManager.Add<GPoseService>();
+			serviceManager.Add<GPoseAmnesisKtisisWarningService>();
+			serviceManager.Add<PosingModeDetectService>();
+
+			DalamudServices.Framework.RunOnFrameworkThread(() =>
+			{
+				serviceManager.Start();
+				DalamudServices.Framework.Update += Framework_Update;
+			});
+
 			try
 			{
 				try
 				{
-					ConfigurationManager.LoadConfigurationFromFile(PluginInterface.ConfigFile.FullName);
+					ConfigurationManager.LoadConfigurationFromFile(DalamudServices.PluginInterface.ConfigFile.FullName);
 				}
 				catch (FileNotFoundException ex)
 				{
@@ -90,16 +98,16 @@ namespace CustomizePlus
 					ChatHelper.PrintInChat("There was an error while loading plugin configuration, details have been printed into dalamud console.");
 				}
 
-				ipcManager = new(ObjectTable, PluginInterface);
+				ipcManager = new(DalamudServices.ObjectTable, DalamudServices.PluginInterface);
 
 				LoadConfig();
 
-				CommandManager.AddCommand((s, t) => ConfigurationInterface.Toggle(), "/customize", "Toggles the Customize+ configuration window.");
+				DalamudServices.CommandManager.AddCommand((s, t) => ConfigurationInterface.Toggle(), "/customize", "Toggles the Customize+ configuration window.");
 
-				PluginInterface.UiBuilder.Draw += InterfaceManager.Draw;
-				PluginInterface.UiBuilder.OpenConfigUi += ConfigurationInterface.Toggle;
+				DalamudServices.PluginInterface.UiBuilder.Draw += InterfaceManager.Draw;
+				DalamudServices.PluginInterface.UiBuilder.OpenConfigUi += ConfigurationInterface.Toggle;
 
-				if (PluginInterface.IsDevMenuOpen)
+				if (DalamudServices.PluginInterface.IsDevMenuOpen)
 					ConfigurationInterface.Show();
 
 				ChatHelper.PrintInChat("Started");
@@ -153,14 +161,14 @@ namespace CustomizePlus
 						if (renderManagerHook == null)
 						{
 							// "Render::Manager::Render"
-							IntPtr renderAddress = SigScanner.ScanText("E8 ?? ?? ?? ?? 48 81 C3 ?? ?? ?? ?? BE ?? ?? ?? ?? 45 33 F6");
+							IntPtr renderAddress = DalamudServices.SigScanner.ScanText("E8 ?? ?? ?? ?? 48 81 C3 ?? ?? ?? ?? BE ?? ?? ?? ?? 45 33 F6");
 							//renderManagerHook = new Hook<RenderDelegate>(renderAddress, OnRender);
 							renderManagerHook = Hook<RenderDelegate>.FromAddress(renderAddress, OnRender);
 						}
 
 						if(gameObjectMovementHook == null)
 						{
-							IntPtr movementAddress = Plugin.SigScanner.ScanText("E8 ?? ?? ?? ?? 48 8B CB E8 ?? ?? ?? ?? 48 8B CB E8 ?? ?? ?? ?? 48 8B 03 48 8B CB FF 50 ?? 83 F8 ?? 75 ??");
+							IntPtr movementAddress = DalamudServices.SigScanner.ScanText("E8 ?? ?? ?? ?? 48 8B CB E8 ?? ?? ?? ?? 48 8B CB E8 ?? ?? ?? ?? 48 8B 03 48 8B CB FF 50 ?? 83 F8 ?? 75 ??");
 							gameObjectMovementHook = Hook<GameObjectMovementDelegate>.FromAddress(movementAddress, new GameObjectMovementDelegate(OnGameObjectMove));
 						}
 
@@ -198,7 +206,7 @@ namespace CustomizePlus
 
 		public static unsafe void Update()
 		{
-			for (var i = 0; i < ObjectTable.Length; i++)
+			for (var i = 0; i < DalamudServices.ObjectTable.Length; i++)
 			{
 				// Always filler Event obj
 				if (i == 245) 
@@ -214,7 +222,7 @@ namespace CustomizePlus
 				if (i >= 202 && i < 240 && !ConfigurationManager.Configuration.ApplyToNpcsInCutscenes)
 					continue;
 
-				var obj = ObjectTable[i];
+				var obj = DalamudServices.ObjectTable[i];
 	
 				if (obj == null)
 					continue;
@@ -236,7 +244,7 @@ namespace CustomizePlus
 
 		public static GameObject? FindModelByName(string name)
 		{
-			foreach (GameObject obj in ObjectTable)
+			foreach (GameObject obj in DalamudServices.ObjectTable)
 			{
 				if (obj.Name.ToString() == name)
 					return obj;
@@ -247,6 +255,9 @@ namespace CustomizePlus
 
 		public void Dispose()
 		{
+			DalamudServices.Framework.Update -= Framework_Update;
+			serviceManager.Dispose();
+
 			ipcManager?.Dispose();
 
 			gameObjectMovementHook?.Disable();
@@ -258,8 +269,13 @@ namespace CustomizePlus
 			Files.Dispose();
 			CommandManagerExtensions.Dispose();
 
-			PluginInterface.UiBuilder.Draw -= InterfaceManager.Draw;
-			PluginInterface.UiBuilder.OpenConfigUi -= ConfigurationInterface.Show;
+			DalamudServices.PluginInterface.UiBuilder.Draw -= InterfaceManager.Draw;
+			DalamudServices.PluginInterface.UiBuilder.OpenConfigUi -= ConfigurationInterface.Show;
+		}
+
+		private void Framework_Update(Framework framework)
+		{
+			serviceManager.Tick();
 		}
 
 		private static unsafe (BodyScale, bool) FindScale(int objectIndex)
@@ -268,18 +284,18 @@ namespace CustomizePlus
 			uint playerObjId = 0;
 			try
 			{
-				playerObjId = ObjectTable[0].ObjectId;
+				playerObjId = DalamudServices.ObjectTable[0].ObjectId;
 			}
 			catch (Exception ex) { }
 
-			var obj = ObjectTable[objectIndex];
+			var obj = DalamudServices.ObjectTable[objectIndex];
 
 			if (obj == null)
 				return (null, false);
 
 			BodyScale? scale = null;
 			// Mare Support: Bool check to see if override table from IPC can be used
-			scale = IdentifyBodyScale((ObjectStruct*)ObjectTable.GetObjectAddress(objectIndex), playerObjId != obj.ObjectId);
+			scale = IdentifyBodyScale((ObjectStruct*)DalamudServices.ObjectTable.GetObjectAddress(objectIndex), playerObjId != obj.ObjectId);
 
 			bool isCutsceneNpc = false;
 			switch (obj.ObjectKind)
@@ -345,7 +361,10 @@ namespace CustomizePlus
 			// Call the original function.
 			gameObjectMovementHook.Original(gameObjectPtr);
 
-			var gameObject = ObjectTable.CreateObjectReference(gameObjectPtr);
+			if (GPoseService.Instance.GPoseState == GPoseState.Inside && PosingModeDetectService.Instance.IsInPosingMode)
+				return;
+
+			var gameObject = DalamudServices.ObjectTable.CreateObjectReference(gameObjectPtr);
 
 			if (gameObject == null)
 				return;
@@ -393,7 +412,7 @@ namespace CustomizePlus
 
 					// Check if in pvp intro sequence, which uses 240-244 for the 5 players, and only affect the first if so
 					// TODO: Ensure player side only. First group, where one of the node textures is blue. Alternately, look for hidden party list UI and get names from there.
-					if (GameGui.GetAddonByName("PvPMKSIntroduction", 1) == IntPtr.Zero)
+					if (DalamudServices.GameGui.GetAddonByName("PvPMKSIntroduction", 1) == IntPtr.Zero)
 					{
 						actualName = gameObject->ObjectIndex switch
 						{
@@ -442,9 +461,9 @@ namespace CustomizePlus
 				if (!scaleOverride.TryGetValue(actorName, out scale))
 					NameToScale.TryGetValue(actorName, out scale);
 			}
-			else if (playerOnly && ObjectTable[0] != null)
+			else if (playerOnly && DalamudServices.ObjectTable[0] != null)
 			{
-				if (ObjectTable[0].Name.TextValue == actorName)
+				if (DalamudServices.ObjectTable[0].Name.TextValue == actorName)
 					NameToScale.TryGetValue(actorName, out scale);
 			}
 			else
@@ -464,7 +483,7 @@ namespace CustomizePlus
 				return null;
 			}
 
-			var player = ObjectTable[0];
+			var player = DalamudServices.ObjectTable[0];
 			if (player == null)
 			{
 				return null;
@@ -477,7 +496,7 @@ namespace CustomizePlus
 
 		private static unsafe string? GetInspectName()
 		{
-			var addon = GameGui.GetAddonByName("CharacterInspect", 1);
+			var addon = DalamudServices.GameGui.GetAddonByName("CharacterInspect", 1);
 			if (addon == IntPtr.Zero)
 			{
 				return null;
@@ -501,7 +520,7 @@ namespace CustomizePlus
 		// Obtain the name displayed in the Character Card from the agent.
 		private static unsafe string? GetCardName()
 		{
-			var uiModule = (UIModule*)GameGui.GetUIModule();
+			var uiModule = (UIModule*)DalamudServices.GameGui.GetUIModule();
 			var agentModule = uiModule->GetAgentModule();
 			var agent = (byte*)agentModule->GetAgentByInternalID(393);
 			if (agent == null)
@@ -522,12 +541,12 @@ namespace CustomizePlus
 		// Obtain the name of the player character if the glamour plate edit window is open.
 		private static unsafe string? GetGlamourName()
 		{
-			var addon = GameGui.GetAddonByName("MiragePrismMiragePlate", 1);
+			var addon = DalamudServices.GameGui.GetAddonByName("MiragePrismMiragePlate", 1);
 			return addon == IntPtr.Zero ? null : GetPlayerName();
 		}
 
 		private static string? GetPlayerName()
-			=> ObjectTable[0]?.Name.ToString();
+			=> DalamudServices.ObjectTable[0]?.Name.ToString();
 
 		public static void SetTemporaryCharacterScale(string characterName, BodyScale scale)
 		{

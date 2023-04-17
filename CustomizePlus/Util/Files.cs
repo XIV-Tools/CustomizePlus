@@ -31,7 +31,7 @@ namespace CustomizePlus.Util
 			if (TextureCache.ContainsKey(file))
 				return TextureCache[file];
 
-			TextureWrap tex = Plugin.PluginInterface.UiBuilder.LoadImage(file);
+			TextureWrap tex = DalamudServices.PluginInterface.UiBuilder.LoadImage(file);
 			LoadedResources.Add(tex);
 			TextureCache.Add(file, tex);
 			return tex;
