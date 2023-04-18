@@ -8,6 +8,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -58,7 +59,7 @@ namespace CustomizePlus
 		private static CustomizePlusLegacyIpc legacyIpcManager = null!;
 		private static ServiceManager serviceManager { get; set; } = null!;
 
-		private delegate IntPtr RenderDelegate(IntPtr a1, int a2, IntPtr a3, byte a4, IntPtr a5, IntPtr a6);
+		private delegate IntPtr RenderDelegate(IntPtr a1, long a2);
 		[UnmanagedFunctionPointer(CallingConvention.StdCall)]
 		private unsafe delegate void GameObjectMovementDelegate(IntPtr gameObject);
 
@@ -339,7 +340,7 @@ namespace CustomizePlus
 			return (scale, applyRootScale);
 		}
 
-		private static IntPtr OnRender(IntPtr a1, int a2, IntPtr a3, byte a4, IntPtr a5, IntPtr a6)
+		private static IntPtr OnRender(IntPtr a1, long a2)
 		{
 			if (renderManagerHook == null)
 				throw new Exception();
@@ -357,7 +358,7 @@ namespace CustomizePlus
 				renderManagerHook?.Disable();
 			}
 
-			return original(a1, a2, a3, a4, a5, a6);
+			return original(a1, a2);
 		}
 
 		//todo: doesn't work in cutscenes, something getting called after this and resets changes
