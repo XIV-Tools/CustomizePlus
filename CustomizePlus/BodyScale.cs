@@ -141,8 +141,8 @@ namespace CustomizePlus
 							Transform transform = pose->Transforms[index];
 
 							if (transform.Scale.IsApproximately(boneScale.Scale) &&
-								boneScale.Position.IsApproximately(MathHelpers.ZeroVector) &&
-								boneScale.Rotation.IsApproximately(MathHelpers.ZeroVector))
+								boneScale.Position.IsApproximately(Constants.ZeroVector) &&
+								boneScale.Rotation.IsApproximately(Constants.ZeroVector))
 								continue;
 
 							this.scaleCache.Add(index, boneScale);
@@ -179,11 +179,9 @@ namespace CustomizePlus
 						//Apply position and rotation only when PosingModeDetectService does not detect posing mode
 						if (GPoseService.Instance.GPoseState != GPoseState.Inside || !PosingModeDetectService.Instance.IsInPosingMode)
 						{
-							Vector4 originalRotationVector = transform.Rotation.GetAsNumericsVector(false);
-							Quaternion originalBoneRotationQuaternion = new Quaternion(originalRotationVector.X, originalRotationVector.Y, originalRotationVector.Z, originalRotationVector.W);
-							Quaternion rotationOffsetQuaternion = MathHelpers.EulerToQuaternion(new Vector3(boneScale.Rotation.X, boneScale.Rotation.Y, boneScale.Rotation.Z));
-							Quaternion newRotation = rotationOffsetQuaternion * originalBoneRotationQuaternion;
-
+							Quaternion newRotation =
+								Quaternion.Multiply(new Quaternion(transform.Rotation.X, transform.Rotation.Y, transform.Rotation.Z, transform.Rotation.W), 
+								Quaternion.CreateFromYawPitchRoll(boneScale.Rotation.X * MathF.PI / 180, boneScale.Rotation.Y * MathF.PI / 180, boneScale.Rotation.Z * MathF.PI / 180));
 							transform.Rotation.X = newRotation.X;
 							transform.Rotation.Y = newRotation.Y;
 							transform.Rotation.Z = newRotation.Z;
@@ -194,6 +192,7 @@ namespace CustomizePlus
 							transform.Translation.X += adjustedPositionOffset.X;
 							transform.Translation.Y += adjustedPositionOffset.Y;
 							transform.Translation.Z += adjustedPositionOffset.Z;
+							transform.Translation.W += adjustedPositionOffset.W;
 						}
 
 						pose->Transforms[index] = transform;

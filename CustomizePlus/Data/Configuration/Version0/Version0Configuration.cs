@@ -59,8 +59,8 @@ namespace CustomizePlus.Data.Configuration.Version0
 				{
 					BoneEditsContainer boneEditsContainer = new BoneEditsContainer
 					{
-						Position = MathHelpers.ZeroVector,
-						Rotation = MathHelpers.ZeroVector,
+						Position = Constants.ZeroVector,
+						Rotation = Constants.ZeroVector,
 						Scale = kvPair.Value.W != 0 ? new Vector3(kvPair.Value.W, kvPair.Value.W, kvPair.Value.W) : new Vector3(kvPair.Value.X, kvPair.Value.Y, kvPair.Value.Z)
 					};
 
@@ -69,8 +69,8 @@ namespace CustomizePlus.Data.Configuration.Version0
 
 				newBodyScale.Bones["n_root"] = new BoneEditsContainer
 				{
-					Position = MathHelpers.ZeroVector,
-					Rotation = MathHelpers.ZeroVector,
+					Position = Constants.ZeroVector,
+					Rotation = Constants.ZeroVector,
 					Scale = bodyScale.RootScale.W != 0 ? new Vector3(bodyScale.RootScale.W, bodyScale.RootScale.W, bodyScale.RootScale.W) : new Vector3(bodyScale.RootScale.X, bodyScale.RootScale.Y, bodyScale.RootScale.Z)
 				};
 

@@ -68,7 +68,7 @@ namespace CustomizePlus.Interface
 			{
 				PluginLog.Debug($"Loading bone {i}: {editWnd.boneNamesLegacy[i]}");
 
-				BoneEditsContainer tempContainer = new BoneEditsContainer { Position = MathHelpers.ZeroVector, Rotation = MathHelpers.ZeroVector, Scale = MathHelpers.OneVector };
+				BoneEditsContainer tempContainer = new BoneEditsContainer { Position = Constants.ZeroVector, Rotation = Constants.ZeroVector, Scale = Constants.OneVector };
 				if (scale.Bones.TryGetValue(editWnd.boneNamesLegacy[i], out tempContainer))
 				{
 					PluginLog.Debug($"Found scale");
@@ -170,7 +170,7 @@ namespace CustomizePlus.Interface
 
 			ImGui.SameLine();
 
-			Vector3 rootLocalTemp = MathHelpers.OneVector;
+			Vector3 rootLocalTemp = Constants.OneVector;
 			float rootScaleValueAllAxes = 1; //value used for scale when user just want to scale all axes
 			bool isRootControlDisabled = false;
 			switch (editMode)
@@ -180,7 +180,7 @@ namespace CustomizePlus.Interface
 					rootScaleValueAllAxes = 0;
 					break;
 				case EditMode.Rotation:
-					rootLocalTemp = MathHelpers.ZeroVector;
+					rootLocalTemp = Constants.ZeroVector;
 					rootScaleValueAllAxes = 0;
 					isRootControlDisabled = true;
 					break;
@@ -264,9 +264,9 @@ namespace CustomizePlus.Interface
 			switch (editMode)
 			{
 				case EditMode.Rotation:
-					col1Label = "Roll";
-					col2Label = "Yaw";
-					col3Label = "Pitch";
+					col1Label = "Yaw";
+					col2Label = "Pitch";
+					col3Label = "Roll";
 					break;
 			}
 
@@ -302,7 +302,7 @@ namespace CustomizePlus.Interface
 					continue;
 				}
 
-				BoneEditsContainer currentEditsContainer = new BoneEditsContainer { Position = MathHelpers.ZeroVector, Rotation = MathHelpers.ZeroVector, Scale = MathHelpers.OneVector };
+				BoneEditsContainer currentEditsContainer = new BoneEditsContainer { Position = Constants.ZeroVector, Rotation = Constants.ZeroVector, Scale = Constants.OneVector };
 				string label = "Not Found";
 
 				try
@@ -312,14 +312,14 @@ namespace CustomizePlus.Interface
 					else if (this.boneValuesNew.TryGetValue(boneNameLocalModern, out currentEditsContainer))
 						label = boneNameLocalModern;
 					else
-						currentEditsContainer = new BoneEditsContainer { Position = MathHelpers.ZeroVector, Rotation = MathHelpers.ZeroVector, Scale = MathHelpers.OneVector };
+						currentEditsContainer = new BoneEditsContainer { Position = Constants.ZeroVector, Rotation = Constants.ZeroVector, Scale = Constants.OneVector };
 				}
 				catch (Exception ex)
 				{
 
 				}
 
-				Vector3 currentVector = MathHelpers.OneVector;
+				Vector3 currentVector = Constants.OneVector;
 				float currentScaleValueAllAxes = 1; //value used for scale when user just want to scale all axes
 				switch (editMode)
 				{

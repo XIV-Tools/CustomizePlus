@@ -119,7 +119,7 @@ namespace CustomizePlus.Interface
 
 			for (int i = 0; i < editWnd.boneNamesLegacy.Count && i < editWnd.boneNamesModern.Count; i++)
 			{
-				BoneEditsContainer tempContainer = new BoneEditsContainer { Scale = MathHelpers.OneVector };
+				BoneEditsContainer tempContainer = new BoneEditsContainer { Scale = Constants.OneVector };
 				if (scale.Bones.TryGetValue(editWnd.boneNamesLegacy[i], out tempContainer))
 				{
 					editWnd.boneValuesOriginal.Add(editWnd.boneNamesLegacy[i], tempContainer);
@@ -223,7 +223,7 @@ namespace CustomizePlus.Interface
 
 			ImGui.SameLine();
 
-			Vector3 rootLocalTemp = MathHelpers.OneVector;
+			Vector3 rootLocalTemp = Constants.OneVector;
 			bool isRootControlDisabled = false;
 			switch (editMode)
 			{
@@ -231,7 +231,7 @@ namespace CustomizePlus.Interface
 					rootLocalTemp = rootEditsContainer.Position;
 					break;
 				case EditMode.Rotation:
-					rootLocalTemp = MathHelpers.ZeroVector;
+					rootLocalTemp = Constants.ZeroVector;
 					isRootControlDisabled = true;
 					break;
 				case EditMode.Scale:
@@ -330,7 +330,7 @@ namespace CustomizePlus.Interface
 					continue;
 				}
 
-				BoneEditsContainer currentEditsContainer = new BoneEditsContainer { Position = MathHelpers.ZeroVector, Rotation = MathHelpers.ZeroVector, Scale = MathHelpers.OneVector };
+				BoneEditsContainer currentEditsContainer = new BoneEditsContainer { Position = Constants.ZeroVector, Rotation = Constants.ZeroVector, Scale = Constants.OneVector };
 				string label = "Not Found";
 
 				try
@@ -340,14 +340,14 @@ namespace CustomizePlus.Interface
 					else if (this.boneValuesNew.TryGetValue(boneNameLocalModern, out currentEditsContainer))
 						label = boneNameLocalModern;
 					else
-						currentEditsContainer = new BoneEditsContainer { Position = MathHelpers.ZeroVector, Rotation = MathHelpers.ZeroVector, Scale = MathHelpers.OneVector };
+						currentEditsContainer = new BoneEditsContainer { Position = Constants.ZeroVector, Rotation = Constants.ZeroVector, Scale = Constants.OneVector };
 				}
 				catch (Exception ex)
 				{
 
 				}
 
-				Vector3 currentVector = MathHelpers.OneVector;
+				Vector3 currentVector = Constants.OneVector;
 				switch (editMode)
 				{
 					case EditMode.Position:

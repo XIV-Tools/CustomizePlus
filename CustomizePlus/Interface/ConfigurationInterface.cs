@@ -498,7 +498,7 @@ namespace CustomizePlus.Interface
 				if (modernName == "n_root")
 					continue;
 
-				var editsContainer = new BoneEditsContainer { Position = MathHelpers.ZeroVector, Rotation = MathHelpers.ZeroVector, Scale = new Vector3(bone.Scale.X, bone.Scale.Y, bone.Scale.Z) };
+				var editsContainer = new BoneEditsContainer { Position = Constants.ZeroVector, Rotation = Constants.ZeroVector, Scale = new Vector3(bone.Scale.X, bone.Scale.Y, bone.Scale.Z) };
 
 				if (!scale.Bones.ContainsKey(modernName))
 					scale.Bones.Add(modernName, editsContainer);
@@ -506,7 +506,7 @@ namespace CustomizePlus.Interface
 				scale.Bones[modernName] = editsContainer;
 			}
 
-			scale.Bones["n_root"] = new BoneEditsContainer { Position = MathHelpers.ZeroVector, Rotation = MathHelpers.ZeroVector, Scale = MathHelpers.OneVector };
+			scale.Bones["n_root"] = new BoneEditsContainer { Position = Constants.ZeroVector, Rotation = Constants.ZeroVector, Scale = Constants.OneVector };
 
 			// Load scale if it it not null, not 0 and not 1.
 			if (file.Scale != null &&

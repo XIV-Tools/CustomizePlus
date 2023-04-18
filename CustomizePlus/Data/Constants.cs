@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -19,5 +20,8 @@ namespace CustomizePlus.Data
 		/// Version of the scales imported/exported via clipboard, usually should match ConfigurationVersion
 		/// </summary>
 		public const int ImportExportVersion = ConfigurationVersion;
+
+		public static Vector3 ZeroVector = new Vector3(0, 0, 0);
+		public static Vector3 OneVector = new Vector3(1, 1, 1);
 	}
 }
