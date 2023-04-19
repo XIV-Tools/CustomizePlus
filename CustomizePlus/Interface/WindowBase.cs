@@ -5,18 +5,27 @@ namespace CustomizePlus.Interface
 {
 	using System;
 	using System.Numerics;
+	using Dalamud.Logging;
 	using ImGuiNET;
 
 	public abstract class WindowBase : InterfaceBase
 	{
 		private bool visible;
+		private bool alwaysVisibleDummy = true; //dummy variable for LockCloseButton = true
 
 		protected abstract string Title { get; }
 
+		protected virtual Vector2? ForcedSize { get; set; }
 		protected virtual Vector2 MinSize => new Vector2(256, 256);
 		protected virtual Vector2 MaxSize => new Vector2(1920, 1080);
 
-		private string DrawTitle => $"{this.Title}###{this.Index}";
+		protected virtual ImGuiWindowFlags WindowFlags { get; set; } = ImGuiWindowFlags.None;
+		protected virtual bool LockCloseButton { get; set; }
+
+		/// <summary>
+		/// Normally you wouldn't want to override this
+		/// </summary>
+		protected virtual string DrawTitle => $"{this.Title}";
 
 		public override void Open()
 		{
@@ -34,7 +43,10 @@ namespace CustomizePlus.Interface
 		{
 			ImGui.SetNextWindowSizeConstraints(this.MinSize, this.MaxSize);
 
-			if (ImGui.Begin(this.DrawTitle, ref this.visible))
+			if(ForcedSize != null)
+				ImGui.SetNextWindowSize((Vector2)this.ForcedSize);
+
+			if (ImGui.Begin(this.DrawTitle, ref (LockCloseButton ? ref this.alwaysVisibleDummy : ref this.visible), WindowFlags))
 			{
 				this.DrawContents();
 			}

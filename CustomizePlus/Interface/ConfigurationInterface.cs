@@ -5,14 +5,17 @@ namespace CustomizePlus.Interface
 {
     using System;
     using System.Collections.Generic;
-	using System.IO;
+    using System.IO;
 	using System.IO.Compression;
 	using System.Numerics;
 	using System.Text;
 	using System.Windows.Forms;
     using Anamnesis.Files;
     using Anamnesis.Posing;
-    using CustomizePlus.Memory;
+	using CustomizePlus.Data;
+	using CustomizePlus.Data.Configuration;
+	using CustomizePlus.Helpers;
+	using CustomizePlus.Memory;
     using Dalamud.Game.ClientState.Objects.Types;
     using Dalamud.Interface;
     using Dalamud.Interface.Components;
@@ -24,9 +27,6 @@ namespace CustomizePlus.Interface
 	{
 		private string newScaleName = string.Empty;
 		private string newScaleCharacter = string.Empty;
-
-		// Change Version when updating the way scales are saved. Import from base64 will then auto fail.
-		private byte scaleVersion = 1;
 
 		protected override string Title => "Customize+ Configuration";
 		protected override bool SingleInstance => true;
@@ -42,7 +42,7 @@ namespace CustomizePlus.Interface
 
 		protected override void DrawContents()
 		{
-			Configuration config = Plugin.Configuration;
+			PluginConfiguration config = Plugin.ConfigurationManager.Configuration;
 
 			/* Upcoming feature to group by either scale name or character name
 			List<string> uniqueCharacters = new();
@@ -63,7 +63,7 @@ namespace CustomizePlus.Interface
 				config.Enable = enable;
 				if (config.AutomaticEditMode)
 				{
-					config.Save();
+					Plugin.ConfigurationManager.SaveConfiguration();
 					Plugin.LoadConfig(true);
 				}
 			}
@@ -138,11 +138,11 @@ namespace CustomizePlus.Interface
 					// TODO: Build scales from only present bones
 					// scale = this.BuildFromName(scale, characterName);
 					scale = BuildDefault(scale);
-					Plugin.Configuration.BodyScales.Add(scale);
-					Plugin.Configuration.ToggleOffAllOtherMatching(characterName, scale.ScaleName);
+					Plugin.ConfigurationManager.Configuration.BodyScales.Add(scale);
+					Plugin.ConfigurationManager.ToggleOffAllOtherMatching(characterName, scale.ScaleName);
 					if (config.AutomaticEditMode)
 					{
-						config.Save();
+						Plugin.ConfigurationManager.SaveConfiguration();
 						Plugin.LoadConfig(true);
 					}
 					ImGui.CloseCurrentPopup();
@@ -174,11 +174,11 @@ namespace CustomizePlus.Interface
 					PluginLog.Error(e, "An error occured during import conversion. Please check you coppied the right thing!");
 				}
 
-				if (importVer == scaleVersion && importScale != null) {
-					Plugin.Configuration.BodyScales.Add(importScale);
-					Plugin.Configuration.ToggleOffAllOtherMatching(importScale.CharacterName, importScale.ScaleName);
+				if (importVer == (byte)Constants.ImportExportVersion && importScale != null) {
+					Plugin.ConfigurationManager.Configuration.BodyScales.Add(importScale);
+					Plugin.ConfigurationManager.ToggleOffAllOtherMatching(importScale.CharacterName, importScale.ScaleName);
 					if (config.AutomaticEditMode) {
-						config.Save();
+						Plugin.ConfigurationManager.SaveConfiguration();
 						Plugin.LoadConfig(true);
 					}
 				} else if (importVer == 0 || importScale is null) {
@@ -197,8 +197,7 @@ namespace CustomizePlus.Interface
 				ImGui.SameLine();
 				if (ImGuiComponents.IconButton(FontAwesomeIcon.Pen))
 				{
-					IPCTestInterface ipcWindow = new IPCTestInterface();
-					ipcWindow.Show(Plugin.PluginInterface);
+					IPCTestInterface.Show(DalamudServices.PluginInterface);
 				}
 			}
 
@@ -229,9 +228,9 @@ namespace CustomizePlus.Interface
 					ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (12 * fontScale));
 					if (ImGui.Checkbox("##Enable", ref bodyScaleEnabled)) {
 						if (bodyScale.CharacterName != null)
-							config.ToggleOffAllOtherMatching(bodyScale.CharacterName, bodyScale.ScaleName == null ? "" : bodyScale.ScaleName);
+							Plugin.ConfigurationManager.ToggleOffAllOtherMatching(bodyScale.CharacterName, bodyScale.ScaleName == null ? "" : bodyScale.ScaleName);
 						bodyScale.BodyScaleEnabled = bodyScaleEnabled;
-						config.Save();
+						Plugin.ConfigurationManager.SaveConfiguration();
 						if (config.AutomaticEditMode) {
 							Plugin.LoadConfig(true);
 						}
@@ -265,8 +264,7 @@ namespace CustomizePlus.Interface
 					// Edit
 					ImGui.TableNextColumn();
 					if (ImGuiComponents.IconButton(FontAwesomeIcon.Pen)) {
-						EditInterface editWindow = new EditInterface();
-						editWindow.Show(bodyScale);
+						EditInterface.Show(bodyScale);
 					}
 
 					if (ImGui.IsItemHovered())
@@ -284,7 +282,7 @@ namespace CustomizePlus.Interface
 					// Import Clipboard
 					ImGui.SameLine();
 					if (ImGuiComponents.IconButton(FontAwesomeIcon.FileExport)) {
-						Clipboard.SetText(this.ExportToBase64(bodyScale, scaleVersion));
+						Clipboard.SetText(this.ExportToBase64(bodyScale, Constants.ImportExportVersion));
 					}
 
 					if (ImGui.IsItemHovered())
@@ -313,7 +311,7 @@ namespace CustomizePlus.Interface
 
 			if (ImGui.Button("Save"))
 			{
-				config.Save();
+				Plugin.ConfigurationManager.SaveConfiguration();
 				Plugin.LoadConfig();
 			}
 
@@ -321,7 +319,7 @@ namespace CustomizePlus.Interface
 
 			if (ImGui.Button("Save and Close"))
 			{
-				config.Save();
+				Plugin.ConfigurationManager.SaveConfiguration();
 				Plugin.LoadConfig();
 				this.Close();
 			}
@@ -370,69 +368,27 @@ namespace CustomizePlus.Interface
 
 		private void Import(BodyScale scale)
 		{
-			OpenFileDialog picker = new();
-			picker.Filter = "Anamnesis Pose (*.pose)|*.pose";
-			picker.CheckFileExists = true;
-			picker.Title = "Customize+ - Import Anamnesis Pose";
-
-			DialogResult result = picker.ShowDialog();
-			if (result != DialogResult.OK)
-				return;
-
-			string json = File.ReadAllText(picker.FileName);
-
-			JsonSerializerSettings settings = new();
-			settings.NullValueHandling = NullValueHandling.Ignore;
-			settings.Converters.Add(new PoseFile.VectorConverter());
-
-			PoseFile? file = JsonConvert.DeserializeObject<PoseFile>(json, settings);
-
-			if (file == null)
-				throw new Exception("Failed to deserialize pose file");
-
-			// Load scale if it it not null, not 0 and not 1.
-			if (file.Scale != null &&
-				file.Scale.X != 0 &&
-				file.Scale.Y != 0 &&
-				file.Scale.Z != 0 &&
-				file.Scale.X != 1 &&
-				file.Scale.Y != 1 &&
-				file.Scale.Z != 1)
+			Action importAction = () =>
 			{
-				scale.RootScale = new HkVector4(file.Scale.X, file.Scale.Y, file.Scale.Z, 1);
-			}
+				OpenFileDialog picker = new();
+				picker.Filter = "Anamnesis Pose (*.pose)|*.pose";
+				picker.CheckFileExists = true;
+				picker.Title = "Customize+ - Import Anamnesis Pose";
 
-			if (file.Bones == null)
-				return;
+				DialogResult result = picker.ShowDialog();
+				if (result != DialogResult.OK)
+					return;
 
-			string name = Path.GetFileNameWithoutExtension(picker.FileName);
+				string json = File.ReadAllText(picker.FileName);
 
-			scale.ScaleName = name;
+				BuildFromJSON(scale, json);
 
-			scale.Bones.Clear();
+				string name = Path.GetFileNameWithoutExtension(picker.FileName);
 
-			foreach ((string boneName, PoseFile.Bone? bone) in file.Bones)
-			{
-				if (bone == null)
-					continue;
+				scale.ScaleName = name;
+			};
 
-				if (bone.Scale == null)
-					continue;
-
-				string? modernName = LegacyBoneNameConverter.GetModernName(boneName);
-				if (modernName == null)
-					modernName = boneName;
-
-				HkVector4 boneScale = new();
-				boneScale.X = bone.Scale.X;
-				boneScale.Y = bone.Scale.Y;
-				boneScale.Z = bone.Scale.Z;
-
-				if (!scale.Bones.ContainsKey(modernName))
-					scale.Bones.Add(modernName, boneScale);
-
-				scale.Bones[modernName] = boneScale;
-			}
+			MessageWindow.Show("Customize+ is only able to import scale from the *.pose files. Position and rotation will be ignored.", new Vector2(570, 100), importAction, "ana_import_pos_rot_warning");
 		}
 
 		// TODO: Finish feature. May require additional skeleton code from Anamnesis
@@ -485,7 +441,7 @@ namespace CustomizePlus.Interface
 		}
 
 		// Scale returns as null if it fails.
-		public static BodyScale? BuildFromCustomizeJSON(string json) {
+		public static BodyScale BuildFromCustomizeJSON(string json) {
 			BodyScale scale = null;
 
 			JsonSerializerSettings settings = new();
@@ -507,6 +463,7 @@ namespace CustomizePlus.Interface
 			return scale;
 		}
 
+		//todo: further refactoring
 		private static BodyScale? BuildFromJSON(BodyScale scale, string json)
 		{
 			if (json == null)
@@ -516,29 +473,14 @@ namespace CustomizePlus.Interface
 			settings.NullValueHandling = NullValueHandling.Ignore;
 			settings.Converters.Add(new PoseFile.VectorConverter());
 
-			// PluginLog.Debug(json.ToString());
-
 			PoseFile? file = JsonConvert.DeserializeObject<PoseFile>(json, settings);
 
 			if (file == null)
 				throw new Exception("Failed to deserialize pose file");
 
-			// Load scale if it it not null, not 0 and not 1.
-			if (file.Scale != null &&
-				file.Scale.X != 0 &&
-				file.Scale.Y != 0 &&
-				file.Scale.Z != 0 &&
-				file.Scale.X != 1 &&
-				file.Scale.Y != 1 &&
-				file.Scale.Z != 1)
-			{
-				scale.RootScale = new HkVector4(file.Scale.X, file.Scale.Y, file.Scale.Z, 1);
-			}
-
 			if (file.Bones == null)
 				return null;
 
-			// this.ScaleName = "Default (Failed to get real bones from model)";
 			scale.Bones.Clear();
 
 			foreach ((string boneName, PoseFile.Bone? bone) in file.Bones)
@@ -553,15 +495,29 @@ namespace CustomizePlus.Interface
 				if (modernName == null)
 					modernName = boneName;
 
-				HkVector4 boneScale = new();
-				boneScale.X = bone.Scale.X;
-				boneScale.Y = bone.Scale.Y;
-				boneScale.Z = bone.Scale.Z;
+				if (modernName == "n_root")
+					continue;
+
+				var editsContainer = new BoneEditsContainer { Position = Constants.ZeroVector, Rotation = Constants.ZeroVector, Scale = new Vector3(bone.Scale.X, bone.Scale.Y, bone.Scale.Z) };
 
 				if (!scale.Bones.ContainsKey(modernName))
-					scale.Bones.Add(modernName, boneScale);
+					scale.Bones.Add(modernName, editsContainer);
 
-				scale.Bones[modernName] = boneScale;
+				scale.Bones[modernName] = editsContainer;
+			}
+
+			scale.Bones["n_root"] = new BoneEditsContainer { Position = Constants.ZeroVector, Rotation = Constants.ZeroVector, Scale = Constants.OneVector };
+
+			// Load scale if it it not null, not 0 and not 1.
+			if (file.Scale != null &&
+				file.Scale.X != 0 &&
+				file.Scale.Y != 0 &&
+				file.Scale.Z != 0 &&
+				file.Scale.X != 1 &&
+				file.Scale.Y != 1 &&
+				file.Scale.Z != 1)
+			{
+				scale.Bones["n_root"].Scale = new Vector3(file.Scale.X, file.Scale.Y, file.Scale.Z);
 			}
 
 			return scale;

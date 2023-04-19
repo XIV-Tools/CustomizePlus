@@ -6,7 +6,12 @@ namespace CustomizePlus
 	using System;
 	using System.Collections.Concurrent;
 	using System.Collections.Generic;
+	using System.Numerics;
+	using CustomizePlus.Data;
+	using CustomizePlus.Extensions;
+	using CustomizePlus.Helpers;
 	using CustomizePlus.Memory;
+	using CustomizePlus.Services;
 	using Dalamud.Game.ClientState.Objects.Types;
 	using Dalamud.Logging;
 
@@ -18,11 +23,10 @@ namespace CustomizePlus
 		public string CharacterName { get; set; } = string.Empty;
 		public string ScaleName { get; set; } = string.Empty;
 		public bool BodyScaleEnabled { get; set; } = true;
-		public Dictionary<string, HkVector4> Bones { get; } = new();
-		public HkVector4 RootScale { get; set; } = HkVector4.Zero;
+		public Dictionary<string, BoneEditsContainer> Bones { get; } = new();
 
 		// This works fine on generic GameObject if previously checked for correct types.
-		public unsafe void Apply(GameObject character, bool applyRootScale)
+		public unsafe void ApplyNonRootBonesAndRootScale(GameObject character, bool applyRootScale)
 		{
 			RenderObject* obj = null;
 			obj = RenderObject.FromActor(character);
@@ -39,15 +43,20 @@ namespace CustomizePlus
 				this.poses[i].Update(obj->Skeleton->PartialSkeletons[i].Pose1);
 			}
 
+			if (!Bones.ContainsKey("n_root"))
+				return;
+
+			BoneEditsContainer rootEditsContainer = Bones["n_root"];
+
 			// Don't apply the root scale if its not set to anything.
-			if (this.RootScale.X != 0 && this.RootScale.Y != 0 && this.RootScale.Z != 0)
+			if (rootEditsContainer.Scale.X != 0 || rootEditsContainer.Scale.Y != 0 || rootEditsContainer.Scale.Z != 0)
 			{
 				HkVector4 rootScale = obj->Scale;
 				if (applyRootScale)
 				{
-					rootScale.X = MathF.Max(this.RootScale.X, 0.01f);
-					rootScale.Y = MathF.Max(this.RootScale.Y, 0.01f);
-					rootScale.Z = MathF.Max(this.RootScale.Z, 0.01f);
+					rootScale.X = MathF.Max(rootEditsContainer.Scale.X, 0.01f);
+					rootScale.Y = MathF.Max(rootEditsContainer.Scale.Y, 0.01f);
+					rootScale.Z = MathF.Max(rootEditsContainer.Scale.Z, 0.01f);
 				}
 				else
 				{
@@ -56,6 +65,34 @@ namespace CustomizePlus
 					rootScale.Z = obj->Scale.Z;
 				}
 				obj->Scale = rootScale;
+			}
+		}
+
+		public unsafe void ApplyRootPosition(GameObject character)
+		{
+			RenderObject* obj = null;
+			obj = RenderObject.FromActor(character);
+			if (obj == null)
+			{
+				//PluginLog.Debug($"{character.Address} missing skeleton!");
+				return;
+			}
+
+			if (!Bones.ContainsKey("n_root"))
+				return;
+
+			BoneEditsContainer rootEditsContainer = Bones["n_root"];
+
+			// Don't apply the root position if its not set to anything.
+			if (rootEditsContainer.Position.X != 0 || rootEditsContainer.Position.Y != 0 || rootEditsContainer.Position.Z != 0)
+			{
+				HkVector4 rootPos = obj->Position;
+
+				rootPos.X += MathF.Max(rootEditsContainer.Position.X, 0.01f);
+				rootPos.Y += MathF.Max(rootEditsContainer.Position.Y, 0.01f);
+				rootPos.Z += MathF.Max(rootEditsContainer.Position.Z, 0.01f);
+
+				obj->Position = rootPos;
 			}
 		}
 
@@ -69,7 +106,8 @@ namespace CustomizePlus
 			public readonly BodyScale BodyScale;
 			public readonly int Index;
 
-			private readonly Dictionary<int, HkVector4> scaleCache = new();
+			private readonly Dictionary<int, BoneEditsContainer> scaleCache = new();
+
 
 			private bool isInitialized = false;
 
@@ -102,7 +140,9 @@ namespace CustomizePlus
 						{
 							Transform transform = pose->Transforms[index];
 
-							if (transform.Scale.IsApproximately(boneScale, false))
+							if (transform.Scale.IsApproximately(boneScale.Scale) &&
+								boneScale.Position.IsApproximately(Constants.ZeroVector) &&
+								boneScale.Rotation.IsApproximately(Constants.ZeroVector))
 								continue;
 
 							this.scaleCache.Add(index, boneScale);
@@ -126,13 +166,34 @@ namespace CustomizePlus
 				{
 					HkaBone bone = pose->Skeleton->Bones[index];
 
+					string? boneName = bone.GetName();
+
 					if (this.scaleCache.TryGetValue(index, out var boneScale))
 					{
 						Transform transform = pose->Transforms[index];
 
-						transform.Scale.X = boneScale.X;
-						transform.Scale.Y = boneScale.Y;
-						transform.Scale.Z = boneScale.Z;
+						transform.Scale.X = boneScale.Scale.X;
+						transform.Scale.Y = boneScale.Scale.Y;
+						transform.Scale.Z = boneScale.Scale.Z;
+
+						//Apply position and rotation only when PosingModeDetectService does not detect posing mode
+						if (GPoseService.Instance.GPoseState != GPoseState.Inside || !PosingModeDetectService.Instance.IsInPosingMode)
+						{
+							Quaternion newRotation =
+								Quaternion.Multiply(new Quaternion(transform.Rotation.X, transform.Rotation.Y, transform.Rotation.Z, transform.Rotation.W), 
+								Quaternion.CreateFromYawPitchRoll(boneScale.Rotation.X * MathF.PI / 180, boneScale.Rotation.Y * MathF.PI / 180, boneScale.Rotation.Z * MathF.PI / 180));
+							transform.Rotation.X = newRotation.X;
+							transform.Rotation.Y = newRotation.Y;
+							transform.Rotation.Z = newRotation.Z;
+							transform.Rotation.W = newRotation.W;
+
+							Vector4 adjustedPositionOffset = Vector4.Transform(boneScale.Position, newRotation);
+
+							transform.Translation.X += adjustedPositionOffset.X;
+							transform.Translation.Y += adjustedPositionOffset.Y;
+							transform.Translation.Z += adjustedPositionOffset.Z;
+							transform.Translation.W += adjustedPositionOffset.W;
+						}
 
 						pose->Transforms[index] = transform;
 					}

@@ -1,7 +1,7 @@
 ﻿// © Customize+.
 // Licensed under the MIT license.
 
-namespace CustomizePlus
+namespace CustomizePlus.Extensions
 {
 	using System.Collections.Generic;
 	using Dalamud.Game.Command;
@@ -27,7 +27,7 @@ namespace CustomizePlus
 		{
 			foreach (string command in BoundCommands)
 			{
-				Plugin.CommandManager.RemoveHandler(command);
+				DalamudServices.CommandManager.RemoveHandler(command);
 			}
 		}
 	}
