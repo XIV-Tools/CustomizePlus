@@ -41,6 +41,7 @@ namespace CustomizePlus.Interface
 		public T Show<T>()
 			where T : InterfaceBase, new()
 		{
+			//todo: do not allow more than a single instance of the same window?
 			T ui = Activator.CreateInstance<T>();
 			ui.Open();
 

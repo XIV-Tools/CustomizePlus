@@ -4,86 +4,127 @@
 // Signautres stolen from:
 // https://github.com/0ceal0t/DXTest/blob/8e9aef4f6f871e7743aafe56deb9e8ad4dc87a0d/SamplePlugin/Plugin.DX.cs
 // I don't know how they work, but they do!
+
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
+using System.Diagnostics;
+using System.IO;
+using System.Runtime.InteropServices;
+using System.Text;
+using CustomizePlus.Api;
+using CustomizePlus.Core;
+using CustomizePlus.Data.Configuration;
+using CustomizePlus.Extensions;
+using CustomizePlus.Helpers;
+using CustomizePlus.Interface;
+using CustomizePlus.Services;
+using CustomizePlus.Util;
+using Dalamud.Game;
+using Dalamud.Game.ClientState;
+using Dalamud.Game.ClientState.Objects;
+using Dalamud.Game.ClientState.Objects.Types;
+using Dalamud.Game.Command;
+using Dalamud.Game.Gui;
+using Dalamud.Hooking;
+using Dalamud.IoC;
+using Dalamud.Logging;
+using Dalamud.Plugin;
+using FFXIVClientStructs.FFXIV.Client.System.String;
+using FFXIVClientStructs.FFXIV.Client.UI;
+using FFXIVClientStructs.FFXIV.Common.Lua;
+using FFXIVClientStructs.FFXIV.Component.GUI;
+using Lumina.Excel.GeneratedSheets;
+using Newtonsoft.Json;
+using Penumbra.String;
+
+using CharacterStruct = FFXIVClientStructs.FFXIV.Client.Game.Character.Character;
+using CustomizeData = Penumbra.GameData.Structs.CustomizeData;
+using ObjectKind = Dalamud.Game.ClientState.Objects.Enums.ObjectKind;
+using ObjectStruct = FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject;
+
 namespace CustomizePlus
 {
-	using System;
-	using System.Collections.Concurrent;
-	using System.Collections.Generic;
-	using System.Linq;
-	using CustomizePlus.Api;
-	using CustomizePlus.Interface;
-	using Dalamud.Game;
-	using Dalamud.Game.ClientState;
-	using Dalamud.Game.ClientState.Objects;
-	using Dalamud.Game.ClientState.Objects.Types;
-	using Dalamud.Game.Command;
-	using Dalamud.Game.Gui;
-	using Dalamud.Hooking;
-	using Dalamud.IoC;
-	using Dalamud.Logging;
-	using Dalamud.Plugin;
-	using FFXIVClientStructs.FFXIV.Client.UI;
-	using FFXIVClientStructs.FFXIV.Component.GUI;
-	using Newtonsoft.Json;
-	using Penumbra.String;
-	using CharacterStruct = FFXIVClientStructs.FFXIV.Client.Game.Character.Character;
-	using CustomizeData = Penumbra.GameData.Structs.CustomizeData;
-	using ObjectKind = Dalamud.Game.ClientState.Objects.Enums.ObjectKind;
-	using ObjectStruct = FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject;
-
 	public sealed class Plugin : IDalamudPlugin
 	{
 		private static readonly Dictionary<string, BodyScale> NameToScale = new();
 		private static Dictionary<GameObject, BodyScale> scaleByObject = new();
 		private static ConcurrentDictionary<string, BodyScale> scaleOverride = new();
 		private static Hook<RenderDelegate>? renderManagerHook;
+		private static Hook<GameObjectMovementDelegate>? gameObjectMovementHook;
 		private static BodyScale? defaultScale;
 		private static BodyScale? defaultRetainerScale;
 		private static BodyScale? defaultCutsceneScale;
 		private static CustomizePlusIpc ipcManager = null!;
+		private static CustomizePlusLegacyIpc legacyIpcManager = null!;
+		private static ServiceManager serviceManager { get; set; } = null!;
 
-		public Plugin()
+		private delegate IntPtr RenderDelegate(IntPtr a1, long a2);
+		[UnmanagedFunctionPointer(CallingConvention.StdCall)]
+		private unsafe delegate void GameObjectMovementDelegate(IntPtr gameObject);
+
+		public static InterfaceManager InterfaceManager { get; private set; } = new InterfaceManager();
+
+		public static ConfigurationManager ConfigurationManager { get; private set; } = new ConfigurationManager();
+
+		public string Name => "Customize Plus";
+
+		public Plugin(DalamudPluginInterface pluginInterface)
 		{
+			DalamudServices.Initialize(pluginInterface);
+			DalamudServices.PluginInterface.UiBuilder.DisableGposeUiHide = true;
+
+			serviceManager = new ServiceManager();
+			serviceManager.Add<GPoseService>();
+			serviceManager.Add<GPoseAmnesisKtisisWarningService>();
+			serviceManager.Add<PosingModeDetectService>();
+
+			DalamudServices.Framework.RunOnFrameworkThread(() =>
+			{
+				serviceManager.Start();
+				DalamudServices.Framework.Update += Framework_Update;
+			});
+
 			try
 			{
-				Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
-				ipcManager = new(ObjectTable, PluginInterface);
+				try
+				{
+					ConfigurationManager.LoadConfigurationFromFile(DalamudServices.PluginInterface.ConfigFile.FullName);
+				}
+				catch (FileNotFoundException ex)
+				{
+					ConfigurationManager.CreateNewConfiguration();
+				}
+				catch (Exception ex)
+				{
+					PluginLog.Error(ex, "Unable to load plugin config");
+					ChatHelper.PrintInChat("There was an error while loading plugin configuration, details have been printed into dalamud console.");
+				}
+
+				ipcManager = new(DalamudServices.ObjectTable, DalamudServices.PluginInterface);
+				legacyIpcManager = new(DalamudServices.ObjectTable, DalamudServices.PluginInterface);
 
 				LoadConfig();
 
-				CommandManager.AddCommand((s, t) => ConfigurationInterface.Toggle(), "/customize", "Toggles the Customize+ configuration window.");
-				CommandManager.AddCommand((s, t) => ApplyByCommand(t), "/customize-apply", "Apply a specific Scale (usage: /customize-apply {Character Name},{Scale Name})");
-				CommandManager.AddCommand((s, t) => ApplyByCommand(t), "/capply", "Alias to /customize-apply");
+				DalamudServices.CommandManager.AddCommand((s, t) => ConfigurationInterface.Toggle(), "/customize", "Toggles the Customize+ configuration window.");
+                DalamudServices.CommandManager.AddCommand((s, t) => ConfigurationInterface.Toggle(), "/customize", "Toggles the Customize+ configuration window.");
+                DalamudServices.CommandManager.AddCommand((s, t) => ApplyByCommand(t), "/customize-apply", "Apply a specific Scale (usage: /customize-apply {Character Name},{Scale Name})");
+                DalamudServices.CommandManager.AddCommand((s, t) => ApplyByCommand(t), "/capply", "Alias to /customize-apply");
 
-				PluginInterface.UiBuilder.Draw += InterfaceManager.Draw;
-				PluginInterface.UiBuilder.OpenConfigUi += ConfigurationInterface.Toggle;
+				DalamudServices.PluginInterface.UiBuilder.Draw += InterfaceManager.Draw;
+				DalamudServices.PluginInterface.UiBuilder.OpenConfigUi += ConfigurationInterface.Toggle;
 
-				if (PluginInterface.IsDevMenuOpen)
+				if (DalamudServices.PluginInterface.IsDevMenuOpen)
 					ConfigurationInterface.Show();
 
-				ChatGui.Print("Customize+ started");
+				ChatHelper.PrintInChat("Started");
 			}
 			catch (Exception ex)
 			{
 				PluginLog.Error(ex, "Error instantiating plugin");
 			}
 		}
-
-		private delegate IntPtr RenderDelegate(IntPtr a1, int a2, IntPtr a3, byte a4, IntPtr a5, IntPtr a6);
-
-		[PluginService] [RequiredVersion("1.0")] public static ObjectTable ObjectTable { get; private set; } = null!;
-		[PluginService] [RequiredVersion("1.0")] public static DalamudPluginInterface PluginInterface { get; private set; } = null!;
-		[PluginService] [RequiredVersion("1.0")] public static CommandManager CommandManager { get; private set; } = null!;
-		[PluginService] [RequiredVersion("1.0")] public static ChatGui ChatGui { get; private set; } = null!;
-		[PluginService] [RequiredVersion("1.0")] public static ClientState ClientState { get; private set; } = null!;
-		[PluginService] [RequiredVersion("1.0")] public static SigScanner SigScanner { get; private set; } = null!;
-		[PluginService] [RequiredVersion("1.0")] public static GameGui GameGui { get; private set; } = null!;
-
-		public static InterfaceManager InterfaceManager { get; private set; } = new InterfaceManager();
-
-		public static Configuration Configuration { get; private set; } = null!;
-
-		public string Name => "Customize Plus";
 
 		public static void LoadConfig(bool autoModeUpdate = false)
 		{
@@ -95,7 +136,7 @@ namespace CustomizePlus
 				defaultRetainerScale = null;
 				defaultCutsceneScale = null;
 
-				foreach (BodyScale bodyScale in Configuration.BodyScales)
+				foreach (BodyScale bodyScale in ConfigurationManager.Configuration.BodyScales)
 				{
 					bodyScale.ClearCache();
 					if (bodyScale.CharacterName == "Default" && bodyScale.BodyScaleEnabled)
@@ -123,15 +164,22 @@ namespace CustomizePlus
 
 				try
 				{
-					if (Configuration.Enable)
+					if (ConfigurationManager.Configuration.Enable)
 					{
 						if (renderManagerHook == null)
 						{
 							// "Render::Manager::Render"
-							IntPtr renderAddress = SigScanner.ScanText("E8 ?? ?? ?? ?? 48 81 C3 ?? ?? ?? ?? BE ?? ?? ?? ?? 45 33 F6");
-							//renderManagerHook = new Hook<RenderDelegate>(renderAddress, OnRender);
+							IntPtr renderAddress = DalamudServices.SigScanner.ScanText("E8 ?? ?? ?? ?? 48 81 C3 ?? ?? ?? ?? BE ?? ?? ?? ?? 45 33 F6");
 							renderManagerHook = Hook<RenderDelegate>.FromAddress(renderAddress, OnRender);
 						}
+
+						if(gameObjectMovementHook == null)
+						{
+							IntPtr movementAddress = DalamudServices.SigScanner.ScanText("E8 ?? ?? ?? ?? 48 8B CB E8 ?? ?? ?? ?? 48 8B CB E8 ?? ?? ?? ?? 48 8B 03 48 8B CB FF 50 ?? 83 F8 ?? 75 ??");
+							gameObjectMovementHook = Hook<GameObjectMovementDelegate>.FromAddress(movementAddress, new GameObjectMovementDelegate(OnGameObjectMove));
+						}
+
+						gameObjectMovementHook.Enable();
 
 						renderManagerHook.Enable();
 						PluginLog.Debug("Hooking render function");
@@ -141,12 +189,14 @@ namespace CustomizePlus
 						if (playerName != null && !autoModeUpdate) {
 							BodyScale? playerScale = GetBodyScale(playerName);
 							ipcManager.OnScaleUpdate(JsonConvert.SerializeObject(playerScale));
+							legacyIpcManager.OnScaleUpdate(playerScale);
 						}
 						
 					}
 					else
 					{
 						renderManagerHook?.Disable();
+						gameObjectMovementHook?.Disable();
 						PluginLog.Debug("Unhooking render function");
 					}
 				}
@@ -164,14 +214,7 @@ namespace CustomizePlus
 
 		public static unsafe void Update()
 		{
-			//Determine player object for root scale behavior later. Have to catch errors for zone transitions.
-			uint playerObjId = 0;
-			try
-			{
-				playerObjId = ObjectTable[0].ObjectId;
-			} catch (Exception ex) { }
-
-			for (var i = 0; i < ObjectTable.Length; i++)
+			for (var i = 0; i < DalamudServices.ObjectTable.Length; i++)
 			{
 				// Always filler Event obj
 				if (i == 245) 
@@ -184,53 +227,20 @@ namespace CustomizePlus
 
 				// Don't affect the cutscene object range, by configuration.
 				// 202 gives leeway as player is not always put in 200 like they should be.
-				if (i >= 202 && i < 240 && !Configuration.ApplyToNpcsInCutscenes)
+				if (i >= 202 && i < 240 && !ConfigurationManager.Configuration.ApplyToNpcsInCutscenes)
 					continue;
 
-				var obj = ObjectTable[i];
+				var obj = DalamudServices.ObjectTable[i];
 	
 				if (obj == null)
 					continue;
 
-				BodyScale? scale = null;
-				// Mare Support: Bool check to see if override table from IPC can be used
-				scale = IdentifyBodyScale((ObjectStruct*)ObjectTable.GetObjectAddress(i), playerObjId != obj.ObjectId);
-
 				try
 				{
-					bool isCutsceneNpc = false;
-					switch (obj.ObjectKind)
-					{
-						case ObjectKind.Player:
-						case ObjectKind.Companion:
-							scale = scale ?? defaultScale ?? null;
-							break;
-						case ObjectKind.Retainer:
-							scale = scale ?? defaultRetainerScale ?? defaultScale ?? null;
-							break;
-						case ObjectKind.EventNpc:
-						case ObjectKind.BattleNpc:
-							isCutsceneNpc = i >= 200 && i < 246;
-							// Stop if NPCs disabled by config. Have to double check cutscene range due to the 200/201 issue.
-							if (!Configuration.ApplyToNpcs && !isCutsceneNpc)
-								continue;
-							else if (isCutsceneNpc && !Configuration.ApplyToNpcsInCutscenes)
-								continue;
-							// Choose most appropriate default, or fallback to null.
-							if (isCutsceneNpc)
-								scale = scale ?? defaultCutsceneScale ?? defaultScale ?? null;
-							else
-								scale = scale ?? defaultScale ?? null;
-							break;
-						default:
-							continue;
-					}
-					// No scale to apply, move on.
+					(BodyScale? scale, bool applyRootScale) = FindScale(i);
 					if (scale == null)
 						continue;
-					// Don't apply root scales to NPCs in cutscenes or battle NPCs. Both cause animation or camera issues. Exception made for player pets
-					bool applyRootScale = !(isCutsceneNpc || (obj.ObjectKind == ObjectKind.BattleNpc && obj.OwnerId != playerObjId));
-					scale.Apply(obj, applyRootScale);
+					scale.ApplyNonRootBonesAndRootScale(obj, applyRootScale);
 				}
 				catch (Exception ex)
 				{
@@ -242,7 +252,7 @@ namespace CustomizePlus
 
 		public static GameObject? FindModelByName(string name)
 		{
-			foreach (GameObject obj in ObjectTable)
+			foreach (GameObject obj in DalamudServices.ObjectTable)
 			{
 				if (obj.Name.ToString() == name)
 					return obj;
@@ -253,7 +263,14 @@ namespace CustomizePlus
 
 		public void Dispose()
 		{
+			DalamudServices.Framework.Update -= Framework_Update;
+			serviceManager.Dispose();
+
 			ipcManager?.Dispose();
+			legacyIpcManager?.Dispose();
+
+			gameObjectMovementHook?.Disable();
+			gameObjectMovementHook?.Dispose();
 
 			renderManagerHook?.Disable();
 			renderManagerHook?.Dispose();
@@ -261,20 +278,70 @@ namespace CustomizePlus
 			Files.Dispose();
 			CommandManagerExtensions.Dispose();
 
-			PluginInterface.UiBuilder.Draw -= InterfaceManager.Draw;
-			PluginInterface.UiBuilder.OpenConfigUi -= ConfigurationInterface.Show;
+			DalamudServices.PluginInterface.UiBuilder.Draw -= InterfaceManager.Draw;
+			DalamudServices.PluginInterface.UiBuilder.OpenConfigUi -= ConfigurationInterface.Show;
 		}
 
-		private static void Apply(GameObject character, BodyScale scale)
+		private void Framework_Update(Framework framework)
 		{
+			serviceManager.Tick();
+		}
+
+		private static unsafe (BodyScale, bool) FindScale(int objectIndex)
+		{
+			//Determine player object for root scale behavior later. Have to catch errors for zone transitions.
+			uint playerObjId = 0;
 			try
 			{
-				scale.Apply(character, true);
+				playerObjId = DalamudServices.ObjectTable[0].ObjectId;
 			}
-			catch (Exception ex)
+			catch (Exception ex) { }
+
+			var obj = DalamudServices.ObjectTable[objectIndex];
+
+			if (obj == null)
+				return (null, false);
+
+			BodyScale? scale = null;
+			// Mare Support: Bool check to see if override table from IPC can be used
+			scale = IdentifyBodyScale((ObjectStruct*)DalamudServices.ObjectTable.GetObjectAddress(objectIndex), playerObjId != obj.ObjectId);
+
+			bool isCutsceneNpc = false;
+			switch (obj.ObjectKind)
 			{
-				PluginLog.Debug($"Error in applying scale: {scale.ScaleName} to character {character.ObjectKind}: {ex}");
+				case ObjectKind.Player:
+				case ObjectKind.Companion:
+					scale = scale ?? defaultScale ?? null;
+					break;
+				case ObjectKind.Retainer:
+					scale = scale ?? defaultRetainerScale ?? defaultScale ?? null;
+					break;
+				case ObjectKind.EventNpc:
+				case ObjectKind.BattleNpc:
+					isCutsceneNpc = objectIndex >= 200 && objectIndex < 246;
+					// Stop if NPCs disabled by config. Have to double check cutscene range due to the 200/201 issue.
+					if (!ConfigurationManager.Configuration.ApplyToNpcs && !isCutsceneNpc)
+						return (null, false);
+					else if (isCutsceneNpc && !ConfigurationManager.Configuration.ApplyToNpcsInCutscenes)
+						return (null, false);
+					// Choose most appropriate default, or fallback to null.
+					if (isCutsceneNpc)
+						scale = scale ?? defaultCutsceneScale ?? defaultScale ?? null;
+					else
+						scale = scale ?? defaultScale ?? null;
+					break;
+				default:
+					return (null, false);
 			}
+
+			// No scale to apply, move on.
+			if (scale == null)
+				return (null, false);
+
+			// Don't apply root scales to NPCs in cutscenes or battle NPCs. Both cause animation or camera issues. Exception made for player pets
+			bool applyRootScale = !(isCutsceneNpc || (obj.ObjectKind == ObjectKind.BattleNpc && obj.OwnerId != playerObjId));
+
+			return (scale, applyRootScale);
 		}
 
 		private void ApplyByCommand(string args)
@@ -328,8 +395,8 @@ namespace CustomizePlus
 			}
 		}
 
-		private static IntPtr OnRender(IntPtr a1, int a2, IntPtr a3, byte a4, IntPtr a5, IntPtr a6)
-		{
+        private static IntPtr OnRender(IntPtr a1, long a2)
+        {
 			if (renderManagerHook == null)
 				throw new Exception();
 
@@ -346,7 +413,41 @@ namespace CustomizePlus
 				renderManagerHook?.Disable();
 			}
 
-			return original(a1, a2, a3, a4, a5, a6);
+			return original(a1, a2);
+		}
+
+		//todo: doesn't work in cutscenes, something getting called after this and resets changes
+		private static unsafe void OnGameObjectMove(IntPtr gameObjectPtr)
+		{
+			// Call the original function.
+			gameObjectMovementHook.Original(gameObjectPtr);
+
+			if (GPoseService.Instance.GPoseState == GPoseState.Inside && PosingModeDetectService.Instance.IsInPosingMode)
+				return;
+
+			var gameObject = DalamudServices.ObjectTable.CreateObjectReference(gameObjectPtr);
+
+			if (gameObject == null)
+				return;
+
+			// Always filler Event obj
+			if (gameObject.ObjectIndex == 245)
+				return;
+
+			// Removed setting until new UI is done
+			// Don't affect EventNPCs when they are given an index above the player range, like in big cities, by config
+			// if (gameObject.ObjectIndex > 245 && !Configuration.ApplyToNpcsInBusyAreas) 
+			//	continue;
+
+			// Don't affect the cutscene object range, by configuration.
+			// 202 gives leeway as player is not always put in 200 like they should be.
+			if (gameObject.ObjectIndex >= 202 && gameObject.ObjectIndex < 240 && !ConfigurationManager.Configuration.ApplyToNpcsInCutscenes)
+				return;
+
+			(BodyScale? scale, bool applyRootScale) = FindScale(gameObject.ObjectIndex);
+			if (scale == null)
+				return;
+			scale.ApplyRootPosition(gameObject);
 		}
 
 		// All functions related to this process for non-named objects adapted from Penumbra logic. Credit to Ottermandias et al.
@@ -370,7 +471,7 @@ namespace CustomizePlus
 
 					// Check if in pvp intro sequence, which uses 240-244 for the 5 players, and only affect the first if so
 					// TODO: Ensure player side only. First group, where one of the node textures is blue. Alternately, look for hidden party list UI and get names from there.
-					if (GameGui.GetAddonByName("PvPMKSIntroduction", 1) == IntPtr.Zero)
+					if (DalamudServices.GameGui.GetAddonByName("PvPMKSIntroduction", 1) == IntPtr.Zero)
 					{
 						actualName = gameObject->ObjectIndex switch
 						{
@@ -419,9 +520,9 @@ namespace CustomizePlus
 				if (!scaleOverride.TryGetValue(actorName, out scale))
 					NameToScale.TryGetValue(actorName, out scale);
 			}
-			else if (playerOnly && ObjectTable[0] != null)
+			else if (playerOnly && DalamudServices.ObjectTable[0] != null)
 			{
-				if (ObjectTable[0].Name.TextValue == actorName)
+				if (DalamudServices.ObjectTable[0].Name.TextValue == actorName)
 					NameToScale.TryGetValue(actorName, out scale);
 			}
 			else
@@ -441,7 +542,7 @@ namespace CustomizePlus
 				return null;
 			}
 
-			var player = ObjectTable[0];
+			var player = DalamudServices.ObjectTable[0];
 			if (player == null)
 			{
 				return null;
@@ -454,7 +555,7 @@ namespace CustomizePlus
 
 		private static unsafe string? GetInspectName()
 		{
-			var addon = GameGui.GetAddonByName("CharacterInspect", 1);
+			var addon = DalamudServices.GameGui.GetAddonByName("CharacterInspect", 1);
 			if (addon == IntPtr.Zero)
 			{
 				return null;
@@ -478,7 +579,7 @@ namespace CustomizePlus
 		// Obtain the name displayed in the Character Card from the agent.
 		private static unsafe string? GetCardName()
 		{
-			var uiModule = (UIModule*)GameGui.GetUIModule();
+			var uiModule = (UIModule*)DalamudServices.GameGui.GetUIModule();
 			var agentModule = uiModule->GetAgentModule();
 			var agent = (byte*)agentModule->GetAgentByInternalID(393);
 			if (agent == null)
@@ -499,12 +600,12 @@ namespace CustomizePlus
 		// Obtain the name of the player character if the glamour plate edit window is open.
 		private static unsafe string? GetGlamourName()
 		{
-			var addon = GameGui.GetAddonByName("MiragePrismMiragePlate", 1);
+			var addon = DalamudServices.GameGui.GetAddonByName("MiragePrismMiragePlate", 1);
 			return addon == IntPtr.Zero ? null : GetPlayerName();
 		}
 
 		private static string? GetPlayerName()
-			=> ObjectTable[0]?.Name.ToString();
+			=> DalamudServices.ObjectTable[0]?.Name.ToString();
 
 		public static void SetTemporaryCharacterScale(string characterName, BodyScale scale)
 		{

@@ -26,40 +26,17 @@ namespace CustomizePlus.Memory
 			this.W = w;
 		}
 
-		public Vector4 GetAsNumericsVector()
+		public Vector4 GetAsNumericsVector(bool round = true)
 		{
-			return new Vector4(MathF.Round(this.X,3), MathF.Round(this.Y,3), MathF.Round(this.Z,3), MathF.Round(this.W,3));
+			if(round)
+				return new Vector4(MathF.Round(this.X, 3), MathF.Round(this.Y, 3), MathF.Round(this.Z, 3), MathF.Round(this.W, 3));
+
+			return new Vector4(this.X, this.Y, this.Z, this.W);
 		}
 
 		public override string ToString()
 		{
 			return $"({this.X}, {this.Y}, {this.Z}, {this.W})";
 		}
-
-
-		public bool IsApproximately(HkVector4 other, bool includeW, float errorMargin = 0.001f)
-		{
-			if (includeW)
-			{
-				return IsApproximately(this.X, other.X, errorMargin)
-					&& IsApproximately(this.Y, other.Y, errorMargin)
-					&& IsApproximately(this.Z, other.Z, errorMargin)
-					&& IsApproximately(this.W, other.W, errorMargin);
-			}
-			else
-			{
-				return IsApproximately(this.X, other.X, errorMargin)
-					&& IsApproximately(this.Y, other.Y, errorMargin)
-					&& IsApproximately(this.Z, other.Z, errorMargin);
-			}
-		}
-
-		private static bool IsApproximately(float a, float b, float errorMargin)
-		{
-			float d = MathF.Abs(a - b);
-			return d < errorMargin;
-		}
-
-
 	}
 }

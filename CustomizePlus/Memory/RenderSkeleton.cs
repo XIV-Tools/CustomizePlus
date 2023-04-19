@@ -31,6 +31,7 @@ namespace CustomizePlus.Memory
 	[StructLayout(LayoutKind.Explicit)]
 	public unsafe struct RenderObject
 	{
+		[FieldOffset(0x050)] public HkVector4 Position;
 		[FieldOffset(0x050 + 0x020)] public HkVector4 Scale;
 		[FieldOffset(0x0A0)] public RenderSkeleton* Skeleton;
 
