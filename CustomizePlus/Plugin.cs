@@ -358,18 +358,18 @@ namespace CustomizePlus
 
 				(charaName, scaleName) = args.Split(',') switch { var a => (a[0].Trim(), a[1].Trim()) };
 
-				if (!Configuration.BodyScales.Any())
+				if (!ConfigurationManager.Configuration.BodyScales.Any())
 				{
 					PluginLog.Warning($"Can't apply Scale \"{scaleName}\" to Character \"{charaName}\" by command because no Scale were loaded or none exist");
 					return;
 				}
 
-				if (Configuration.BodyScales.Count(x => x.ScaleName == scaleName && x.CharacterName == charaName) > 1)
+				if (ConfigurationManager.Configuration.BodyScales.Count(x => x.ScaleName == scaleName && x.CharacterName == charaName) > 1)
 				{
 					PluginLog.Information($"More than one entry were found for Scale \"{scaleName}\" and Character \"{charaName}\". Will try to apply the first matching Scale.");
 				}
 
-				var scale = Configuration.BodyScales.FirstOrDefault(x => x.ScaleName == scaleName && x.CharacterName == charaName);
+				var scale = ConfigurationManager.Configuration.BodyScales.FirstOrDefault(x => x.ScaleName == scaleName && x.CharacterName == charaName);
 
 				if (scale == null)
 				{
@@ -379,9 +379,9 @@ namespace CustomizePlus
 					return;
 				}
 
-				Configuration.ToggleOffAllOtherMatching(scale.CharacterName, scale.ScaleName == null ? "" : scale.ScaleName);
+				ConfigurationManager.ToggleOffAllOtherMatching(scale.CharacterName, scale.ScaleName == null ? "" : scale.ScaleName);
 				scale.BodyScaleEnabled = true;
-				Configuration.Save();
+				ConfigurationManager.SaveConfiguration();
 				LoadConfig(true);
 
 				PluginLog.Debug($"Scale \"{scale.ScaleName}\" were successfully applied to Character \"{scale.CharacterName}\" by command");
