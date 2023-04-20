@@ -172,9 +172,12 @@ namespace CustomizePlus
 					{
 						Transform transform = pose->Transforms[index];
 
-						transform.Scale.X = boneScale.Scale.X;
-						transform.Scale.Y = boneScale.Scale.Y;
-						transform.Scale.Z = boneScale.Scale.Z;
+						// Only apply bones that are scaled, those that have a value of 1 can be left untouched to not interfere with Animations.
+						if (boneScale.Scale.X != 1 || boneScale.Scale.Y != 1 || boneScale.Scale.Z != 1) {
+							transform.Scale.X = boneScale.Scale.X;
+							transform.Scale.Y = boneScale.Scale.Y;
+							transform.Scale.Z = boneScale.Scale.Z;
+						}
 
 						//Apply position and rotation only when PosingModeDetectService does not detect posing mode
 						if (GPoseService.Instance.GPoseState != GPoseState.Inside || !PosingModeDetectService.Instance.IsInPosingMode)
