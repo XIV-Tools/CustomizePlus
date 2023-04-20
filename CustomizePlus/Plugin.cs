@@ -8,6 +8,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -107,6 +108,9 @@ namespace CustomizePlus
 				LoadConfig();
 
 				DalamudServices.CommandManager.AddCommand((s, t) => ConfigurationInterface.Toggle(), "/customize", "Toggles the Customize+ configuration window.");
+                DalamudServices.CommandManager.AddCommand((s, t) => ConfigurationInterface.Toggle(), "/customize", "Toggles the Customize+ configuration window.");
+                DalamudServices.CommandManager.AddCommand((s, t) => ApplyByCommand(t), "/customize-apply", "Apply a specific Scale (usage: /customize-apply {Character Name},{Scale Name})");
+                DalamudServices.CommandManager.AddCommand((s, t) => ApplyByCommand(t), "/capply", "Alias to /customize-apply");
 
 				DalamudServices.PluginInterface.UiBuilder.Draw += InterfaceManager.Draw;
 				DalamudServices.PluginInterface.UiBuilder.OpenConfigUi += ConfigurationInterface.Toggle;
@@ -340,8 +344,59 @@ namespace CustomizePlus
 			return (scale, applyRootScale);
 		}
 
-		private static IntPtr OnRender(IntPtr a1, long a2)
+		private void ApplyByCommand(string args)
 		{
+			string charaName = "", scaleName = "";
+
+			try
+			{
+				if (string.IsNullOrWhiteSpace(args) || args.Count(c => c == ',') != 1)
+				{
+					PluginLog.Warning($"Can't apply Scale by command because arguments passed were not in the correct format ([Character Name],[Scale Name]). args: \"{args}\"");
+					return;
+				}
+
+				(charaName, scaleName) = args.Split(',') switch { var a => (a[0].Trim(), a[1].Trim()) };
+
+				if (!ConfigurationManager.Configuration.BodyScales.Any())
+				{
+					PluginLog.Warning($"Can't apply Scale \"{scaleName}\" to Character \"{charaName}\" by command because no Scale were loaded or none exist");
+					return;
+				}
+
+				if (ConfigurationManager.Configuration.BodyScales.Count(x => x.ScaleName == scaleName && x.CharacterName == charaName) > 1)
+				{
+					PluginLog.Information($"More than one entry were found for Scale \"{scaleName}\" and Character \"{charaName}\". Will try to apply the first matching Scale.");
+				}
+
+				var scale = ConfigurationManager.Configuration.BodyScales.FirstOrDefault(x => x.ScaleName == scaleName && x.CharacterName == charaName);
+
+				if (scale == null)
+				{
+					PluginLog.Warning($"Can't apply Scale \"{(string.IsNullOrWhiteSpace(scaleName) ? "empty (none provided)" : scaleName)}\" " +
+						$"to Character \"{(string.IsNullOrWhiteSpace(charaName) ? "empty (none provided)" : charaName)}\" by command\n" +
+						"Check if the Scale and Character names were provided correctly and said Scale exists to the appointed Character");
+					return;
+				}
+
+				ConfigurationManager.ToggleOffAllOtherMatching(scale.CharacterName, scale.ScaleName == null ? "" : scale.ScaleName);
+				scale.BodyScaleEnabled = true;
+				ConfigurationManager.SaveConfiguration();
+				LoadConfig(true);
+
+				PluginLog.Debug($"Scale \"{scale.ScaleName}\" were successfully applied to Character \"{scale.CharacterName}\" by command");
+			}
+			catch (Exception e)
+			{
+				PluginLog.Error($"Error applying Scale by command: \n" +
+					$"Scale name \"{(string.IsNullOrWhiteSpace(scaleName) ? "empty (none provided)" : scaleName)}\"\n" +
+					$"Character name \"{(string.IsNullOrWhiteSpace(charaName) ? "empty (none provided)" : charaName)}\"\n" +
+					$"Error: {e}");
+			}
+		}
+
+        private static IntPtr OnRender(IntPtr a1, long a2)
+        {
 			if (renderManagerHook == null)
 				throw new Exception();
 
