@@ -491,19 +491,19 @@ namespace CustomizePlus.Interface
 				if (bone.Scale == null)
 					continue;
 
-				string? modernName = LegacyBoneNameConverter.GetModernName(boneName);
-				if (modernName == null)
-					modernName = boneName;
+				string? displayName = BoneData.GetBoneDispName(boneName);
+				if (displayName == null)
+					displayName = boneName;
 
-				if (modernName == "n_root")
+				if (displayName == "n_root")
 					continue;
 
 				var editsContainer = new BoneEditsContainer { Position = Constants.ZeroVector, Rotation = Constants.ZeroVector, Scale = new Vector3(bone.Scale.X, bone.Scale.Y, bone.Scale.Z) };
 
-				if (!scale.Bones.ContainsKey(modernName))
-					scale.Bones.Add(modernName, editsContainer);
+				if (!scale.Bones.ContainsKey(displayName))
+					scale.Bones.Add(displayName, editsContainer);
 
-				scale.Bones[modernName] = editsContainer;
+				scale.Bones[displayName] = editsContainer;
 			}
 
 			scale.Bones["n_root"] = new BoneEditsContainer { Position = Constants.ZeroVector, Rotation = Constants.ZeroVector, Scale = Constants.OneVector };

@@ -37,10 +37,10 @@ namespace CustomizePlus.Interface
 
 		private Dictionary<string, BoneEditsContainer> boneValuesOriginal = new Dictionary<string, BoneEditsContainer>();
 		private Dictionary<string, BoneEditsContainer> boneValuesNew = new Dictionary<string, BoneEditsContainer>();
-		private readonly List<string> boneNamesLegacy = LegacyBoneNameConverter.GetLegacyNames();
-		private readonly List<string> boneNamesModern = LegacyBoneNameConverter.GetModernNames();
-		private List<string> boneNamesModernUsed = new List<string>();
-		private List<string> boneNamesLegacyUsed = new List<string>();
+		private readonly List<string> boneCodenames = BoneData.GetBoneCodenames();
+		private readonly List<string> boneDispNames = BoneData.GetBoneDispNames();
+		private List<string> codenamesUsed = new List<string>();
+		private List<string> dispNamesUsed = new List<string>();
 		private bool scaleEnabled = false;
 		private bool reset = false;
 
@@ -64,18 +64,18 @@ namespace CustomizePlus.Interface
 
 			editWnd.scaleEnabled = scale.BodyScaleEnabled;
 
-			for (int i = 0; i < editWnd.boneNamesLegacy.Count && i < editWnd.boneNamesModern.Count; i++)
+			for (int i = 0; i < editWnd.boneCodenames.Count && i < editWnd.boneDispNames.Count; i++)
 			{
-				PluginLog.Debug($"Loading bone {i}: {editWnd.boneNamesLegacy[i]}");
+				PluginLog.Debug($"Loading bone {i}: {editWnd.boneCodenames[i]}");
 
 				BoneEditsContainer tempContainer = new BoneEditsContainer { Position = Constants.ZeroVector, Rotation = Constants.ZeroVector, Scale = Constants.OneVector };
-				if (scale.Bones.TryGetValue(editWnd.boneNamesLegacy[i], out tempContainer))
+				if (scale.Bones.TryGetValue(editWnd.boneCodenames[i], out tempContainer))
 				{
 					PluginLog.Debug($"Found scale");
-					editWnd.boneValuesOriginal.Add(editWnd.boneNamesLegacy[i], tempContainer);
-					editWnd.boneValuesNew.Add(editWnd.boneNamesLegacy[i], tempContainer);
-					editWnd.boneNamesModernUsed.Add(editWnd.boneNamesModern[i]);
-					editWnd.boneNamesLegacyUsed.Add(editWnd.boneNamesLegacy[i]);
+					editWnd.boneValuesOriginal.Add(editWnd.boneCodenames[i], tempContainer);
+					editWnd.boneValuesNew.Add(editWnd.boneCodenames[i], tempContainer);
+					editWnd.codenamesUsed.Add(editWnd.boneCodenames[i]);
+					editWnd.dispNamesUsed.Add(editWnd.boneDispNames[i]);
 				}
 			}
 
@@ -83,7 +83,7 @@ namespace CustomizePlus.Interface
 
 			editWnd.scaleIndex = -1;
 		}
-
+		
 		protected override void DrawContents()
 		{
 			PluginConfiguration config = Plugin.ConfigurationManager.Configuration;
@@ -290,13 +290,13 @@ namespace CustomizePlus.Interface
 
 			for (int i = 0; i < boneValuesNew.Count; i++)
 			{
-				string boneNameLocalLegacy = this.boneNamesLegacyUsed[i];
+				string boneCodenameLocal = this.dispNamesUsed[i];
 
-				string boneNameLocalModern = this.boneNamesModernUsed[i];
+				string boneDispNameLocal = this.codenamesUsed[i];
 
 				ImGui.PushID(i);
 
-				if (!this.IsBoneNameEditable(boneNameLocalModern))
+				if (!this.IsBoneNameEditable(boneDispNameLocal))
 				{
 					ImGui.PopID();
 					continue;
@@ -307,10 +307,10 @@ namespace CustomizePlus.Interface
 
 				try
 				{
-					if (this.boneValuesNew.TryGetValue(boneNameLocalLegacy, out currentEditsContainer))
-						label = boneNameLocalModern;
-					else if (this.boneValuesNew.TryGetValue(boneNameLocalModern, out currentEditsContainer))
-						label = boneNameLocalModern;
+					if (this.boneValuesNew.TryGetValue(boneCodenameLocal, out currentEditsContainer))
+						label = boneDispNameLocal;
+					else if (this.boneValuesNew.TryGetValue(boneDispNameLocal, out currentEditsContainer))
+						label = boneDispNameLocal;
 					else
 						currentEditsContainer = new BoneEditsContainer { Position = Constants.ZeroVector, Rotation = Constants.ZeroVector, Scale = Constants.OneVector };
 				}
@@ -366,12 +366,12 @@ namespace CustomizePlus.Interface
 					this.reset = false;
 					try
 					{
-						if (this.boneValuesNew.ContainsKey(boneNameLocalModern))
-							editsContainer = this.boneValuesNew[boneNameLocalModern];
-						else if (this.boneValuesNew.Remove(boneNameLocalLegacy, out BoneEditsContainer removedContainer))
+						if (this.boneValuesNew.ContainsKey(boneDispNameLocal))
+							editsContainer = this.boneValuesNew[boneDispNameLocal];
+						else if (this.boneValuesNew.Remove(boneCodenameLocal, out BoneEditsContainer removedContainer))
 						{
 							editsContainer = removedContainer;
-							this.boneValuesNew[boneNameLocalLegacy] = editsContainer;
+							this.boneValuesNew[boneCodenameLocal] = editsContainer;
 						}
 						else
 							throw new Exception();
@@ -395,7 +395,7 @@ namespace CustomizePlus.Interface
 					}
 					if (config.AutomaticEditMode)
 					{
-						this.UpdateCurrent(boneNameLocalLegacy, editsContainer, config.AutomaticEditMode);
+						this.UpdateCurrent(boneCodenameLocal, editsContainer, config.AutomaticEditMode);
 					}
 				}
 				else if (currentVector.X == currentVector.Y && currentVector.Y == currentVector.Z)
@@ -460,12 +460,12 @@ namespace CustomizePlus.Interface
 					}
 					try
 					{
-						if (this.boneValuesNew.ContainsKey(boneNameLocalModern))
-							editsContainer = this.boneValuesNew[boneNameLocalModern];
-						else if (this.boneValuesNew.Remove(boneNameLocalLegacy, out BoneEditsContainer removedContainer))
+						if (this.boneValuesNew.ContainsKey(boneDispNameLocal))
+							editsContainer = this.boneValuesNew[boneDispNameLocal];
+						else if (this.boneValuesNew.Remove(boneCodenameLocal, out BoneEditsContainer removedContainer))
 						{
 							editsContainer = removedContainer;
-							this.boneValuesNew[boneNameLocalLegacy] = editsContainer;
+							this.boneValuesNew[boneCodenameLocal] = editsContainer;
 						}
 						else
 							throw new Exception();
@@ -489,7 +489,7 @@ namespace CustomizePlus.Interface
 					}
 					if (config.AutomaticEditMode)
 					{
-						this.UpdateCurrent(boneNameLocalLegacy, editsContainer, config.AutomaticEditMode);
+						this.UpdateCurrent(boneCodenameLocal, editsContainer, config.AutomaticEditMode);
 					}
 				}
 
@@ -508,12 +508,12 @@ namespace CustomizePlus.Interface
 					}
 
 					BoneEditsContainer editsContainer = null;
-					if (this.boneValuesNew.ContainsKey(boneNameLocalModern))
-						editsContainer = this.boneValuesNew[boneNameLocalModern];
-					else if (this.boneValuesNew.Remove(boneNameLocalLegacy, out BoneEditsContainer removedContainer))
+					if (this.boneValuesNew.ContainsKey(boneDispNameLocal))
+						editsContainer = this.boneValuesNew[boneDispNameLocal];
+					else if (this.boneValuesNew.Remove(boneCodenameLocal, out BoneEditsContainer removedContainer))
 					{
 						editsContainer = removedContainer;
-						this.boneValuesNew[boneNameLocalLegacy] = editsContainer;
+						this.boneValuesNew[boneCodenameLocal] = editsContainer;
 					}
 					else
 						throw new Exception();
@@ -522,7 +522,7 @@ namespace CustomizePlus.Interface
 
 					if (config.AutomaticEditMode)
 					{
-						this.UpdateCurrent(boneNameLocalLegacy, editsContainer, config.AutomaticEditMode);
+						this.UpdateCurrent(boneCodenameLocal, editsContainer, config.AutomaticEditMode);
 					}
 				}
 
@@ -593,12 +593,12 @@ namespace CustomizePlus.Interface
 
 			bool isSameScale = this.originalScaleName == scaleName && this.originalScaleCharacter == characterName;
 
-			for (int i = 0; i < this.boneNamesLegacy.Count && i < this.boneValuesNew.Count; i++)
+			for (int i = 0; i < this.boneCodenames.Count && i < this.boneValuesNew.Count; i++)
 			{
-				string legacyName = boneNamesLegacyUsed[i];
+				string codename = codenamesUsed[i];
 
 				//create a deep copy if we are making a copy of scale so we don't reference data from other scale
-				newBody.Bones[legacyName] = isSameScale ? this.boneValuesNew[legacyName] : this.boneValuesNew[legacyName].DeepCopy();
+				newBody.Bones[codename] = isSameScale ? this.boneValuesNew[codename] : this.boneValuesNew[codename].DeepCopy();
 			}
 
 			newBody.Bones["n_root"] = isSameScale ? this.rootEditsContainer : this.rootEditsContainer.DeepCopy();
