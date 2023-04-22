@@ -133,7 +133,7 @@ namespace CustomizePlus
 
 						string? boneName = bone.GetName();
 
-						if (boneName == null)
+						if (boneName == null || boneName == "n_root") //root bone transforms are applied separately
 							continue;
 
 						if (this.BodyScale.Bones.TryGetValue(boneName, out var boneScale))
