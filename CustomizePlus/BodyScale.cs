@@ -9,11 +9,9 @@ namespace CustomizePlus
 	using System.Numerics;
 	using CustomizePlus.Data;
 	using CustomizePlus.Extensions;
-	using CustomizePlus.Helpers;
 	using CustomizePlus.Memory;
 	using CustomizePlus.Services;
 	using Dalamud.Game.ClientState.Objects.Types;
-	using Dalamud.Logging;
 
 	[Serializable]
 	public class BodyScale
