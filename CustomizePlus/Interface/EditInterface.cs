@@ -5,21 +5,14 @@ namespace CustomizePlus.Interface
 {
 	using System;
 	using System.Collections.Generic;
-	using System.IO;
 	using System.Numerics;
-	using System.Windows.Forms;
-	using Anamnesis.Files;
 	using Anamnesis.Posing;
 	using CustomizePlus.Data;
 	using CustomizePlus.Data.Configuration;
-	using CustomizePlus.Helpers;
-	using CustomizePlus.Memory;
 	using Dalamud.Interface;
 	using Dalamud.Interface.Components;
 	using Dalamud.Logging;
 	using ImGuiNET;
-	using Newtonsoft.Json;
-	using static CustomizePlus.BodyScale;
 
 	public class EditInterface : WindowBase
 	{
@@ -28,6 +21,7 @@ namespace CustomizePlus.Interface
 		protected BodyScale? Scale { get; private set; }
 
 		private int scaleIndex = -1;
+		private int precision = 3;
 
 		private string newScaleName = string.Empty;
 		private string newScaleCharacter = string.Empty;
@@ -143,7 +137,13 @@ namespace CustomizePlus.Interface
 			if (ImGui.RadioButton("Scale", editMode == EditMode.Scale))
 				editMode = EditMode.Scale;
 
-			if(editMode != EditMode.Scale)
+			ImGui.SameLine();
+			ImGui.Spacing();
+			ImGui.SameLine();
+			ImGui.SetNextItemWidth(300);
+			ImGui.SliderInt("Precision", ref precision, 1, 6);
+
+			if (editMode != EditMode.Scale)
 			{
 				ImGui.SameLine();
 				ImGui.PushFont(UiBuilder.IconFont);
@@ -194,7 +194,7 @@ namespace CustomizePlus.Interface
 				ImGui.BeginDisabled();
 
 			ImGui.SetNextItemWidth(ImGui.GetWindowWidth() - 425);
-			if (ImGui.DragFloat3("##Root", ref rootLocalTemp, 0.001f, 0f, 10f))
+			if (ImGui.DragFloat3("##Root", ref rootLocalTemp, 0.001f, 0f, 10f, $"%.{precision}f"))
 			{
 				if (this.reset)
 				{
@@ -233,7 +233,7 @@ namespace CustomizePlus.Interface
 				ImGui.BeginDisabled();
 
 			ImGui.SetNextItemWidth(100);
-			if (ImGui.DragFloat("##RootAllAxes", ref rootScaleValueAllAxes, 0.001f, 0f, 10f))
+			if (ImGui.DragFloat("##RootAllAxes", ref rootScaleValueAllAxes, 0.001f, 0f, 10f, $"%.{precision}f"))
 			{
 				if (rootScaleValueAllAxes != 0)
 				{
@@ -424,7 +424,7 @@ namespace CustomizePlus.Interface
 						break;
 				}
 
-				if (ImGui.DragFloat3($"##{label}", ref currentVector, increment, minLimit, maxLimit))
+				if (ImGui.DragFloat3($"##{label}", ref currentVector, increment, minLimit, maxLimit, $"%.{precision}f"))
 				{
 					BoneEditsContainer editsContainer = null;
 					try
@@ -498,7 +498,7 @@ namespace CustomizePlus.Interface
 					ImGui.BeginDisabled();
 
 				ImGui.SetNextItemWidth(100);
-				if (ImGui.DragFloat($"##{label}AllAxes", ref currentScaleValueAllAxes, 0.001f, 0f, 10f))
+				if (ImGui.DragFloat($"##{label}AllAxes", ref currentScaleValueAllAxes, 0.001f, 0f, 10f, $"%.{precision}f"))
 				{
 					if (currentScaleValueAllAxes != 0)
 					{
