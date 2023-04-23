@@ -22,9 +22,9 @@ namespace CustomizePlus
 	{
 		private readonly ConcurrentDictionary<int, PoseScale> poses = new();
 
-		public string CharacterName { get; set; }
-		public string ScaleName { get; set; }
-		public bool BodyScaleEnabled { get; set; }
+		public string CharacterName;
+		public string ScaleName;
+		public bool BodyScaleEnabled;
 
 		/// <summary>
 		/// Gets a value indicating whether or not this BodyScale contains hrothgar-exclusive bones.
@@ -45,12 +45,12 @@ namespace CustomizePlus
 		/// Initializes a new instance of the <see cref="BodyScale"/> class.
 		/// Constructs a blank BodyScale object with no bones and mostly-empty properties.
 		/// </summary>
-		public BodyScale(string? charName = null, string? scaleName = null)
+		public BodyScale()
 		{
 			this.poses = new ConcurrentDictionary<int, PoseScale>();
 
-			this.CharacterName = charName ?? String.Empty;
-			this.ScaleName = scaleName ?? String.Empty;
+			this.CharacterName = String.Empty;
+			this.ScaleName = String.Empty;
 			this.BodyScaleEnabled = true;
 
 			this.InclHroth = false;
@@ -173,7 +173,7 @@ namespace CustomizePlus
 		/// Internally updates this BodyScale's bone list in accordance with its specified inclusions.
 		/// n_root is always included.
 		/// </summary>
-		private void UpdateBoneList()
+		public void UpdateBoneList()
 		{
 			Dictionary<string, BoneEditsContainer> updated = new();
 
@@ -213,6 +213,12 @@ namespace CustomizePlus
 			output.Bones = pruned;
 
 			return output;
+		}
+
+		public bool SameNamesAs(BodyScale other)
+		{
+			return this.CharacterName == other.CharacterName
+				&& this.ScaleName == other.ScaleName;
 		}
 
 		//Makes it easier to get a sense of what we're looking at while debugging
