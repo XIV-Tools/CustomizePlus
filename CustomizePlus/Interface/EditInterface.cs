@@ -6,6 +6,7 @@ namespace CustomizePlus.Interface
 	using System;
 	using System.Collections.Generic;
 	using System.IO;
+	using System.Linq;
 	using System.Numerics;
 	using System.Windows.Forms;
 	using Anamnesis.Files;
@@ -17,258 +18,134 @@ namespace CustomizePlus.Interface
 	using Dalamud.Interface;
 	using Dalamud.Interface.Components;
 	using Dalamud.Logging;
+	using Dalamud.Utility;
 	using ImGuiNET;
 	using Newtonsoft.Json;
 	using static CustomizePlus.BodyScale;
 
 	public class EditInterface : WindowBase
 	{
-		protected override string Title => $"(WIP) Edit Scale: {this.originalScaleName}";
+		protected override string Title => $"(WIP) Edit Scale: {this.BackupScale.ScaleName}";
 		protected override string DrawTitle => $"{this.Title}###customize_plus_scale_edit_window{this.Index}"; //keep the same ID for all scale editor windows
-		protected BodyScale? Scale { get; private set; }
 
-		private int scaleIndex = -1;
+		protected override ImGuiWindowFlags WindowFlags => this.dirty ? ImGuiWindowFlags.UnsavedDocument : ImGuiWindowFlags.None;
 
-		private string newScaleName = string.Empty;
-		private string newScaleCharacter = string.Empty;
-		private string originalScaleName = string.Empty;
-		private string originalScaleCharacter = string.Empty;
-		private BoneEditsContainer rootEditsContainer = new BoneEditsContainer();
+		protected override bool LockCloseButton => this.dirty;
 
-		private Dictionary<string, BoneEditsContainer> boneValuesOriginal = new Dictionary<string, BoneEditsContainer>();
-		private Dictionary<string, BoneEditsContainer> boneValuesNew = new Dictionary<string, BoneEditsContainer>();
-		private readonly List<string> boneCodenames = BoneData.GetBoneCodenames();
-		private readonly List<string> boneDispNames = BoneData.GetBoneDispNames();
-		private List<string> codenamesUsed = new List<string>();
-		private List<string> dispNamesUsed = new List<string>();
-		private bool scaleEnabled = false;
-		private bool reset = false;
+		protected BodyScale BackupScale { get; private set; }
+		protected BodyScale WorkingScale { get; private set; }
 
-		private EditMode editMode;
+		private bool dirty = false;
+
+		private EditMode mode;
+		private bool mirrorMode;
+		private float windowHorz; //for formatting :V
 
 		public static void Show(BodyScale scale)
 		{
 			EditInterface editWnd = Plugin.InterfaceManager.Show<EditInterface>();
-			editWnd.editMode = EditMode.Scale;
+			editWnd.mode = EditMode.Scale;
 
 			if (scale == null)
 			{
-				scale = new BodyScale();
+				editWnd.BackupScale = new BodyScale();
 			}
-
-			editWnd.Scale = scale;
-			editWnd.originalScaleName = scale.ScaleName;
-			editWnd.originalScaleCharacter = scale.CharacterName;
-			editWnd.newScaleName = editWnd.originalScaleName;
-			editWnd.newScaleCharacter = editWnd.originalScaleCharacter;
-
-			editWnd.scaleEnabled = scale.BodyScaleEnabled;
-
-			for (int i = 0; i < editWnd.boneCodenames.Count && i < editWnd.boneDispNames.Count; i++)
+			else
 			{
-				PluginLog.Debug($"Loading bone {i}: {editWnd.boneCodenames[i]}");
-
-				BoneEditsContainer tempContainer = new BoneEditsContainer { Position = Constants.ZeroVector, Rotation = Constants.ZeroVector, Scale = Constants.OneVector };
-				if (scale.Bones.TryGetValue(editWnd.boneCodenames[i], out tempContainer))
-				{
-					PluginLog.Debug($"Found scale");
-					editWnd.boneValuesOriginal.Add(editWnd.boneCodenames[i], tempContainer);
-					editWnd.boneValuesNew.Add(editWnd.boneCodenames[i], tempContainer);
-					editWnd.codenamesUsed.Add(editWnd.boneCodenames[i]);
-					editWnd.dispNamesUsed.Add(editWnd.boneDispNames[i]);
-				}
+				editWnd.BackupScale = scale;
 			}
 
-			editWnd.rootEditsContainer = scale.Bones["n_root"];
+			editWnd.WorkingScale = new BodyScale(editWnd.BackupScale);
+			editWnd.WorkingScale.UpdateBoneList();
 
-			editWnd.scaleIndex = -1;
+			//for (int i = 0; i < editWnd.boneCodenames.Count; i++)
+			//{
+			//	PluginLog.Debug($"Loading bone {i}: {editWnd.boneCodenames[i]}");
+
+			//	BoneEditsContainer tempContainer = new BoneEditsContainer();
+			//	if (scale.Bones.TryGetValue(editWnd.boneCodenames[i], out tempContainer))
+			//	{
+			//		PluginLog.Debug($"Found scale");
+			//		editWnd.boneValuesOriginal.Add(editWnd.boneCodenames[i], tempContainer);
+			//		editWnd.boneValuesNew.Add(editWnd.boneCodenames[i], tempContainer);
+			//		editWnd.codenamesUsed.Add(editWnd.boneCodenames[i]);
+			//		//editWnd.dispNamesUsed.Add(editWnd.boneDispNames[i]);
+			//	}
+			//}
 		}
 		
 		protected override void DrawContents()
 		{
 			PluginConfiguration config = Plugin.ConfigurationManager.Configuration;
+			this.windowHorz = ImGui.GetWindowWidth();
 
-			string newScaleNameTemp = this.newScaleName;
-			string newScaleCharacterTemp = this.newScaleCharacter;
-			bool enabledTemp = this.scaleEnabled;
-			bool resetTemp = this.reset;
-
-			if (ImGui.Checkbox("Enable", ref enabledTemp))
-			{
-				this.scaleEnabled = enabledTemp;
-				if (config.AutomaticEditMode)
-				{
-					AddToConfig(this.newScaleName, this.newScaleCharacter);
-					Plugin.ConfigurationManager.SaveConfiguration();
-					Plugin.LoadConfig(true);
-				}
-			}
+			ImGui.SetNextItemWidth(windowHorz / 4);
+			RenderTextBox("Character Name", ref this.WorkingScale.CharacterName);
 
 			ImGui.SameLine();
 
-			ImGui.SetNextItemWidth(200);
+			RenderCheckBox("Enable", ref this.WorkingScale.BodyScaleEnabled);
 
-			if (ImGui.InputText("Character Name", ref newScaleCharacterTemp, 1024))
-			{
-				this.newScaleCharacter = newScaleCharacterTemp;
-			}
+			ImGui.SetNextItemWidth(windowHorz / 4);
+			RenderTextBox("Scale Name", ref this.WorkingScale.ScaleName);
 
 			ImGui.SameLine();
 
-			ImGui.SetNextItemWidth(300);
-			if (ImGui.InputText("Scale Name", ref newScaleNameTemp, 1024))
-			{
-				this.newScaleName = newScaleNameTemp;
-			}
-
-			ImGui.SameLine();
-
-			bool autoModeEnable = config.AutomaticEditMode;
-			if (ImGui.Checkbox("Automatic Mode", ref autoModeEnable))
-			{
-				config.AutomaticEditMode = autoModeEnable;
-			}
+			RenderCheckBox("Automatic Mode", config.AutomaticEditMode, (b) => config.AutomaticEditMode = b);
 
 			if (ImGui.IsItemHovered())
 				ImGui.SetTooltip($"Applies changes automatically without saving.");
 
-			if (ImGui.RadioButton("Position", editMode == EditMode.Position))
-				editMode = EditMode.Position;
+			RenderCheckBox("Hrothgar", this.WorkingScale.InclHroth, this.WorkingScale.ToggleHrothgarFeatures);
+			AppendTooltip("Show bones exclusive to hrothgar");
 
 			ImGui.SameLine();
-			if (ImGui.RadioButton("Rotation", editMode == EditMode.Rotation))
-				editMode = EditMode.Rotation;
+
+			RenderCheckBox("Viera", this.WorkingScale.InclViera, this.WorkingScale.ToggleVieraFeatures);
+			AppendTooltip("Show bones exclusive to viera");
+
 
 			ImGui.SameLine();
-			if (ImGui.RadioButton("Scale", editMode == EditMode.Scale))
-				editMode = EditMode.Scale;
 
-			if(editMode != EditMode.Scale)
+			RenderCheckBox("IVCS", this.WorkingScale.InclIVCS, this.WorkingScale.ToggleIVCSFeatures);
+			AppendTooltip("Show bones added by the Illusio Vitae Custom Skeleton mod");
+
+			ImGui.SameLine();
+
+			RenderCheckBox("Mirror Mode", ref this.mirrorMode);
+			AppendTooltip($"Bone changes will be reflected from left to right and vice versa");
+
+			ImGui.Separator();
+
+			if (ImGui.RadioButton("Position", mode == EditMode.Position))
+				mode = EditMode.Position;
+
+			ImGui.SameLine();
+			if (ImGui.RadioButton("Rotation", mode == EditMode.Rotation))
+				mode = EditMode.Rotation;
+
+			ImGui.SameLine();
+			if (ImGui.RadioButton("Scale", mode == EditMode.Scale))
+				mode = EditMode.Scale;
+
+			if(mode != EditMode.Scale)
 			{
 				ImGui.SameLine();
 				ImGui.PushFont(UiBuilder.IconFont);
 				ImGui.Text(FontAwesomeIcon.ExclamationTriangle.ToIconString());
 				ImGui.PopFont();
 				ImGui.SameLine();
-				ImGui.Text($"{editMode} is an advanced setting and might not look properly with some animations, use at your own risk.");
+				ImGui.Text($"{mode} is an advanced setting and might not look properly with some animations, use at your own risk.");
 			}
 
 			ImGui.Separator();
 
-			if (ImGuiComponents.IconButton(-1, FontAwesomeIcon.Recycle))
-			{
-				this.rootEditsContainer = new BoneEditsContainer();
-				if (config.AutomaticEditMode)
-				{
-					this.UpdateCurrent("n_root", this.rootEditsContainer, config.AutomaticEditMode);
-				}
-				this.reset = true;
-			}
+			RenderBoneRow("n_root");
 
-			if (ImGui.IsItemHovered())
-				ImGui.SetTooltip($"Reset");
-
-			ImGui.SameLine();
-
-			Vector3 rootLocalTemp = Constants.OneVector;
-			float rootScaleValueAllAxes = 1; //value used for scale when user just want to scale all axes
-			bool isRootControlDisabled = false;
-			switch (editMode)
-			{
-				case EditMode.Position:
-					rootLocalTemp = rootEditsContainer.Position;
-					rootScaleValueAllAxes = 0;
-					break;
-				case EditMode.Rotation:
-					rootLocalTemp = Constants.ZeroVector;
-					rootScaleValueAllAxes = 0;
-					isRootControlDisabled = true;
-					break;
-				case EditMode.Scale:
-					rootLocalTemp = rootEditsContainer.Scale;
-					rootScaleValueAllAxes = (rootLocalTemp.X == rootLocalTemp.Y && rootLocalTemp.X == rootLocalTemp.Z && rootLocalTemp.Y == rootLocalTemp.Z) ? rootLocalTemp.X : 0;
-					break;
-			}
-
-			if (isRootControlDisabled)
-				ImGui.BeginDisabled();
-
-			ImGui.SetNextItemWidth(ImGui.GetWindowWidth() - 425);
-			if (ImGui.DragFloat3("##Root", ref rootLocalTemp, 0.001f, 0f, 10f))
-			{
-				if (this.reset)
-				{
-					rootLocalTemp = new Vector3(1f, 1f, 1f);
-					rootScaleValueAllAxes = 1;
-					this.reset = false;
-				}
-				else if (!(rootLocalTemp.X == rootLocalTemp.Y && rootLocalTemp.X == rootLocalTemp.Z && rootLocalTemp.Y == rootLocalTemp.Z))
-				{
-					rootScaleValueAllAxes = 0;
-				}
-
-				switch (editMode)
-				{
-					case EditMode.Position:
-						rootEditsContainer.Position = new Vector3(rootLocalTemp.X, rootLocalTemp.Y, rootLocalTemp.Z);
-						break;
-					case EditMode.Rotation:
-						rootEditsContainer.Rotation = new Vector3(rootLocalTemp.X, rootLocalTemp.Y, rootLocalTemp.Z);
-						break;
-					case EditMode.Scale:
-						rootEditsContainer.Scale = new Vector3(rootLocalTemp.X, rootLocalTemp.Y, rootLocalTemp.Z);
-						break;
-				}
-
-				if (config.AutomaticEditMode)
-				{
-					this.UpdateCurrent("n_root", this.rootEditsContainer, config.AutomaticEditMode);
-				}
-			}
-			if (isRootControlDisabled)
-				ImGui.EndDisabled();
-
-			ImGui.SameLine();
-			if(editMode != EditMode.Scale)
-				ImGui.BeginDisabled();
-
-			ImGui.SetNextItemWidth(100);
-			if (ImGui.DragFloat("##RootAllAxes", ref rootScaleValueAllAxes, 0.001f, 0f, 10f))
-			{
-				if (rootScaleValueAllAxes != 0)
-				{
-					rootLocalTemp.X = rootScaleValueAllAxes;
-					rootLocalTemp.Y = rootScaleValueAllAxes;
-					rootLocalTemp.Z = rootScaleValueAllAxes;
-				}
-
-				rootEditsContainer.Scale = new Vector3(rootLocalTemp.X, rootLocalTemp.Y, rootLocalTemp.Z);
-
-				if (config.AutomaticEditMode)
-				{
-					this.UpdateCurrent("n_root", this.rootEditsContainer, config.AutomaticEditMode);
-				}
-			}
-
-			if (editMode != EditMode.Scale)
-				ImGui.EndDisabled();
-
-			ImGui.SameLine();
-			ImGui.Text("Root");
-
-			string col1Label = "X";
-			string col2Label = "Y";
-			string col3Label = "Z";
-			string col4Label = "All";
-
-			switch (editMode)
-			{
-				case EditMode.Rotation:
-					col1Label = "Yaw";
-					col2Label = "Pitch";
-					col3Label = "Roll";
-					break;
-			}
+			string col1Label = mode == EditMode.Rotation ? "Yaw" : "X";
+			string col2Label = mode == EditMode.Rotation ? "Pitch" : "Y";
+			string col3Label = mode == EditMode.Rotation ? "Roll" : "Z";
+			string col4Label = mode == EditMode.Scale ? "All" : "N/A";
 
 			ImGui.Separator();
 			ImGui.BeginTable("Bones", 6, ImGuiTableFlags.SizingStretchSame);
@@ -285,411 +162,387 @@ namespace CustomizePlus.Interface
 			ImGui.TableNextColumn();
 			ImGui.Text("Name");
 			ImGui.EndTable();
+			ImGui.Separator();
 
 			ImGui.BeginChild("scrolling", new Vector2(0, ImGui.GetFrameHeightWithSpacing() - 56), false);
 
-			for (int i = 0; i < boneValuesNew.Count; i++)
+			IEnumerable<string> relevantBoneNames = BoneData.GetFilteredBoneCodenames(this.WorkingScale);
+
+			foreach(string codename in relevantBoneNames)
 			{
-				string boneCodenameLocal = this.dispNamesUsed[i];
-
-				string boneDispNameLocal = this.codenamesUsed[i];
-
-				ImGui.PushID(i);
-
-				if (!this.IsBoneNameEditable(boneDispNameLocal))
-				{
-					ImGui.PopID();
-					continue;
-				}
-
-				BoneEditsContainer currentEditsContainer = new BoneEditsContainer { Position = Constants.ZeroVector, Rotation = Constants.ZeroVector, Scale = Constants.OneVector };
-				string label = "Not Found";
-
-				try
-				{
-					if (this.boneValuesNew.TryGetValue(boneCodenameLocal, out currentEditsContainer))
-						label = boneDispNameLocal;
-					else if (this.boneValuesNew.TryGetValue(boneDispNameLocal, out currentEditsContainer))
-						label = boneDispNameLocal;
-					else
-						currentEditsContainer = new BoneEditsContainer { Position = Constants.ZeroVector, Rotation = Constants.ZeroVector, Scale = Constants.OneVector };
-				}
-				catch (Exception ex)
-				{
-
-				}
-
-				Vector3 currentVector = Constants.OneVector;
-				float currentScaleValueAllAxes = 1; //value used for scale when user just want to scale all axes
-				switch (editMode)
-				{
-					case EditMode.Position:
-						currentVector = currentEditsContainer.Position;
-						break;
-					case EditMode.Rotation:
-						currentVector = currentEditsContainer.Rotation;
-						break;
-					case EditMode.Scale:
-						currentVector = currentEditsContainer.Scale;
-						currentScaleValueAllAxes = (currentVector.X == currentVector.Y && currentVector.X == currentVector.Z && currentVector.Y == currentVector.Z) ? currentVector.X : 0;
-						break;
-				}
-
-				if (ImGuiComponents.IconButton(i, FontAwesomeIcon.Recycle))
-				{
-					this.reset = true;
-				}
-
-				if (ImGui.IsItemHovered())
-					ImGui.SetTooltip($"Reset");
-
-				if (this.reset)
-				{
-					BoneEditsContainer editsContainer = null;
-
-					switch (editMode)
-					{
-						case EditMode.Position:
-						case EditMode.Rotation:
-							currentScaleValueAllAxes = 0;
-							currentVector.X = 0F;
-							currentVector.Y = 0F;
-							currentVector.Z = 0F;
-							break;
-						case EditMode.Scale:
-							currentScaleValueAllAxes = 1;
-							currentVector.X = 1F;
-							currentVector.Y = 1F;
-							currentVector.Z = 1F;
-							break;
-					}
-					this.reset = false;
-					try
-					{
-						if (this.boneValuesNew.ContainsKey(boneDispNameLocal))
-							editsContainer = this.boneValuesNew[boneDispNameLocal];
-						else if (this.boneValuesNew.Remove(boneCodenameLocal, out BoneEditsContainer removedContainer))
-						{
-							editsContainer = removedContainer;
-							this.boneValuesNew[boneCodenameLocal] = editsContainer;
-						}
-						else
-							throw new Exception();
-
-						switch (editMode)
-						{
-							case EditMode.Position:
-								editsContainer.Position = new Vector3(currentVector.X, currentVector.Y, currentVector.Z);
-								break;
-							case EditMode.Rotation:
-								editsContainer.Rotation = new Vector3(currentVector.X, currentVector.Y, currentVector.Z);
-								break;
-							case EditMode.Scale:
-								editsContainer.Scale = new Vector3(currentVector.X, currentVector.Y, currentVector.Z);
-								break;
-						}
-					}
-					catch
-					{
-						//throw new Exception();
-					}
-					if (config.AutomaticEditMode)
-					{
-						this.UpdateCurrent(boneCodenameLocal, editsContainer, config.AutomaticEditMode);
-					}
-				}
-				else if (currentVector.X == currentVector.Y && currentVector.Y == currentVector.Z)
-				{
-					currentScaleValueAllAxes = currentVector.X;
-				}
-				else
-				{
-					currentScaleValueAllAxes = 0;
-				}
-
-				ImGui.SameLine();
-
-				ImGui.SetNextItemWidth(ImGui.GetWindowWidth() - 400);
-
-				float minLimit = -10f;
-				float maxLimit = 10f;
-				float increment = 0.001f;
-
-				switch (editMode)
-				{
-					case EditMode.Rotation:
-						minLimit = -360f;
-						maxLimit = 360f;
-						increment = 1f;
-						break;
-				}
-
-				if (ImGui.DragFloat3($"##{label}", ref currentVector, increment, minLimit, maxLimit))
-				{
-					BoneEditsContainer editsContainer = null;
-					try
-					{
-						if (this.reset)
-						{
-							switch (editMode)
-							{
-								case EditMode.Position:
-								case EditMode.Rotation:
-									currentScaleValueAllAxes = 0F;
-									currentVector.X = 0F;
-									currentVector.Y = 0F;
-									currentVector.Z = 0F;
-									break;
-								case EditMode.Scale:
-									currentScaleValueAllAxes = 1F;
-									currentVector.X = 1F;
-									currentVector.Y = 1F;
-									currentVector.Z = 1F;
-									break;
-							}
-							this.reset = false;
-						}
-						else if (!((currentVector.X == currentVector.Y) && (currentVector.X == currentVector.Z) && (currentVector.Y == currentVector.Z)))
-						{
-							currentScaleValueAllAxes = 0;
-						}
-					}
-					catch (Exception ex)
-					{
-
-					}
-					try
-					{
-						if (this.boneValuesNew.ContainsKey(boneDispNameLocal))
-							editsContainer = this.boneValuesNew[boneDispNameLocal];
-						else if (this.boneValuesNew.Remove(boneCodenameLocal, out BoneEditsContainer removedContainer))
-						{
-							editsContainer = removedContainer;
-							this.boneValuesNew[boneCodenameLocal] = editsContainer;
-						}
-						else
-							throw new Exception();
-
-						switch (editMode)
-						{
-							case EditMode.Position:
-								editsContainer.Position = new Vector3(currentVector.X, currentVector.Y, currentVector.Z);
-								break;
-							case EditMode.Rotation:
-								editsContainer.Rotation = new Vector3(currentVector.X, currentVector.Y, currentVector.Z);
-								break;
-							case EditMode.Scale:
-								editsContainer.Scale = new Vector3(currentVector.X, currentVector.Y, currentVector.Z);
-								break;
-						}
-					}
-					catch
-					{
-						//throw new Exception();
-					}
-					if (config.AutomaticEditMode)
-					{
-						this.UpdateCurrent(boneCodenameLocal, editsContainer, config.AutomaticEditMode);
-					}
-				}
-
-				ImGui.SameLine();
-				if (editMode != EditMode.Scale)
-					ImGui.BeginDisabled();
-
-				ImGui.SetNextItemWidth(100);
-				if (ImGui.DragFloat($"##{label}AllAxes", ref currentScaleValueAllAxes, 0.001f, 0f, 10f))
-				{
-					if (currentScaleValueAllAxes != 0)
-					{
-						currentVector.X = currentScaleValueAllAxes;
-						currentVector.Y = currentScaleValueAllAxes;
-						currentVector.Z = currentScaleValueAllAxes;
-					}
-
-					BoneEditsContainer editsContainer = null;
-					if (this.boneValuesNew.ContainsKey(boneDispNameLocal))
-						editsContainer = this.boneValuesNew[boneDispNameLocal];
-					else if (this.boneValuesNew.Remove(boneCodenameLocal, out BoneEditsContainer removedContainer))
-					{
-						editsContainer = removedContainer;
-						this.boneValuesNew[boneCodenameLocal] = editsContainer;
-					}
-					else
-						throw new Exception();
-
-					editsContainer.Scale = new Vector3(currentVector.X, currentVector.Y, currentVector.Z);
-
-					if (config.AutomaticEditMode)
-					{
-						this.UpdateCurrent(boneCodenameLocal, editsContainer, config.AutomaticEditMode);
-					}
-				}
-
-				if (editMode != EditMode.Scale)
-					ImGui.EndDisabled();
-
-				ImGui.SameLine();
-				ImGui.Text(label);
-
-				ImGui.PopID();
+				RenderBoneRow(codename);
 			}
 
 			ImGui.EndChild();
 
 			ImGui.Separator();
 
+			//----------------------------------
+
+			if (ImGui.Button("Revert"))
+			{
+				if (!this.dirty)
+					return;
+
+				ConfirmationDialog.Show("Revert all unsaved work?", RevertAll);
+			}
+			AppendTooltip("Remove all pending changes, reverting to last save");
+
+			ImGui.SameLine();
+
 			if (ImGui.Button("Save"))
 			{
-				bool forceClose = false;
-				if (this.newScaleCharacter != this.originalScaleCharacter || this.newScaleName != this.originalScaleName)
-					forceClose = true;
+				if (!this.dirty)
+					return;
 
-				AddToConfig(this.newScaleName, this.newScaleCharacter);
-				Plugin.ConfigurationManager.SaveConfiguration();
-				Plugin.LoadConfig();
+				bool forceClose = false;
+				if (!this.WorkingScale.SameNamesAs(this.BackupScale))
+				{
+					forceClose = true;
+				}
+
+				void Proceed()
+				{
+					AddToConfig();
+					Plugin.ConfigurationManager.SaveConfiguration();
+					Plugin.LoadConfig();
+				}
 
 				if(forceClose)
 				{
-					MessageWindow.Show("Customize+ detected that you have changed either character name or scale name.\nIn order to properly make a copy, the editing window was automatically closed.", new Vector2(485, 100));
+					MessageWindow.Show("Customize+ detected that you have changed either character name or scale name." +
+						"\nIn order to properly make a copy, the editing window was automatically closed.", new Vector2(485, 100));
 					this.Close();
 				}
+				else if ((this.BackupScale.InclHroth && !this.WorkingScale.InclHroth)
+					|| (this.BackupScale.InclViera && !this.WorkingScale.InclViera)
+					|| (this.BackupScale.InclIVCS && !this.WorkingScale.InclIVCS))
+				{
+					ConfirmationDialog.Show("Certain optional bones were turned off since the last save.\n"
+						+ "Saving now will reset those bones to their default state.\n\nContinue?",
+						Proceed, "Confirm Bone Deletion");
+				}
+				else
+				{
+					Proceed();
+				}
 			}
-
-			/* TODO feature: undo of some variety. Option below is a revert to what was present when edit was opened, but needs additonal logic
-			 * ImGui.SameLine();
-			if (ImGui.Button("Revert"))
-			{
-				RevertToOriginal();
-				//config.Save();
-			}
-			*/
+			AppendTooltip("Save changes and continue editing");
 
 			ImGui.SameLine();
 
 			if (ImGui.Button("Save and Close"))
 			{
-				AddToConfig(this.newScaleName, this.newScaleCharacter);
-				Plugin.ConfigurationManager.SaveConfiguration();
-				Plugin.LoadConfig();
-				this.Close();
+				if (!this.dirty)
+					this.Close();
+
+				void Proceed()
+				{
+					AddToConfig();
+					Plugin.ConfigurationManager.SaveConfiguration();
+					Plugin.LoadConfig();
+					this.Close();
+				}
+
+				if ((this.BackupScale.InclHroth && !this.WorkingScale.InclHroth)
+					|| (this.BackupScale.InclViera && !this.WorkingScale.InclViera)
+					|| (this.BackupScale.InclIVCS && !this.WorkingScale.InclIVCS))
+				{
+					ConfirmationDialog.Show("Certain optional bones were turned off since the last save.\n"
+						+ "Saving now will reset those bones to their default state.\n\nContinue?",
+						Proceed, "Confirm Bone Deletion");
+				}
+				else
+				{
+					Proceed();
+				}
 			}
+			AppendTooltip("Save changes and stop editing");
+
 			ImGui.SameLine();
+
+
 			if (ImGui.Button("Cancel"))
 			{
-				this.Close();
+				if (!this.dirty)
+					this.Close();
+
+				void Close()
+				{
+					this.RevertAll();
+					this.Close();
+				}
+				ConfirmationDialog.Show("Revert unsaved work and exit editor?", Close);
 			}
+			AppendTooltip("Close the editor without saving\n(reverting all unsaved changes)");
 
 			ImGui.SameLine();
 
 			ImGui.Text("    Save and close with new scale name or new character name to create a copy.");
 		}
 
-		//TODO: refactoring, this should use existing BodyScale for existing scales
-		private void AddToConfig(string scaleName, string characterName)
+
+		private void AddToConfig()
 		{
 			PluginConfiguration config = Plugin.ConfigurationManager.Configuration;
-			BodyScale newBody = new BodyScale();
 
-			bool isSameScale = this.originalScaleName == scaleName && this.originalScaleCharacter == characterName;
+			bool isSameScale = this.BackupScale.SameNamesAs(this.WorkingScale);
 
-			for (int i = 0; i < this.boneCodenames.Count && i < this.boneValuesNew.Count; i++)
+			if (isSameScale && TryGetScaleIndex(this.WorkingScale, out int configIndex))
 			{
-				string codename = codenamesUsed[i];
-
-				//create a deep copy if we are making a copy of scale so we don't reference data from other scale
-				newBody.Bones[codename] = isSameScale ? this.boneValuesNew[codename] : this.boneValuesNew[codename].DeepCopy();
-			}
-
-			newBody.Bones["n_root"] = isSameScale ? this.rootEditsContainer : this.rootEditsContainer.DeepCopy();
-
-			newBody.BodyScaleEnabled = this.scaleEnabled;
-			newBody.ScaleName = scaleName;
-			newBody.CharacterName = characterName;
-
-			if (isSameScale)
-			{
-				int matchIndex = -1;
-				for (int i = 0; i < config.BodyScales.Count; i++)
-				{
-					if (config.BodyScales[i].ScaleName == scaleName && config.BodyScales[i].CharacterName == characterName)
-					{
-						matchIndex = i;
-						break;
-					}
-				}
-				if (matchIndex >= 0)
-				{
-					config.BodyScales.RemoveAt(matchIndex);
-					config.BodyScales.Insert(matchIndex, newBody);
-				}
+				config.BodyScales.RemoveAt(configIndex);
+				config.BodyScales.Insert(configIndex, this.WorkingScale);
 			}
 			else
 			{
-				this.originalScaleName = scaleName;
-				this.originalScaleCharacter = characterName;
-				config.BodyScales.Add(newBody);
-				if (this.scaleEnabled)
+				//NOTE I'm not sure that this makes sense?
+				//What's gained from changing the names if it's getting replaced just after this block anyways?
+				this.BackupScale.ScaleName = this.WorkingScale.ScaleName;
+				this.BackupScale.CharacterName = this.WorkingScale.ScaleName;
+
+				config.BodyScales.Add(this.WorkingScale);
+
+				if (this.WorkingScale.BodyScaleEnabled)
 				{
-					Plugin.ConfigurationManager.ToggleOffAllOtherMatching(characterName, scaleName);
+					Plugin.ConfigurationManager.ToggleOffAllOtherMatching(this.WorkingScale.CharacterName, this.WorkingScale.ScaleName);
 				}
 			}
 
-			this.Scale = newBody;
+			this.BackupScale = new BodyScale(this.WorkingScale);
 		}
-
-		/*private void RevertToOriginal() //Currently Unused
-		{
-			this.boneValuesNew = this.boneValuesOriginal;
-			this.newRootScale = this.originalRootScale;
-		}*/
 
 		private void UpdateCurrent(string boneName, BoneEditsContainer boneValue, bool autoMode = false)
 		{
 			PluginConfiguration config = Plugin.ConfigurationManager.Configuration;
-			BodyScale newBody = this.Scale;
 
-			newBody.Bones[boneName] = boneValue;
+			this.WorkingScale.Bones[boneName] = boneValue;
 
-			if (this.scaleIndex == -1 || this.scaleIndex > config.BodyScales.Count)
+			if (TryGetScaleIndex(this.WorkingScale, out int configIndex))
 			{
-				this.scaleIndex = GetCurrentScaleIndex(this.originalScaleName, this.originalScaleCharacter);
+				config.BodyScales[configIndex] = this.WorkingScale;
+				Plugin.ConfigurationManager.SaveConfiguration();
+				Plugin.LoadConfig(autoMode);
 			}
-
-			config.BodyScales[this.scaleIndex] = newBody;
-			Plugin.ConfigurationManager.SaveConfiguration();
-			Plugin.LoadConfig(autoMode);
 		}
 
-		private int GetCurrentScaleIndex(string scaleName, string scaleCharacter)
+		private void RevertAll()
+		{
+			var config = Plugin.ConfigurationManager.Configuration;
+
+			this.WorkingScale = new BodyScale(this.BackupScale);
+			this.WorkingScale.UpdateBoneList();
+
+			if (TryGetScaleIndex(this.WorkingScale, out int configIndex))
+			{
+				config.BodyScales[configIndex] = this.WorkingScale;
+				Plugin.ConfigurationManager.SaveConfiguration();
+				Plugin.LoadConfig(true);
+			}
+		}
+
+		private bool TryGetScaleIndex(BodyScale bs, out int index)
 		{
 			PluginConfiguration config = Plugin.ConfigurationManager.Configuration;
-			int matchIndex = -1;
+
 			for (int i = 0; i < config.BodyScales.Count; i++)
 			{
-				if (config.BodyScales[i].ScaleName == scaleName && config.BodyScales[i].CharacterName == scaleCharacter)
+				if (config.BodyScales[i].SameNamesAs(bs))
 				{
-					matchIndex = i;
-					break;
+					index = i;
+					return true;
 				}
 			}
-			if (matchIndex >= 0)
-			{
-				return matchIndex;
-			}
-			return -1;
+
+			index = -1;
+			return false;
 		}
 
-		private bool IsBoneNameEditable(string boneNameModern)
+
+		#region ImGui helper functions
+
+		private bool RenderTextBox(string label, ref string value)
 		{
-			// Megahack method
-			if (boneNameModern == "Root" || boneNameModern == "Throw" || boneNameModern == "Abdomen" 
-				|| boneNameModern.Contains("Cloth") || boneNameModern.Contains("Scabbard") || boneNameModern.Contains("Pauldron")
-				|| boneNameModern.Contains("Holster") || boneNameModern.Contains("Poleyn") || boneNameModern.Contains("Shield")
-				|| boneNameModern.Contains("Couter") || boneNameModern.Contains("Weapon") || boneNameModern.Contains("Sheathe"))
-				return false;
-			return true;
+			return ImGui.InputText(label, ref value, 1024);
 		}
+
+		private bool RenderCheckBox(string label, ref bool value)
+		{
+			return ImGui.Checkbox(label, ref value);
+		}
+
+		private bool RenderCheckBox(string label, in bool shown, Action<bool> toggle)
+		{
+			bool temp = shown;
+			ImGui.Checkbox(label, ref temp);
+			toggle(temp);
+			return temp;
+		}
+
+		private void AppendTooltip(string text)
+		{
+			if (ImGui.IsItemHovered())
+			{
+				ImGui.SetTooltip(text);
+			}
+		}
+
+		private bool RenderResetButton(string codename, ref Vector3 value)
+		{
+			bool output = ImGuiComponents.IconButton(codename, FontAwesomeIcon.Recycle);
+			AppendTooltip($"Reset '{BoneData.GetBoneDisplayName(codename)}' to default {this.mode} values");
+
+			if (output)
+			{
+				value = this.mode switch
+				{
+					EditMode.Scale => Vector3.One,
+					_ => Vector3.Zero
+				};
+			}
+
+			return output;
+		}
+
+		private bool RenderRevertButton(string codename, ref Vector3 value)
+		{
+			bool output = ImGuiComponents.IconButton(codename, FontAwesomeIcon.ArrowCircleLeft);
+			AppendTooltip($"Revert '{BoneData.GetBoneDisplayName(codename)}' to last saved {this.mode} values");
+
+			if (output)
+			{
+				value = this.mode switch
+				{
+					EditMode.Position => this.BackupScale.Bones[codename].Position,
+					EditMode.Rotation => this.BackupScale.Bones[codename].Rotation,
+					_ => this.BackupScale.Bones[codename].Scale
+				};
+			}
+
+			return output;
+		}
+
+		private bool RenderDragBox(string label, ref Vector3 value)
+		{
+			float velocity = this.mode == EditMode.Rotation ? 1.0f : 0.001f;
+			float minValue = this.mode == EditMode.Rotation ? -360.0f : -10.0f;
+			float maxValue = this.mode == EditMode.Rotation ? 360.0f : 10.0f;
+
+			float temp = this.mode switch
+			{
+				EditMode.Position => 0.0f,
+				EditMode.Rotation => 0.0f,
+				_ => value.X == value.Y && value.Y == value.Z ? value.X : 1.0f
+			};
+			
+
+			if (ImGui.DragFloat(label, ref temp, velocity, minValue, maxValue))
+			{
+				value = new Vector3(temp, temp, temp);
+				return true;
+			}
+			return false;
+		}
+
+		private bool RenderTripleDragBoxes(string label, ref Vector3 value)
+		{
+			float velocity = mode == EditMode.Rotation ? 1.0f : 0.001f;
+			float minValue = mode == EditMode.Rotation ? -360.0f : -10.0f;
+			float maxValue = mode == EditMode.Rotation ? 360.0f : 10.0f;
+
+			return ImGui.DragFloat3(label, ref value, velocity, minValue, maxValue);
+		}
+
+		private void RenderLabel(string? text, string tooltip = "")
+		{
+			ImGui.Text(text ?? "Unknown Bone");
+			if (!tooltip.IsNullOrWhitespace())
+			{
+				AppendTooltip(tooltip);
+			}
+		}
+
+		private void RenderBoneRow(string codename)
+		{
+			if (!this.WorkingScale.TryGetBone(codename, out var currentBoneEdits) || currentBoneEdits == null)
+			{
+				currentBoneEdits = new BoneEditsContainer();
+				this.WorkingScale.Bones.Add(codename, currentBoneEdits);
+			}
+
+			string displayName = BoneData.GetBoneDisplayName(codename) ?? codename;
+
+			bool flagUpdate = false;
+
+			Vector3 whichBoneVector = mode switch
+			{
+				EditMode.Position => currentBoneEdits.Position,
+				EditMode.Rotation => currentBoneEdits.Rotation,
+				_ => currentBoneEdits.Scale
+			};
+
+			ImGui.PushID(codename);
+
+			flagUpdate |= RenderResetButton(codename, ref whichBoneVector);
+
+			ImGui.SameLine();
+
+			flagUpdate |= RenderRevertButton(codename, ref whichBoneVector);
+
+			ImGui.SameLine();
+
+			ImGui.SetNextItemWidth(this.windowHorz * 3 / 6);
+			flagUpdate |= RenderTripleDragBoxes($"##{displayName}", ref whichBoneVector);
+
+			ImGui.SameLine();
+
+			if (mode != EditMode.Scale)
+				ImGui.BeginDisabled();
+
+			ImGui.SetNextItemWidth(this.windowHorz / 7);
+			flagUpdate |= RenderDragBox($"##{displayName}AllAxes", ref whichBoneVector);
+
+			if (mode != EditMode.Scale)
+				ImGui.EndDisabled();
+
+			ImGui.SameLine();
+
+			RenderLabel(displayName, codename);
+
+			ImGui.PopID();
+
+			if (flagUpdate)
+			{
+				this.dirty = true;
+
+				currentBoneEdits.UpdateVector(mode, whichBoneVector);
+
+				//this is really ugly, but I couldn't think of a better way to pull these values out
+				//and be able to pass them back further below
+				string mirrorName = String.Empty;
+				BoneEditsContainer? mirrorEdits = null;
+				if (this.mirrorMode)
+				{
+					mirrorName = BoneData.GetBoneMirror(codename);
+					if (mirrorName != null && this.WorkingScale.TryGetMirror(codename, out mirrorEdits) && mirrorEdits != null)
+					{
+						mirrorEdits = currentBoneEdits.ReflectAcrossZPlane();
+					}
+				}
+
+				if (Plugin.ConfigurationManager.Configuration.AutomaticEditMode)
+				{
+					this.UpdateCurrent(codename, currentBoneEdits, true);
+
+					if (this.mirrorMode && !mirrorName.IsNullOrEmpty() && mirrorEdits != null)
+					{
+						this.UpdateCurrent(mirrorName, mirrorEdits, true);
+					}
+				}
+			}
+		}
+
+		#endregion
+
 	}
 
 	public enum EditMode
@@ -698,4 +551,6 @@ namespace CustomizePlus.Interface
 		Rotation,
 		Scale
 	}
+
+
 }
