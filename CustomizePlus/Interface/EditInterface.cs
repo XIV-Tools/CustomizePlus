@@ -93,6 +93,12 @@ namespace CustomizePlus.Interface
 			RenderCheckBox("Mirror Mode", ref this.mirrorMode);
 			AppendTooltip($"Bone changes will be reflected from left to right and vice versa");
 
+			ImGui.SameLine();
+			ImGui.Spacing();
+			ImGui.SameLine();
+			ImGui.SetNextItemWidth(150);
+			ImGui.SliderInt("Precision", ref precision, 1, 6);
+
 			ImGui.Separator();
 
 			if (ImGui.RadioButton("Position", mode == EditMode.Position))
@@ -105,12 +111,6 @@ namespace CustomizePlus.Interface
 			ImGui.SameLine();
 			if (ImGui.RadioButton("Scale", mode == EditMode.Scale))
 				mode = EditMode.Scale;
-
-            ImGui.SameLine();
-            ImGui.Spacing();
-            ImGui.SameLine();
-            ImGui.SetNextItemWidth(300);
-            ImGui.SliderInt("Precision", ref precision, 1, 6);
 
             if (mode != EditMode.Scale)
 			{
@@ -162,17 +162,6 @@ namespace CustomizePlus.Interface
 			ImGui.Separator();
 
 			//----------------------------------
-
-			if (ImGui.Button("Revert"))
-			{
-				if (!this.dirty)
-					return;
-
-				ConfirmationDialog.Show("Revert all unsaved work?", RevertAll);
-			}
-			AppendTooltip("Remove all pending changes, reverting to last save");
-
-			ImGui.SameLine();
 
 			if (ImGui.Button("Save"))
 			{
@@ -244,25 +233,36 @@ namespace CustomizePlus.Interface
 			AppendTooltip("Save changes and stop editing");
 
 			ImGui.SameLine();
+			ImGui.Spacing();
+			ImGui.SameLine();
 
+			ImGui.Text("Save with new scale/character name to create a copy.");
 
-			if (ImGui.Button("Cancel"))
-			{
+			ImGui.SameLine();
+			ImGui.Spacing();
+			ImGui.SameLine();
+
+			if (ImGui.Button("Revert")) {
+				if (!this.dirty)
+					return;
+
+				ConfirmationDialog.Show("Revert all unsaved work?", RevertAll);
+			}
+			AppendTooltip("Remove all pending changes, reverting to last save");
+
+			ImGui.SameLine();
+
+			if (ImGui.Button("Cancel")) {
 				if (!this.dirty)
 					this.Close();
 
-				void Close()
-				{
+				void Close() {
 					this.RevertAll();
 					this.Close();
 				}
 				ConfirmationDialog.Show("Revert unsaved work and exit editor?", Close);
 			}
 			AppendTooltip("Close the editor without saving\n(reverting all unsaved changes)");
-
-			ImGui.SameLine();
-
-			ImGui.Text("    Save and close with new scale name or new character name to create a copy.");
 		}
 
 
