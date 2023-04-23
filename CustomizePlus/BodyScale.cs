@@ -22,8 +22,8 @@ namespace CustomizePlus
 	{
 		private readonly ConcurrentDictionary<int, PoseScale> poses = new();
 
-		public string CharacterName { get; private set; }
-		public string ScaleName { get; private set; }
+		public string CharacterName { get; set; }
+		public string ScaleName { get; set; }
 		public bool BodyScaleEnabled { get; set; }
 
 		/// <summary>
@@ -45,12 +45,12 @@ namespace CustomizePlus
 		/// Initializes a new instance of the <see cref="BodyScale"/> class.
 		/// Constructs a blank BodyScale object with no bones and mostly-empty properties.
 		/// </summary>
-		public BodyScale()
+		public BodyScale(string? charName = null, string? scaleName = null)
 		{
 			this.poses = new ConcurrentDictionary<int, PoseScale>();
 
-			this.CharacterName = String.Empty;
-			this.ScaleName = String.Empty;
+			this.CharacterName = charName ?? String.Empty;
+			this.ScaleName = scaleName ?? String.Empty;
 			this.BodyScaleEnabled = true;
 
 			this.InclHroth = false;

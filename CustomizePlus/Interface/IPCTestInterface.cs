@@ -77,7 +77,7 @@ namespace CustomizePlus.Interface
 		private Dictionary<string, BoneEditsContainer> boneValuesOriginal = new Dictionary<string, BoneEditsContainer>();
 		private Dictionary<string, BoneEditsContainer> boneValuesNew = new Dictionary<string, BoneEditsContainer>();
 		private readonly List<string> boneCodenames = BoneData.GetBoneCodenames();
-		private readonly List<string> boneDispNames = BoneData.GetBoneDispNames();
+		private readonly List<string> boneDispNames = BoneData.GetBoneDisplayNames();
 		private List<string> boneDispNamesUsed = new List<string>();
 		private List<string> boneCodenamesUsed = new List<string>();
 		private bool scaleEnabled = false;
@@ -102,7 +102,7 @@ namespace CustomizePlus.Interface
 			//UnsubscribeEvents();
 
 
-			var scale = ConfigurationInterface.BuildDefault(new BodyScale());
+			var scale = BodyScale.BuildDefault();
 			editWnd.Scale = scale;
 			editWnd.ScaleUpdated = scale;
 			if (scale == null)
