@@ -6,7 +6,9 @@ namespace CustomizePlus
 	using System;
 	using System.Collections.Concurrent;
 	using System.Collections.Generic;
+	using System.Linq;
 	using System.Numerics;
+	using Anamnesis.Posing;
 	using CustomizePlus.Data;
 	using CustomizePlus.Extensions;
 	using CustomizePlus.Helpers;
@@ -20,10 +22,204 @@ namespace CustomizePlus
 	{
 		private readonly ConcurrentDictionary<int, PoseScale> poses = new();
 
-		public string CharacterName { get; set; } = string.Empty;
-		public string ScaleName { get; set; } = string.Empty;
-		public bool BodyScaleEnabled { get; set; } = true;
-		public Dictionary<string, BoneEditsContainer> Bones { get; } = new();
+		public string CharacterName { get; private set; }
+		public string ScaleName { get; private set; }
+		public bool BodyScaleEnabled { get; set; }
+
+		/// <summary>
+		/// Gets a value indicating whether or not this BodyScale contains hrothgar-exclusive bones.
+		/// </summary>
+		public bool InclHroth { get; private set; }
+		/// <summary>
+		/// Gets a value indicating whether or not this BodyScale contains viera-exclusive bones.
+		/// </summary>
+		public bool InclViera { get; private set; }
+		/// <summary>
+		/// Gets a value indicating whether or not this BodyScale contains IVCS-exclusive bones.
+		/// </summary>
+		public bool InclIVCS { get; private set; }
+
+		public Dictionary<string, BoneEditsContainer> Bones { get; private set; } = new();
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="BodyScale"/> class.
+		/// Constructs a blank BodyScale object with no bones and mostly-empty properties.
+		/// </summary>
+		public BodyScale()
+		{
+			this.poses = new ConcurrentDictionary<int, PoseScale>();
+
+			this.CharacterName = String.Empty;
+			this.ScaleName = String.Empty;
+			this.BodyScaleEnabled = true;
+
+			this.InclHroth = false;
+			this.InclViera = false;
+			this.InclIVCS = false;
+
+			this.Bones = new Dictionary<string, BoneEditsContainer>();
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="BodyScale"/> class.
+		/// Copy Constructor. Performs deep copies of individual bones and poses.
+		/// </summary>
+		public BodyScale(BodyScale original)
+		{
+			this.poses = new(original.poses.ToDictionary(x => x.Key, x => x.Value.DeepCopy(this)));
+
+			this.CharacterName = original.CharacterName;
+			this.ScaleName = original.ScaleName;
+			this.BodyScaleEnabled = original.BodyScaleEnabled;
+
+			this.InclHroth = original.InclHroth;
+			this.InclViera = original.InclViera;
+			this.InclIVCS = original.InclIVCS;
+
+			this.Bones = original.Bones.ToDictionary(x => x.Key, x => x.Value.DeepCopy());
+		}
+
+		/// <summary>
+		/// Constructs a "default" bodyscale with standard collection of bones.
+		/// </summary>
+		public static BodyScale BuildDefault()
+		{
+			BodyScale output = new BodyScale();
+			output.CharacterName = "Default";
+			output.ScaleName = "Default";
+			output.BodyScaleEnabled = false;
+
+			foreach(string codename in BoneData.GetFilteredBoneCodenames(false, false, false, true))
+			{
+				output.Bones.Add(codename, new BoneEditsContainer());
+			}
+
+			return output;
+		}
+
+		/// <summary>
+		/// Changes state of <see cref="InclHroth"/> property.
+		/// Toggling on has side-effect of toggling <see cref="InclViera"/> off.
+		/// </summary>
+		public void ToggleHrothgarFeatures(bool active)
+		{
+			if (active)
+			{
+				this.InclHroth = true;
+				this.InclViera = false;
+			}
+			else
+			{
+				this.InclHroth = false;
+			}
+			UpdateBoneList();
+		}
+
+		/// <summary>
+		/// Changes state of <see cref="InclViera"/> property.
+		/// Toggling on has side-effect of toggling <see cref="InclHroth"/> off.
+		/// </summary>
+		public void ToggleVieraFeatures(bool active)
+		{
+			if (active)
+			{
+				this.InclViera = true;
+				this.InclHroth = false;
+			}
+			else
+			{
+				this.InclViera = false;
+			}
+			UpdateBoneList();
+		}
+
+		/// <summary>
+		/// Changes state of <see cref="InclIVCS"/> property.
+		/// </summary>
+		public void ToggleIVCSFeatures(bool active)
+		{
+			this.InclIVCS = active;
+			UpdateBoneList();
+		}
+
+		/// <summary>
+		/// Returns whether or not this BodyScale contains a bone with the given codename.
+		/// If it does, the BoneEditsContainer is passed out by reference.
+		/// </summary>
+		public bool TryGetBone(string codename, out BoneEditsContainer? result)
+		{
+			return this.Bones.TryGetValue(codename, out result);
+		}
+
+		/// <summary>
+		/// Returns whether or not this BodyScale contains a bone that is the mirror-image of a bone with the given codename.
+		/// If it does, the BoneEditsContainer is passed out by reference.
+		/// </summary>
+		public bool TryGetMirror(string codename, out BoneEditsContainer? result)
+		{
+			string? mirrorName = BoneData.GetBoneMirror(codename);
+			if (mirrorName == null)
+			{
+				result = null;
+				return false;
+			}
+			else
+			{
+				return this.TryGetBone(mirrorName, out result);
+			}
+		}
+
+		/// <summary>
+		/// Internally updates this BodyScale's bone list in accordance with its specified inclusions.
+		/// n_root is always included.
+		/// </summary>
+		private void UpdateBoneList()
+		{
+			Dictionary<string, BoneEditsContainer> updated = new();
+
+			foreach (string codename in BoneData.GetFilteredBoneCodenames(this.InclHroth, this.InclViera, this.InclIVCS, true))
+			{
+				if (this.Bones.TryGetValue(codename, out BoneEditsContainer? bEC) && bEC != null)
+				{
+					updated[codename] = bEC;
+				}
+				else
+				{
+					updated[codename] = new BoneEditsContainer();
+				}
+			}
+
+			this.Bones = updated;
+		}
+
+		/// <summary>
+		/// Returns a compact BodyScale with redundant bones removed.
+		/// Bones not required by inclusions are removed, as well as any unaltered bones.
+		/// </summary>
+		public BodyScale GetPrunedScale()
+		{
+			Dictionary<string, BoneEditsContainer> pruned = new();
+
+			foreach(string codename in BoneData.GetFilteredBoneCodenames(this.InclHroth, this.InclViera, this.InclIVCS, true))
+			{
+				if (this.Bones.TryGetValue(codename, out BoneEditsContainer? bEC) && bEC != null && (bEC.IsEdited() || codename == "n_root"))
+				{
+					pruned[codename] = bEC;
+				}
+			}
+
+			BodyScale output = new BodyScale(this);
+
+			output.Bones = pruned;
+
+			return output;
+		}
+
+		//Makes it easier to get a sense of what we're looking at while debugging
+		public override string ToString()
+		{
+			return $"{this.ScaleName} on {this.CharacterName}, {this.Bones.Count} bones, {(this.BodyScaleEnabled ? "ACTIVE" : "NOT active")}";
+		}
 
 		// This works fine on generic GameObject if previously checked for correct types.
 		public unsafe void ApplyNonRootBonesAndRootScale(GameObject character, bool applyRootScale)
@@ -115,6 +311,18 @@ namespace CustomizePlus
 			{
 				this.BodyScale = bodyScale;
 				this.Index = index;
+			}
+
+			public PoseScale DeepCopy(BodyScale replacement)
+			{
+				PoseScale output = new PoseScale(replacement, this.Index);
+				foreach(var pair in this.scaleCache)
+				{
+					output.scaleCache.Add(pair.Key, pair.Value.DeepCopy());
+				}
+				output.isInitialized = this.isInitialized;
+
+				return output;
 			}
 
 			public unsafe void Initialize(HkaPose* pose)
