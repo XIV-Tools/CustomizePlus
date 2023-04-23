@@ -23,12 +23,17 @@ namespace CustomizePlus.Util
 	{
 		public PluginConfiguration Configuration { get; private set; }
 
+		private ConfigurationManager()
+		{
+			this.Configuration = new PluginConfiguration();
+		}
+
 		public void CreateNewConfiguration()
 		{
 			Configuration = new PluginConfiguration(); 
 		}
 
-		public void SaveConfiguration(string path = null)
+		public void SaveConfiguration(string? path = null)
 		{
 			string json = JsonConvert.SerializeObject(Configuration, Formatting.Indented);
 			File.WriteAllText(path ?? DalamudServices.PluginInterface.ConfigFile.FullName, json);
@@ -37,27 +42,40 @@ namespace CustomizePlus.Util
 		public void LoadConfigurationFromFile(string path)
 		{
 			if (!Path.Exists(path))
+			{
 				throw new FileNotFoundException("Specified config path is invalid");
+			}
 
-			Configuration = ConvertConfigIfNeeded(path);
-			if (Configuration != null)
+			this.Configuration = ConvertConfigIfNeeded(path) ?? this.Configuration;
+
+			if (this.Configuration != null)
+			{
 				SaveConfiguration();
+			}
 			else
-				Configuration = JsonConvert.DeserializeObject<PluginConfiguration>(File.ReadAllText(path));
+			{
+				string text = File.ReadAllText(path);
+				var json = JsonConvert.DeserializeObject<PluginConfiguration>(text);
+
+				if (json != null)
+				{
+					this.Configuration = json;
+				}
+			}
 		}
 
 		// Used any time a scale is added or enabled to ensure multiple scales for a single character
 		// aren't on at the same time.
-		public void ToggleOffAllOtherMatching(string characterName, string highlanderScaleName)
+		public void ToggleOffAllOtherMatching(string characterName, string? scaleName = null)
 		{
-			if (highlanderScaleName == null)
+			if (scaleName == null)
 			{
-				highlanderScaleName = string.Empty;
+				scaleName = string.Empty;
 			}
 
 			foreach (BodyScale scale in Configuration.BodyScales)
 			{
-				if (characterName == scale.CharacterName && highlanderScaleName != scale.ScaleName)
+				if (characterName == scale.CharacterName && scaleName != scale.ScaleName)
 				{
 					scale.BodyScaleEnabled = false;
 				}
@@ -66,14 +84,16 @@ namespace CustomizePlus.Util
 			SaveConfiguration();
 		}
 
-		private PluginConfiguration ConvertConfigIfNeeded(string path)
+		private PluginConfiguration? ConvertConfigIfNeeded(string path)
 		{
 			int? currentConfigVersion = GetCurrentConfigurationVersion();
 			if (currentConfigVersion == null || currentConfigVersion == PluginConfiguration.CurrentVersion)
+			{
 				return null;
+			}	
 
 			//TODO: In the future this will need to be rewritten to properly handle multiversion upgrades
-			ILegacyConfiguration legacyConfiguration = null;
+			ILegacyConfiguration? legacyConfiguration = null;
 			if (currentConfigVersion == 0)
 				legacyConfiguration = Version0Configuration.LoadFromFile(path);
 
@@ -95,9 +115,8 @@ namespace CustomizePlus.Util
 		}
 
 		/// <summary>
-		/// Returns current configuration file version, returns null if configuration file does not exist
+		/// Returns current configuration file version, returns null if configuration file does not exist.
 		/// </summary>
-		/// <returns></returns>
 		private int? GetCurrentConfigurationVersion()
 		{
 			if (!DalamudServices.PluginInterface.ConfigFile.Exists)
