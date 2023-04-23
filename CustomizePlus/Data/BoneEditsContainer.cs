@@ -1,6 +1,7 @@
 ﻿// © Customize+.
 // Licensed under the MIT license.
 
+using CustomizePlus.Interface;
 using CustomizePlus.Memory;
 using System;
 using System.Collections.Generic;
@@ -23,6 +24,14 @@ namespace CustomizePlus.Data
 			Position = new Vector3 { X = 0, Y = 0, Z = 0 };
 			Rotation = new Vector3 { X = 0, Y = 0, Z = 0 };
 			Scale = new Vector3 { X = 1, Y = 1, Z = 1 };
+		}
+
+		public bool IsEdited()
+		{
+			return
+				this.Position.X != 0 || this.Position.Y != 0 || this.Position.Z != 0 ||
+				this.Rotation.X != 0 || this.Rotation.Y != 0 || this.Rotation.Z != 0 ||
+				this.Scale.X != 1 || this.Scale.Y != 1 || this.Scale.Z != 1;
 		}
 
 		public BoneEditsContainer DeepCopy()
