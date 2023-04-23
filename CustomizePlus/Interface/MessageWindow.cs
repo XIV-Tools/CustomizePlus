@@ -50,7 +50,7 @@ namespace CustomizePlus.Interface
 
 		protected override void DrawContents()
 		{
-			ImGui.Text(Text);
+			ImGui.TextWrapped(Text);
 
 			if(WindowId != null)
 			{
