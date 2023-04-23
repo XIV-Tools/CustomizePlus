@@ -11,12 +11,12 @@ namespace CustomizePlus.Interface
 	/// </summary>
 	public class ConfirmationDialog : WindowBase
 	{
-		protected override string Title => "Confirm Choice";
-		protected override ImGuiWindowFlags WindowFlags =>
-			ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.Modal;
+		protected override string Title => this.titleBar;
+		protected override ImGuiWindowFlags WindowFlags => ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoCollapse;
 		protected override bool LockCloseButton => true;
 
 		private string confirmationPrompt = "Confirm choice?";
+		private string titleBar = "Confirmation";
 		private string affirmativeResponse = "OK";
 		private string negativeResponse = "Cancel";
 
@@ -27,13 +27,17 @@ namespace CustomizePlus.Interface
 		/// </summary>
 		/// <param name="msg">Message to display to the user.</param>
 		/// <param name="performUponConfirmation">Action to perform if user responds in the affirmative.</param>
+		/// <param name="title">Title for the window (default "Confirmation").</param>
 		/// <param name="confirm">Label for confirm button (default "OK").</param>
 		/// <param name="cancel">Label for cancel button (default "Cancel").</param>
-		public static void Show(string msg, System.Action performUponConfirmation, string confirm = "", string cancel = "")
+		public static void Show(string msg, System.Action performUponConfirmation, string title = "", string confirm = "", string cancel = "")
 		{
 			ConfirmationDialog window = Plugin.InterfaceManager.Show<ConfirmationDialog>();
 			window.confirmationPrompt = msg;
 			window.doAfterConfirmed = performUponConfirmation;
+
+			if (!confirm.IsNullOrEmpty())
+				window.titleBar = title;
 
 			if (!confirm.IsNullOrWhitespace())
 				window.affirmativeResponse = confirm;
