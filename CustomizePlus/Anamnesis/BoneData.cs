@@ -3,6 +3,7 @@
 
 namespace Anamnesis.Posing
 {
+	using CustomizePlus;
 	using Dalamud.Utility;
 	using System;
 	using System.Collections.Generic;
@@ -23,27 +24,27 @@ namespace Anamnesis.Posing
 			"j_sebo_b,Spine B,Spine,TRUE,TRUE,TRUE,FALSE,TRUE,FALSE,",
 			"j_sebo_a,Spine A,Spine,TRUE,TRUE,TRUE,FALSE,TRUE,FALSE,",
 			"j_kosi,Waist,Spine,TRUE,TRUE,TRUE,FALSE,TRUE,FALSE,",
-			"j_f_mayu_l,Eyebrow Left,Head,TRUE,TRUE,TRUE,FALSE,TRUE,TRUE,j_f_mayu_r",
-			"j_f_mayu_r,Eyebrow Right,Head,TRUE,TRUE,TRUE,FALSE,TRUE,TRUE,j_f_mayu_l",
-			"j_f_miken_l,Brow Left,Head,TRUE,TRUE,TRUE,FALSE,TRUE,TRUE,j_f_miken_r",
-			"j_f_miken_r,Brow Right,Head,TRUE,TRUE,TRUE,FALSE,TRUE,TRUE,j_f_miken_l",
-			"j_f_memoto,Bridge,Head,TRUE,TRUE,TRUE,FALSE,TRUE,FALSE,",
-			"j_f_umab_l,Eyelid Upper Left,Head,TRUE,TRUE,TRUE,FALSE,TRUE,TRUE,j_f_umab_r",
-			"j_f_umab_r,Eyelid Upper Right,Head,TRUE,TRUE,TRUE,FALSE,TRUE,TRUE,j_f_umab_l",
-			"j_f_dmab_l,Eyelid Lower Left,Head,TRUE,FALSE,TRUE,FALSE,TRUE,TRUE,j_f_dmab_r",
-			"j_f_dmab_r,Eyelid Lower Right,Head,TRUE,FALSE,TRUE,FALSE,TRUE,TRUE,j_f_dmab_l",
-			"j_f_eye_l,Eye Left,Head,TRUE,FALSE,TRUE,FALSE,TRUE,TRUE,j_f_eye_r",
-			"j_f_eye_r,Eye Right,Head,TRUE,FALSE,TRUE,FALSE,TRUE,TRUE,j_f_eye_l",
-			"j_f_hoho_l,Cheek Left,Head,TRUE,FALSE,TRUE,FALSE,TRUE,TRUE,j_f_hoho_r",
-			"j_f_hoho_r,Cheek Right,Head,TRUE,FALSE,TRUE,FALSE,TRUE,TRUE,j_f_hoho_l",
-			"j_f_hana,Nose,Head,TRUE,FALSE,TRUE,FALSE,TRUE,FALSE,",
-			"j_f_lip_l,Lips Left,Head,TRUE,FALSE,TRUE,FALSE,TRUE,TRUE,j_f_lip_r",
-			"j_f_lip_r,Lips Right,Head,TRUE,FALSE,TRUE,FALSE,TRUE,TRUE,j_f_lip_l",
-			"j_f_ulip_a,Lip Upper A,Head,TRUE,FALSE,TRUE,FALSE,TRUE,FALSE,",
-			"j_f_ulip_b,Lip Upper B,Head,TRUE,FALSE,TRUE,FALSE,TRUE,FALSE,",
-			"j_f_dlip_a,Lip Lower A,Head,TRUE,FALSE,TRUE,FALSE,TRUE,FALSE,",
-			"j_f_dlip_b,Lip Lower B,Head,TRUE,FALSE,TRUE,FALSE,TRUE,FALSE,",
-			"j_ago,Jaw,Head,TRUE,FALSE,TRUE,FALSE,TRUE,FALSE,",
+			"j_f_mayu_l,Eyebrow Left,Face,TRUE,TRUE,TRUE,FALSE,TRUE,TRUE,j_f_mayu_r",
+			"j_f_mayu_r,Eyebrow Right,Face,TRUE,TRUE,TRUE,FALSE,TRUE,TRUE,j_f_mayu_l",
+			"j_f_miken_l,Brow Left,Face,TRUE,TRUE,TRUE,FALSE,TRUE,TRUE,j_f_miken_r",
+			"j_f_miken_r,Brow Right,Face,TRUE,TRUE,TRUE,FALSE,TRUE,TRUE,j_f_miken_l",
+			"j_f_memoto,Bridge,Face,TRUE,TRUE,TRUE,FALSE,TRUE,FALSE,",
+			"j_f_umab_l,Eyelid Upper Left,Face,TRUE,TRUE,TRUE,FALSE,TRUE,TRUE,j_f_umab_r",
+			"j_f_umab_r,Eyelid Upper Right,Face,TRUE,TRUE,TRUE,FALSE,TRUE,TRUE,j_f_umab_l",
+			"j_f_dmab_l,Eyelid Lower Left,Face,TRUE,FALSE,TRUE,FALSE,TRUE,TRUE,j_f_dmab_r",
+			"j_f_dmab_r,Eyelid Lower Right,Face,TRUE,FALSE,TRUE,FALSE,TRUE,TRUE,j_f_dmab_l",
+			"j_f_eye_l,Eye Left,Face,TRUE,FALSE,TRUE,FALSE,TRUE,TRUE,j_f_eye_r",
+			"j_f_eye_r,Eye Right,Face,TRUE,FALSE,TRUE,FALSE,TRUE,TRUE,j_f_eye_l",
+			"j_f_hoho_l,Cheek Left,Face,TRUE,FALSE,TRUE,FALSE,TRUE,TRUE,j_f_hoho_r",
+			"j_f_hoho_r,Cheek Right,Face,TRUE,FALSE,TRUE,FALSE,TRUE,TRUE,j_f_hoho_l",
+			"j_f_hana,Nose,Face,TRUE,FALSE,TRUE,FALSE,TRUE,FALSE,",
+			"j_f_lip_l,Lips Left,Face,TRUE,FALSE,TRUE,FALSE,TRUE,TRUE,j_f_lip_r",
+			"j_f_lip_r,Lips Right,Face,TRUE,FALSE,TRUE,FALSE,TRUE,TRUE,j_f_lip_l",
+			"j_f_ulip_a,Lip Upper A,Face,TRUE,FALSE,TRUE,FALSE,TRUE,FALSE,",
+			"j_f_ulip_b,Lip Upper B,Face,TRUE,FALSE,TRUE,FALSE,TRUE,FALSE,",
+			"j_f_dlip_a,Lip Lower A,Face,TRUE,FALSE,TRUE,FALSE,TRUE,FALSE,",
+			"j_f_dlip_b,Lip Lower B,Face,TRUE,FALSE,TRUE,FALSE,TRUE,FALSE,",
+			"j_ago,Jaw,Face,TRUE,FALSE,TRUE,FALSE,TRUE,FALSE,",
 			"j_zera_a_l,Viera Ear 01 A Left,Viera,FALSE,FALSE,TRUE,FALSE,TRUE,TRUE,j_zera_a_r",
 			"j_zera_a_r,Viera Ear 01 A Right,Viera,FALSE,FALSE,TRUE,FALSE,TRUE,TRUE,j_zera_a_l",
 			"j_zera_b_l,Viera Ear 01 B Left,Viera,FALSE,FALSE,TRUE,FALSE,TRUE,TRUE,j_zera_b_r",
@@ -222,7 +223,7 @@ namespace Anamnesis.Posing
 
 		public enum BoneFamily
 		{
-			Root, Spine, Head, Viera, Hrothgar, Chest, MiscIVCS, Arms, Legs, Tail,
+			Root, Spine, Face, Viera, Hrothgar, Chest, MiscIVCS, Arms, Legs, Tail,
 			Hands, FingertipsIVCS, Ears, Hair, Earrings, Cape, Sleeves, Skirt, Pants,
 			Equipment, ToesIVCS, GroinIVCS
 		}
@@ -247,7 +248,7 @@ namespace Anamnesis.Posing
 				VieraFeature = bool.Parse(cells[5]);
 				IVCSFeature = bool.Parse(cells[6]);
 				Editable = bool.Parse(cells[7]);
-				MirroredCodename = cells[7].IsNullOrWhitespace() ? null : cells[8];
+				MirroredCodename = cells[8].IsNullOrWhitespace() ? null : cells[9];
 			}
 		}
 
@@ -280,29 +281,30 @@ namespace Anamnesis.Posing
 			}
 		}
 
-		public static string? GetBoneDispName(string boneID)
+		public static string? GetBoneDisplayName(string codename)
 		{
-			return BoneTable.TryGetValue(boneID, out BoneDatum row) ? row.DisplayName : null;
+			return BoneTable.TryGetValue(codename, out BoneDatum row) ? row.DisplayName : null;
 		}
 
-		public static string? GetBoneCodeName(string boneTitle)
+		public static string? GetBoneCodename(string boneTitle)
 		{
 			return BoneLookupByDispName.TryGetValue(boneTitle, out string? name) ? name : null;
 		}
 
-		public static int GetTotalBoneCount()
-		{
-			return BoneRawTable.Length;
-		}
-
-		public static List<string> GetBoneDispNames()
+		public static List<string> GetBoneDisplayNames()
 		{
 			return BoneLookupByDispName.Keys.ToList();
 		}
 
-		public static List<string> GetDispNamesWithoutVieraHroth()
+		public static IEnumerable<string> GetFilteredBoneCodenames(bool forHrothgar, bool forViera, bool forIVCS, bool includeRoot = false)
 		{
-			return BoneTable.Values.Where(x => !(x.HrothgarFeature || x.VieraFeature)).Select(x => x.DisplayName).ToList();
+			return BoneTable
+				.Where(x => FitsFlags(x.Value, forHrothgar, forViera, forIVCS, includeRoot))
+				.Select(x => x.Key);
+		}
+		public static IEnumerable<string> GetFilteredBoneCodenames(BodyScale bs)
+		{
+			return GetFilteredBoneCodenames(bs.InclHroth, bs.InclViera, bs.InclIVCS);
 		}
 
 		public static List<string> GetBoneCodenames()
@@ -310,21 +312,17 @@ namespace Anamnesis.Posing
 			return BoneTable.Keys.ToList();
 		}
 
-		public static List<string> GetCodenamesWithoutVieraHroth()
-		{
-			return BoneTable.Where(x => !(x.Value.HrothgarFeature || x.Value.VieraFeature)).Select(x => x.Key).ToList();
-		}
-
 		public static Dictionary<string, Tuple<string, BoneFamily, string?>> GetEditableBoneInfo(bool forHrothgar, bool forViera, bool includeIVCS)
 		{
 			return BoneTable
-				.Where(x => FitsFlags(x.Value, forHrothgar, forViera, includeIVCS))
+				.Where(x => FitsFlags(x.Value, forHrothgar, forViera, includeIVCS, false))
 				.ToDictionary(x => x.Key, x => new Tuple<string, BoneFamily, string?>(x.Value.DisplayName, x.Value.Family, x.Value.MirroredCodename));
 		}
 
-		private static bool FitsFlags(BoneDatum datum, bool forHrothgar, bool forViera, bool includeIVCS)
+		private static bool FitsFlags(BoneDatum datum, bool forHrothgar, bool forViera, bool includeIVCS, bool includeRoot)
 		{
-			return datum.Editable
+			return (datum.Editable
+				|| (datum.DisplayName == "Root" && includeRoot))
 				&& (datum.GenericFeature
 				|| (datum.HrothgarFeature && forHrothgar && !forViera)
 				|| (datum.VieraFeature && forViera && !forHrothgar)
@@ -353,7 +351,7 @@ namespace Anamnesis.Posing
 			BoneFamily fam = simplified switch
 			{
 				"spine" => BoneFamily.Spine,
-				"head" => BoneFamily.Head,
+				"face" => BoneFamily.Face,
 				"viera" => BoneFamily.Viera,
 				"hrothgar" => BoneFamily.Hrothgar,
 				"chest" => BoneFamily.Chest,
