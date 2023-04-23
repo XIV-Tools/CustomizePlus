@@ -344,6 +344,21 @@ namespace Anamnesis.Posing
 			return BoneTable.TryGetValue(codename, out BoneDatum row) ? row.Editable : false;
 		}
 
+		public static bool IsHrothgarBone(string codename)
+		{
+			return BoneTable.TryGetValue(codename, out BoneDatum row)
+				? row.HrothgarFeature && ! row.GenericFeature && !row.VieraFeature : false;
+		}
+		public static bool IsVieraBone(string codename)
+		{
+			return BoneTable.TryGetValue(codename, out BoneDatum row)
+				? row.VieraFeature && ! row.GenericFeature && !row.HrothgarFeature : false;
+		}
+		public static bool IsIVCSBone(string codename)
+		{
+			return BoneTable.TryGetValue(codename, out BoneDatum row) ? row.IVCSFeature : false;
+		}
+
 		private static BoneFamily ParseFamilyName(string n)
 		{
 			string simplified = n.Split(' ').FirstOrDefault()?.ToLower() ?? String.Empty;
