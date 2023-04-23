@@ -46,7 +46,7 @@ namespace CustomizePlus.Util
 				throw new FileNotFoundException("Specified config path is invalid");
 			}
 
-			this.Configuration = ConvertConfigIfNeeded(path) ?? this.Configuration;
+			this.Configuration = ConvertConfigIfNeeded(path);
 
 			if (this.Configuration != null)
 			{
@@ -54,13 +54,7 @@ namespace CustomizePlus.Util
 			}
 			else
 			{
-				string text = File.ReadAllText(path);
-				var json = JsonConvert.DeserializeObject<PluginConfiguration>(text);
-
-				if (json != null)
-				{
-					this.Configuration = json;
-				}
+				Configuration = JsonConvert.DeserializeObject<PluginConfiguration>(File.ReadAllText(path));
 			}
 		}
 
