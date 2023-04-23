@@ -14,7 +14,6 @@ namespace CustomizePlus.Interface
     using Anamnesis.Posing;
 	using CustomizePlus.Data;
 	using CustomizePlus.Data.Configuration;
-	using CustomizePlus.Helpers;
 	using CustomizePlus.Memory;
     using Dalamud.Game.ClientState.Objects.Types;
     using Dalamud.Interface;
