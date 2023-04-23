@@ -38,5 +38,31 @@ namespace CustomizePlus.Data
 		{
 			return new BoneEditsContainer { Position = Position, Rotation = Rotation, Scale = Scale };
 		}
+
+		public void UpdateVector(EditMode which, Vector3 newVec)
+		{
+			if (which == EditMode.Position)
+			{
+				this.Position = newVec;
+			}
+			else if (which == EditMode.Rotation)
+			{
+				this.Rotation = newVec;
+			}
+			else
+			{
+				this.Scale = newVec;
+			}
+		}
+
+		public BoneEditsContainer ReflectAcrossZPlane()
+		{
+			return new BoneEditsContainer()
+			{
+				Position = new Vector3(this.Position.X, this.Position.Y, -1 * this.Position.Z),
+				Rotation = new Vector3(-1 * this.Rotation.X, -1 * this.Rotation.Y, this.Rotation.Z),
+				Scale = this.Scale
+			};
+		}
 	}
 }
