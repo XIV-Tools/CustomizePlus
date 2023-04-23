@@ -5,23 +5,15 @@ namespace CustomizePlus.Interface
 {
 	using System;
 	using System.Collections.Generic;
-	using System.IO;
-	using System.Linq;
 	using System.Numerics;
-	using System.Windows.Forms;
-	using Anamnesis.Files;
 	using Anamnesis.Posing;
 	using CustomizePlus.Data;
 	using CustomizePlus.Data.Configuration;
-	using CustomizePlus.Helpers;
-	using CustomizePlus.Memory;
 	using Dalamud.Interface;
 	using Dalamud.Interface.Components;
 	using Dalamud.Logging;
 	using Dalamud.Utility;
 	using ImGuiNET;
-	using Newtonsoft.Json;
-	using static CustomizePlus.BodyScale;
 
 	public class EditInterface : WindowBase
 	{
@@ -29,8 +21,9 @@ namespace CustomizePlus.Interface
 		protected override string DrawTitle => $"{this.Title}###customize_plus_scale_edit_window{this.Index}"; //keep the same ID for all scale editor windows
 
 		protected override ImGuiWindowFlags WindowFlags => this.dirty ? ImGuiWindowFlags.UnsavedDocument : ImGuiWindowFlags.None;
+        private int precision = 3;
 
-		protected override bool LockCloseButton => this.dirty;
+        protected override bool LockCloseButton => this.dirty;
 
 		protected BodyScale BackupScale { get; private set; }
 		protected BodyScale WorkingScale { get; private set; }
@@ -57,21 +50,6 @@ namespace CustomizePlus.Interface
 
 			editWnd.WorkingScale = new BodyScale(editWnd.BackupScale);
 			editWnd.WorkingScale.UpdateBoneList();
-
-			//for (int i = 0; i < editWnd.boneCodenames.Count; i++)
-			//{
-			//	PluginLog.Debug($"Loading bone {i}: {editWnd.boneCodenames[i]}");
-
-			//	BoneEditsContainer tempContainer = new BoneEditsContainer();
-			//	if (scale.Bones.TryGetValue(editWnd.boneCodenames[i], out tempContainer))
-			//	{
-			//		PluginLog.Debug($"Found scale");
-			//		editWnd.boneValuesOriginal.Add(editWnd.boneCodenames[i], tempContainer);
-			//		editWnd.boneValuesNew.Add(editWnd.boneCodenames[i], tempContainer);
-			//		editWnd.codenamesUsed.Add(editWnd.boneCodenames[i]);
-			//		//editWnd.dispNamesUsed.Add(editWnd.boneDispNames[i]);
-			//	}
-			//}
 		}
 		
 		protected override void DrawContents()
@@ -128,7 +106,13 @@ namespace CustomizePlus.Interface
 			if (ImGui.RadioButton("Scale", mode == EditMode.Scale))
 				mode = EditMode.Scale;
 
-			if(mode != EditMode.Scale)
+            ImGui.SameLine();
+            ImGui.Spacing();
+            ImGui.SameLine();
+            ImGui.SetNextItemWidth(300);
+            ImGui.SliderInt("Precision", ref precision, 1, 6);
+
+            if (mode != EditMode.Scale)
 			{
 				ImGui.SameLine();
 				ImGui.PushFont(UiBuilder.IconFont);
@@ -435,7 +419,7 @@ namespace CustomizePlus.Interface
 			};
 			
 
-			if (ImGui.DragFloat(label, ref temp, velocity, minValue, maxValue))
+			if (ImGui.DragFloat(label, ref temp, velocity, minValue, maxValue, $"%.{precision}f"))
 			{
 				value = new Vector3(temp, temp, temp);
 				return true;
@@ -449,7 +433,7 @@ namespace CustomizePlus.Interface
 			float minValue = mode == EditMode.Rotation ? -360.0f : -10.0f;
 			float maxValue = mode == EditMode.Rotation ? 360.0f : 10.0f;
 
-			return ImGui.DragFloat3(label, ref value, velocity, minValue, maxValue);
+			return ImGui.DragFloat3(label, ref value, velocity, minValue, maxValue, $"%.{precision}f");
 		}
 
 		private void RenderLabel(string? text, string tooltip = "")

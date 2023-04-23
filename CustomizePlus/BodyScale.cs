@@ -11,11 +11,9 @@ namespace CustomizePlus
 	using Anamnesis.Posing;
 	using CustomizePlus.Data;
 	using CustomizePlus.Extensions;
-	using CustomizePlus.Helpers;
 	using CustomizePlus.Memory;
 	using CustomizePlus.Services;
 	using Dalamud.Game.ClientState.Objects.Types;
-	using Dalamud.Logging;
 
 	[Serializable]
 	public class BodyScale
@@ -347,7 +345,7 @@ namespace CustomizePlus
 
 						string? boneName = bone.GetName();
 
-						if (boneName == null)
+						if (boneName == null || boneName == "n_root") //root bone transforms are applied separately
 							continue;
 
 						if (this.BodyScale.Bones.TryGetValue(boneName, out var boneScale))

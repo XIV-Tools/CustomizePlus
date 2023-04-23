@@ -23,7 +23,7 @@ namespace CustomizePlus.Util
 	{
 		public PluginConfiguration Configuration { get; private set; }
 
-		private ConfigurationManager()
+		public ConfigurationManager()
 		{
 			this.Configuration = new PluginConfiguration();
 		}
