@@ -299,7 +299,7 @@ namespace CustomizePlus.Interface
 		{
 			PluginConfiguration config = Plugin.ConfigurationManager.Configuration;
 
-			this.WorkingScale.Bones[boneName] = boneValue;
+			this.WorkingScale.Bones[boneName] = boneValue.DeepCopy();
 
 			if (TryGetScaleIndex(this.WorkingScale, out int configIndex))
 			{
@@ -507,9 +507,19 @@ namespace CustomizePlus.Interface
 				if (this.mirrorMode)
 				{
 					mirrorName = BoneData.GetBoneMirror(codename);
-					if (mirrorName != null && this.WorkingScale.TryGetMirror(codename, out mirrorEdits) && mirrorEdits != null)
+					if (mirrorName != null
+						&& this.WorkingScale.TryGetMirror(codename, out mirrorEdits)
+						&& mirrorEdits != null)
 					{
-						mirrorEdits = currentBoneEdits.ReflectAcrossZPlane();
+						//IVCS bones have their axes oriented differently, so they get reflected differently
+						if (BoneData.IsIVCSBone(codename))
+						{
+							mirrorEdits = currentBoneEdits.ReflectIVCS();
+						}
+						else
+						{
+							mirrorEdits = currentBoneEdits.ReflectAcrossZPlane();
+						}
 					}
 				}
 

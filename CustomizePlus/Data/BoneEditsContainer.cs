@@ -64,5 +64,15 @@ namespace CustomizePlus.Data
 				Scale = this.Scale
 			};
 		}
+
+		public BoneEditsContainer ReflectIVCS()
+		{
+			return new BoneEditsContainer()
+			{
+				Position = new Vector3(this.Position.X, -1 * this.Position.Y, this.Position.Z),
+				Rotation = new Vector3(this.Rotation.X, -1 * this.Rotation.Y, -1 * this.Rotation.Z),
+				Scale = this.Scale
+			};
+		}
 	}
 }
