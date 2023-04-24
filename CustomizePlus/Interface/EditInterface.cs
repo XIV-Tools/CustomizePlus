@@ -167,25 +167,25 @@ namespace CustomizePlus.Interface
 
 			IEnumerable<string> relevantBoneNames = BoneData.GetFilteredBoneCodenames(this.WorkingScale);
 
-			foreach(var kvp in this.boneGroups)
+			foreach(var fam in this.WorkingScale.GetUniqueFamilies())
 			{
-				bool tempRef = kvp.Value;
-				RenderArrowToggle($"##{kvp.Key}", ref tempRef);
+				bool tempRef = this.boneGroups[fam];
+				RenderArrowToggle($"##{fam}", ref tempRef);
 				ImGui.SameLine();
-				RenderLabel(kvp.Key.ToString());
+				RenderLabel(fam.ToString());
 
 				if (tempRef)
 				{
 					ImGui.Spacing();
 
-					foreach(string codename in relevantBoneNames.Where(x => BoneData.GetBoneFamily(x) == kvp.Key))
+					foreach(string codename in relevantBoneNames.Where(x => BoneData.GetBoneFamily(x) == fam))
 					{
 						RenderBoneRow(codename);
 					}
 
 					ImGui.Spacing();
 				}
-				this.boneGroups[kvp.Key] = tempRef;
+				this.boneGroups[fam] = tempRef;
 
 				ImGui.Separator();
 			}

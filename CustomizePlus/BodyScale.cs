@@ -186,7 +186,8 @@ namespace CustomizePlus
 
 		public IEnumerable<BoneData.BoneFamily> GetUniqueFamilies()
 		{
-			return BoneData.DisplayableFamilies.Where(x => this.Bones.Keys.Any(y => BoneData.GetBoneFamily(y) == x));
+			//this seems less than ideal, but if it works?
+			return BoneData.DisplayableFamilies.Where(x => BoneData.GetFilteredBoneCodenames(this).Any(y => BoneData.GetBoneFamily(y) == x));
 
 			//return this.Bones.Select(x => BoneData.GetBoneFamily(x.Key)).Distinct();
 		}
