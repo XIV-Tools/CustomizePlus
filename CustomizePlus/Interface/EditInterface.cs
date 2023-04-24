@@ -5,7 +5,9 @@ namespace CustomizePlus.Interface
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Linq;
 	using System.Numerics;
+	using System.Runtime.CompilerServices;
 	using Anamnesis.Posing;
 	using CustomizePlus.Data;
 	using CustomizePlus.Data.Configuration;
@@ -20,7 +22,8 @@ namespace CustomizePlus.Interface
 		protected override string Title => $"(WIP) Edit Scale: {this.BackupScale.ScaleName}";
 		protected override string DrawTitle => $"{this.Title}###customize_plus_scale_edit_window{this.Index}"; //keep the same ID for all scale editor windows
 
-		protected override ImGuiWindowFlags WindowFlags => this.dirty ? ImGuiWindowFlags.UnsavedDocument : ImGuiWindowFlags.None;
+		protected override ImGuiWindowFlags WindowFlags => ImGuiWindowFlags.NoScrollbar |
+			(this.dirty ? ImGuiWindowFlags.UnsavedDocument : ImGuiWindowFlags.None);
         private int precision = 3;
 
         protected override bool LockCloseButton => this.dirty;
@@ -29,6 +32,8 @@ namespace CustomizePlus.Interface
 		protected BodyScale WorkingScale { get; private set; }
 
 		private bool dirty = false;
+
+		private Dictionary<BoneData.BoneFamily, bool> boneGroups = new();
 
 		private EditMode mode;
 		private bool mirrorMode;
@@ -50,6 +55,7 @@ namespace CustomizePlus.Interface
 
 			editWnd.WorkingScale = new BodyScale(editWnd.BackupScale);
 			editWnd.WorkingScale.UpdateBoneList();
+			editWnd.UpdateBoneGroups(editWnd.WorkingScale);
 		}
 		
 		protected override void DrawContents()
@@ -74,18 +80,27 @@ namespace CustomizePlus.Interface
 			if (ImGui.IsItemHovered())
 				ImGui.SetTooltip($"Applies changes automatically without saving.");
 
-			RenderCheckBox("Hrothgar", this.WorkingScale.InclHroth, this.WorkingScale.ToggleHrothgarFeatures);
+			if (RenderCheckBox("Hrothgar", this.WorkingScale.InclHroth, this.WorkingScale.ToggleHrothgarFeatures))
+			{
+				this.UpdateBoneGroups(this.WorkingScale);
+			}
 			AppendTooltip("Show bones exclusive to hrothgar");
 
 			ImGui.SameLine();
 
-			RenderCheckBox("Viera", this.WorkingScale.InclViera, this.WorkingScale.ToggleVieraFeatures);
+			if (RenderCheckBox("Viera", this.WorkingScale.InclViera, this.WorkingScale.ToggleVieraFeatures))
+			{
+				this.UpdateBoneGroups(this.WorkingScale);
+			}
 			AppendTooltip("Show bones exclusive to viera");
 
 
 			ImGui.SameLine();
 
-			RenderCheckBox("IVCS", this.WorkingScale.InclIVCS, this.WorkingScale.ToggleIVCSFeatures);
+			if (RenderCheckBox("IVCS", this.WorkingScale.InclIVCS, this.WorkingScale.ToggleIVCSFeatures))
+			{
+				this.UpdateBoneGroups(this.WorkingScale);
+			}
 			AppendTooltip("Show bones added by the Illusio Vitae Custom Skeleton mod");
 
 			ImGui.SameLine();
@@ -152,10 +167,46 @@ namespace CustomizePlus.Interface
 
 			IEnumerable<string> relevantBoneNames = BoneData.GetFilteredBoneCodenames(this.WorkingScale);
 
+			foreach(var kvp in this.boneGroups)
+			{
+				bool tempRef = kvp.Value;
+				RenderArrowToggle($"##{kvp.Key}", ref tempRef);
+				ImGui.SameLine();
+				RenderLabel(kvp.Key.ToString());
+
+				if (tempRef)
+				{
+					ImGui.Spacing();
+
+					foreach(string codename in relevantBoneNames.Where(x => BoneData.GetBoneFamily(x) == kvp.Key))
+					{
+						RenderBoneRow(codename);
+					}
+
+					ImGui.Spacing();
+				}
+				this.boneGroups[kvp.Key] = tempRef;
+
+				ImGui.Separator();
+			}
+			/*
 			foreach(string codename in relevantBoneNames)
 			{
+				var familyType = BoneData.GetBoneFamily(codename);
+				if (priorFam != familyType)
+				{
+					ImGui.Separator();
+					ImGui.Spacing();
+					ImGui.Separator();
+					RenderLabel("\t" + familyType.ToString());
+					ImGui.Separator();
+
+					priorFam = familyType;
+				}
+
 				RenderBoneRow(codename);
 			}
+			*/
 
 			ImGui.EndChild();
 
@@ -265,24 +316,46 @@ namespace CustomizePlus.Interface
 			AppendTooltip("Close the editor without saving\n(reverting all unsaved changes)");
 		}
 
+		private void UpdateBoneGroups(BodyScale bs)
+		{
+			Dictionary<BoneData.BoneFamily, bool> output = new();
+
+			foreach(BoneData.BoneFamily bf in bs.GetUniqueFamilies())
+			{
+				if (bf == BoneData.BoneFamily.Root) continue;
+
+				if (this.boneGroups.TryGetValue(bf, out bool prior))
+				{
+					output[bf] = prior;
+				}
+				else
+				{
+					output[bf] = false;
+				}
+			}
+
+			this.boneGroups = output;
+		}
 
 		private void AddToConfig()
 		{
 			PluginConfiguration config = Plugin.ConfigurationManager.Configuration;
 
-			bool isSameScale = this.BackupScale.SameNamesAs(this.WorkingScale);
+			BodyScale pruned = this.WorkingScale.GetPrunedScale();
 
 			if (config.BodyScales.Remove(this.WorkingScale))
 			{
-				config.BodyScales.Add(this.WorkingScale);
+				config.BodyScales.Add(pruned);
 			}
 			else
 			{
-				config.BodyScales.Add(this.WorkingScale);
-				Plugin.ConfigurationManager.ToggleOffAllOtherMatching(this.WorkingScale);
+				config.BodyScales.Add(pruned);
+				Plugin.ConfigurationManager.ToggleOffAllOtherMatching(pruned);
 			}
 
-			this.BackupScale = new BodyScale(this.WorkingScale);
+			Plugin.ConfigurationManager.SaveConfiguration();
+
+			this.BackupScale = new BodyScale(pruned);
 		}
 
 		private void UpdateCurrent(string boneName, BoneEditsContainer boneValue, bool autoMode = false)
@@ -291,7 +364,7 @@ namespace CustomizePlus.Interface
 
 			this.WorkingScale.Bones[boneName] = boneValue.DeepCopy();
 
-			if (config.BodyScales.Remove(this.WorkingScale))
+			if (autoMode && config.BodyScales.Remove(this.WorkingScale))
 			{
 				config.BodyScales.Add(this.WorkingScale);
 				Plugin.ConfigurationManager.SaveConfiguration();
@@ -330,9 +403,26 @@ namespace CustomizePlus.Interface
 		private bool RenderCheckBox(string label, in bool shown, Action<bool> toggle)
 		{
 			bool temp = shown;
-			ImGui.Checkbox(label, ref temp);
-			toggle(temp);
-			return temp;
+			bool toggled = ImGui.Checkbox(label, ref temp);
+
+			if (toggled)
+			{
+				toggle(temp);
+			}
+
+			return toggled;
+		}
+
+		private bool RenderArrowToggle(string label, ref bool value)
+		{
+			bool toggled = ImGui.ArrowButton(label, value ? ImGuiDir.Down : ImGuiDir.Right);
+
+			if (toggled)
+			{
+				value = !value;
+			}
+
+			return value;
 		}
 
 		private void AppendTooltip(string text)
