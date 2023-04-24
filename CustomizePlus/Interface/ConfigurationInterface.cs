@@ -7,6 +7,7 @@ namespace CustomizePlus.Interface
     using System.Collections.Generic;
     using System.IO;
 	using System.IO.Compression;
+	using System.Linq;
 	using System.Numerics;
 	using System.Text;
 	using System.Windows.Forms;
@@ -138,7 +139,7 @@ namespace CustomizePlus.Interface
 					// scale = this.BuildFromName(scale, characterName);
 
 					Plugin.ConfigurationManager.Configuration.BodyScales.Add(scale);
-					Plugin.ConfigurationManager.ToggleOffAllOtherMatching(characterName, scale.ScaleName);
+					Plugin.ConfigurationManager.ToggleOffAllOtherMatching(scale);
 					if (config.AutomaticEditMode)
 					{
 						Plugin.ConfigurationManager.SaveConfiguration();
@@ -178,7 +179,7 @@ namespace CustomizePlus.Interface
 
 				if (importVer == (byte)Constants.ImportExportVersion && importScale != null) {
 					Plugin.ConfigurationManager.Configuration.BodyScales.Add(importScale);
-					Plugin.ConfigurationManager.ToggleOffAllOtherMatching(importScale.CharacterName, importScale.ScaleName);
+					Plugin.ConfigurationManager.ToggleOffAllOtherMatching(importScale);
 					if (config.AutomaticEditMode) {
 						Plugin.ConfigurationManager.SaveConfiguration();
 						Plugin.LoadConfig(true);
@@ -217,11 +218,11 @@ namespace CustomizePlus.Interface
 				ImGui.TableSetupColumn("Options", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize);
 				ImGui.TableHeadersRow();
 
-				for (int i = 0;i < config.BodyScales.Count;i++) {
-					BodyScale bodyScale = config.BodyScales[i];
-					bool bodyScaleEnabled = bodyScale.BodyScaleEnabled;
+				foreach(BodyScale extBS in config.BodyScales.OrderBy(x => x.CharacterName).ThenBy(x => x.ScaleName))
+				{
+					bool bodyScaleEnabled = extBS.BodyScaleEnabled;
 
-					ImGui.PushID(i);
+					ImGui.PushID(extBS.GetHashCode());
 
 					ImGui.TableNextRow();
 					ImGui.TableNextColumn();
@@ -229,9 +230,9 @@ namespace CustomizePlus.Interface
 					// Enable
 					ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (12 * fontScale));
 					if (ImGui.Checkbox("##Enable", ref bodyScaleEnabled)) {
-						if (bodyScale.CharacterName != null)
-							Plugin.ConfigurationManager.ToggleOffAllOtherMatching(bodyScale.CharacterName, bodyScale.ScaleName == null ? "" : bodyScale.ScaleName);
-						bodyScale.BodyScaleEnabled = bodyScaleEnabled;
+						if (extBS.CharacterName != null)
+							Plugin.ConfigurationManager.ToggleOffAllOtherMatching(extBS);
+						extBS.BodyScaleEnabled = bodyScaleEnabled;
 						Plugin.ConfigurationManager.SaveConfiguration();
 						if (config.AutomaticEditMode) {
 							Plugin.LoadConfig(true);
@@ -243,10 +244,10 @@ namespace CustomizePlus.Interface
 
 					// Character Name
 					ImGui.TableNextColumn();
-					string characterName = bodyScale.CharacterName ?? string.Empty;
+					string characterName = extBS.CharacterName ?? string.Empty;
 					ImGui.PushItemWidth(-1);
 					if (ImGui.InputText("##Character", ref characterName, 64, ImGuiInputTextFlags.NoHorizontalScroll)) {
-						bodyScale.CharacterName = characterName;
+						extBS.CharacterName = characterName;
 					}
 
 					if (ImGui.IsItemHovered())
@@ -255,9 +256,9 @@ namespace CustomizePlus.Interface
 					// Scale Name
 					ImGui.TableNextColumn();
 					ImGui.PushItemWidth(-1);
-					string scaleName = bodyScale.ScaleName ?? string.Empty;
+					string scaleName = extBS.ScaleName ?? string.Empty;
 					if (ImGui.InputText("##Scale Name", ref scaleName, 64, ImGuiInputTextFlags.NoHorizontalScroll)) {
-						bodyScale.ScaleName = scaleName;
+						extBS.ScaleName = scaleName;
 					}
 
 					if (ImGui.IsItemHovered())
@@ -266,7 +267,7 @@ namespace CustomizePlus.Interface
 					// Edit
 					ImGui.TableNextColumn();
 					if (ImGuiComponents.IconButton(FontAwesomeIcon.Pen)) {
-						EditInterface.Show(bodyScale);
+						EditInterface.Show(extBS);
 					}
 
 					if (ImGui.IsItemHovered())
@@ -275,7 +276,7 @@ namespace CustomizePlus.Interface
 					// Import Ana
 					ImGui.SameLine();
 					if (ImGuiComponents.IconButton(FontAwesomeIcon.FileImport)) {
-						this.Import(bodyScale);
+						this.Import(extBS);
 						Plugin.ConfigurationManager.SaveConfiguration();
 						Plugin.LoadConfig(true);
 					}
@@ -286,7 +287,7 @@ namespace CustomizePlus.Interface
 					// Import Clipboard
 					ImGui.SameLine();
 					if (ImGuiComponents.IconButton(FontAwesomeIcon.FileExport)) {
-						Clipboard.SetText(this.ExportToBase64(bodyScale, Constants.ImportExportVersion));
+						Clipboard.SetText(this.ExportToBase64(extBS, Constants.ImportExportVersion));
 					}
 
 					if (ImGui.IsItemHovered())
@@ -295,7 +296,7 @@ namespace CustomizePlus.Interface
 					// Remove
 					ImGui.SameLine();
 					if (ImGuiComponents.IconButton(FontAwesomeIcon.Trash)) {
-						config.BodyScales.Remove(bodyScale);
+						config.BodyScales.Remove(extBS);
 					}
 
 					if (ImGui.IsItemHovered())

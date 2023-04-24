@@ -367,7 +367,7 @@ namespace CustomizePlus
 					return;
 				}
 
-				ConfigurationManager.ToggleOffAllOtherMatching(scale.CharacterName, scale.ScaleName == null ? "" : scale.ScaleName);
+				ConfigurationManager.ToggleOffAllOtherMatching(scale);
 				scale.BodyScaleEnabled = true;
 				ConfigurationManager.SaveConfiguration();
 				LoadConfig(true);

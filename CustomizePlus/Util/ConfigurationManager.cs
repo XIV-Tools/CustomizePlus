@@ -60,19 +60,12 @@ namespace CustomizePlus.Util
 
 		// Used any time a scale is added or enabled to ensure multiple scales for a single character
 		// aren't on at the same time.
-		public void ToggleOffAllOtherMatching(string characterName, string? scaleName = null)
+		public void ToggleOffAllOtherMatching(BodyScale bs)
 		{
-			if (scaleName == null)
+			foreach(BodyScale offScale in Configuration.BodyScales
+				.Where(x => x.CharacterName == bs.CharacterName && x.ScaleName != bs.ScaleName))
 			{
-				scaleName = string.Empty;
-			}
-
-			foreach (BodyScale scale in Configuration.BodyScales)
-			{
-				if (characterName == scale.CharacterName && scaleName != scale.ScaleName)
-				{
-					scale.BodyScaleEnabled = false;
-				}
+				offScale.BodyScaleEnabled = false;
 			}
 
 			SaveConfiguration();

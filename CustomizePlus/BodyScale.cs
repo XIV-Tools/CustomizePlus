@@ -225,6 +225,11 @@ namespace CustomizePlus
 			return $"{this.ScaleName} on {this.CharacterName}, {this.Bones.Count} bones, {(this.BodyScaleEnabled ? "ACTIVE" : "NOT active")}";
 		}
 
+		public override int GetHashCode()
+		{
+			return String.Concat(this.CharacterName, this.ScaleName).GetHashCode();
+		}
+
 		// This works fine on generic GameObject if previously checked for correct types.
 		public unsafe void ApplyNonRootBonesAndRootScale(GameObject character, bool applyRootScale)
 		{

@@ -272,24 +272,14 @@ namespace CustomizePlus.Interface
 
 			bool isSameScale = this.BackupScale.SameNamesAs(this.WorkingScale);
 
-			if (isSameScale && TryGetScaleIndex(this.WorkingScale, out int configIndex))
+			if (config.BodyScales.Remove(this.WorkingScale))
 			{
-				config.BodyScales.RemoveAt(configIndex);
-				config.BodyScales.Insert(configIndex, this.WorkingScale);
+				config.BodyScales.Add(this.WorkingScale);
 			}
 			else
 			{
-				//NOTE I'm not sure that this makes sense?
-				//What's gained from changing the names if it's getting replaced just after this block anyways?
-				this.BackupScale.ScaleName = this.WorkingScale.ScaleName;
-				this.BackupScale.CharacterName = this.WorkingScale.ScaleName;
-
 				config.BodyScales.Add(this.WorkingScale);
-
-				if (this.WorkingScale.BodyScaleEnabled)
-				{
-					Plugin.ConfigurationManager.ToggleOffAllOtherMatching(this.WorkingScale.CharacterName, this.WorkingScale.ScaleName);
-				}
+				Plugin.ConfigurationManager.ToggleOffAllOtherMatching(this.WorkingScale);
 			}
 
 			this.BackupScale = new BodyScale(this.WorkingScale);
@@ -301,11 +291,11 @@ namespace CustomizePlus.Interface
 
 			this.WorkingScale.Bones[boneName] = boneValue.DeepCopy();
 
-			if (TryGetScaleIndex(this.WorkingScale, out int configIndex))
+			if (config.BodyScales.Remove(this.WorkingScale))
 			{
-				config.BodyScales[configIndex] = this.WorkingScale;
+				config.BodyScales.Add(this.WorkingScale);
 				Plugin.ConfigurationManager.SaveConfiguration();
-				Plugin.LoadConfig(autoMode);
+				Plugin.LoadConfig(true);
 			}
 		}
 
@@ -316,29 +306,12 @@ namespace CustomizePlus.Interface
 			this.WorkingScale = new BodyScale(this.BackupScale);
 			this.WorkingScale.UpdateBoneList();
 
-			if (TryGetScaleIndex(this.WorkingScale, out int configIndex))
+			if (config.BodyScales.Remove(this.WorkingScale))
 			{
-				config.BodyScales[configIndex] = this.WorkingScale;
+				config.BodyScales.Add(this.WorkingScale);
 				Plugin.ConfigurationManager.SaveConfiguration();
 				Plugin.LoadConfig(true);
 			}
-		}
-
-		private bool TryGetScaleIndex(BodyScale bs, out int index)
-		{
-			PluginConfiguration config = Plugin.ConfigurationManager.Configuration;
-
-			for (int i = 0; i < config.BodyScales.Count; i++)
-			{
-				if (config.BodyScales[i].SameNamesAs(bs))
-				{
-					index = i;
-					return true;
-				}
-			}
-
-			index = -1;
-			return false;
 		}
 
 

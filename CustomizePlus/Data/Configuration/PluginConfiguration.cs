@@ -13,7 +13,7 @@ namespace CustomizePlus.Data.Configuration
 		public const int CurrentVersion = Constants.ConfigurationVersion;
 
 		public int Version { get; set; } = CurrentVersion;
-		public List<BodyScale> BodyScales { get; set; } = new();
+		public HashSet<BodyScale> BodyScales { get; set; } = new();
 		public bool Enable { get; set; } = true;
 		public bool AutomaticEditMode { get; set; } = false;
 
