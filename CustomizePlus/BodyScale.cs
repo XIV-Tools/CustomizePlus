@@ -27,15 +27,15 @@ namespace CustomizePlus
 		/// <summary>
 		/// Gets a value indicating whether or not this BodyScale contains hrothgar-exclusive bones.
 		/// </summary>
-		public bool InclHroth { get; private set; }
+		public bool InclHroth;
 		/// <summary>
 		/// Gets a value indicating whether or not this BodyScale contains viera-exclusive bones.
 		/// </summary>
-		public bool InclViera { get; private set; }
+		public bool InclViera;
 		/// <summary>
 		/// Gets a value indicating whether or not this BodyScale contains IVCS-exclusive bones.
 		/// </summary>
-		public bool InclIVCS { get; private set; }
+		public bool InclIVCS;
 
 		public Dictionary<string, BoneEditsContainer> Bones { get; private set; } = new();
 
