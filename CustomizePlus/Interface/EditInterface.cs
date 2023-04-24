@@ -214,11 +214,8 @@ namespace CustomizePlus.Interface
 
 			//----------------------------------
 
-			if (ImGui.Button("Save"))
+			if (ImGui.Button("Save") && this.dirty)
 			{
-				if (!this.dirty)
-					return;
-
 				bool forceClose = false;
 				if (!this.WorkingScale.SameNamesAs(this.BackupScale))
 				{
@@ -258,27 +255,31 @@ namespace CustomizePlus.Interface
 			if (ImGui.Button("Save and Close"))
 			{
 				if (!this.dirty)
-					this.Close();
-
-				void Proceed()
 				{
-					AddToConfig();
-					Plugin.ConfigurationManager.SaveConfiguration();
-					Plugin.LoadConfig();
 					this.Close();
-				}
-
-				if ((this.BackupScale.InclHroth && !this.WorkingScale.InclHroth)
-					|| (this.BackupScale.InclViera && !this.WorkingScale.InclViera)
-					|| (this.BackupScale.InclIVCS && !this.WorkingScale.InclIVCS))
-				{
-					ConfirmationDialog.Show("Certain optional bones were turned off since the last save.\n"
-						+ "Saving now will reset those bones to their default state.\n\nContinue?",
-						Proceed, "Confirm Bone Deletion");
 				}
 				else
 				{
-					Proceed();
+					void Proceed()
+					{
+						AddToConfig();
+						Plugin.ConfigurationManager.SaveConfiguration();
+						Plugin.LoadConfig();
+						this.Close();
+					}
+
+					if ((this.BackupScale.InclHroth && !this.WorkingScale.InclHroth)
+						|| (this.BackupScale.InclViera && !this.WorkingScale.InclViera)
+						|| (this.BackupScale.InclIVCS && !this.WorkingScale.InclIVCS))
+					{
+						ConfirmationDialog.Show("Certain optional bones were turned off since the last save.\n"
+							+ "Saving now will reset those bones to their default state.\n\nContinue?",
+							Proceed, "Confirm Bone Deletion");
+					}
+					else
+					{
+						Proceed();
+					}
 				}
 			}
 			AppendTooltip("Save changes and stop editing");
@@ -293,10 +294,7 @@ namespace CustomizePlus.Interface
 			ImGui.Spacing();
 			ImGui.SameLine();
 
-			if (ImGui.Button("Revert")) {
-				if (!this.dirty)
-					return;
-
+			if (ImGui.Button("Revert") && this.dirty) {
 				ConfirmationDialog.Show("Revert all unsaved work?", RevertAll);
 			}
 			AppendTooltip("Remove all pending changes, reverting to last save");
@@ -305,13 +303,18 @@ namespace CustomizePlus.Interface
 
 			if (ImGui.Button("Cancel")) {
 				if (!this.dirty)
-					this.Close();
-
-				void Close() {
-					this.RevertAll();
+				{
 					this.Close();
 				}
-				ConfirmationDialog.Show("Revert unsaved work and exit editor?", Close);
+				else
+				{
+					void Close()
+					{
+						this.RevertAll();
+						this.Close();
+					}
+					ConfirmationDialog.Show("Revert unsaved work and exit editor?", Close);
+				}
 			}
 			AppendTooltip("Close the editor without saving\n(reverting all unsaved changes)");
 		}
