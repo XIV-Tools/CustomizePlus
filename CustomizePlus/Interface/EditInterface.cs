@@ -63,6 +63,11 @@ namespace CustomizePlus.Interface
 			PluginConfiguration config = Plugin.ConfigurationManager.Configuration;
 			this.windowHorz = ImGui.GetWindowWidth();
 
+			if (!this.WorkingScale.SameNamesAs(this.BackupScale))
+			{
+				this.dirty = true;
+			}
+
 			ImGui.SetNextItemWidth(windowHorz / 4);
 			RenderTextBox("Character Name", ref this.WorkingScale.CharacterName);
 
@@ -76,9 +81,7 @@ namespace CustomizePlus.Interface
 			ImGui.SameLine();
 
 			RenderCheckBox("Automatic Mode", config.AutomaticEditMode, (b) => config.AutomaticEditMode = b);
-
-			if (ImGui.IsItemHovered())
-				ImGui.SetTooltip($"Applies changes automatically without saving.");
+			AppendTooltip($"Applies changes automatically without saving.");
 
 			if (RenderCheckBox("Hrothgar", this.WorkingScale.InclHroth, this.WorkingScale.ToggleHrothgarFeatures))
 			{
@@ -216,12 +219,6 @@ namespace CustomizePlus.Interface
 
 			if (ImGui.Button("Save") && this.dirty)
 			{
-				bool forceClose = false;
-				if (!this.WorkingScale.SameNamesAs(this.BackupScale))
-				{
-					forceClose = true;
-				}
-
 				void Proceed()
 				{
 					AddToConfig();
@@ -229,13 +226,7 @@ namespace CustomizePlus.Interface
 					Plugin.LoadConfig();
 				}
 
-				if(forceClose)
-				{
-					MessageWindow.Show("Customize+ detected that you have changed either character name or scale name." +
-						"\nIn order to properly make a copy, the editing window was automatically closed.", new Vector2(485, 100));
-					this.Close();
-				}
-				else if ((this.BackupScale.InclHroth && !this.WorkingScale.InclHroth)
+				if ((this.BackupScale.InclHroth && !this.WorkingScale.InclHroth)
 					|| (this.BackupScale.InclViera && !this.WorkingScale.InclViera)
 					|| (this.BackupScale.InclIVCS && !this.WorkingScale.InclIVCS))
 				{
