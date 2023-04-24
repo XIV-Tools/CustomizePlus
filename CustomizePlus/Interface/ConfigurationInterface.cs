@@ -296,7 +296,8 @@ namespace CustomizePlus.Interface
 					// Remove
 					ImGui.SameLine();
 					if (ImGuiComponents.IconButton(FontAwesomeIcon.Trash)) {
-						config.BodyScales.Remove(extBS);
+						string msg = $"Are you sure you want to permanently delete '{extBS.ScaleName}' scaling for {extBS.CharacterName}?";
+						ConfirmationDialog.Show(msg, () => config.BodyScales.Remove(extBS), "Delete Scaling?");
 					}
 
 					if (ImGui.IsItemHovered())

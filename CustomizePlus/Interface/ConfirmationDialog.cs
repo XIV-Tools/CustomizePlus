@@ -36,7 +36,7 @@ namespace CustomizePlus.Interface
 			window.confirmationPrompt = msg;
 			window.doAfterConfirmed = performUponConfirmation;
 
-			if (!confirm.IsNullOrEmpty())
+			if (!title.IsNullOrWhitespace())
 				window.titleBar = title;
 
 			if (!confirm.IsNullOrWhitespace())
