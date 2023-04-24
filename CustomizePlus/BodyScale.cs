@@ -77,6 +77,15 @@ namespace CustomizePlus
 			this.Bones = original.Bones.ToDictionary(x => x.Key, x => x.Value.DeepCopy());
 		}
 
+		private BodyScale(BodyScale original, Dictionary<string, BoneEditsContainer> newBones) : this(original)
+		{
+			this.Bones = newBones;
+
+			this.InclHroth = newBones.Keys.Any(BoneData.IsHrothgarBone);
+			this.InclViera = newBones.Keys.Any(BoneData.IsVieraBone);
+			this.InclIVCS = newBones.Keys.Any(BoneData.IsIVCSBone);
+		}
+
 		/// <summary>
 		/// Constructs a "default" bodyscale with standard collection of bones.
 		/// </summary>
@@ -87,7 +96,7 @@ namespace CustomizePlus
 			output.ScaleName = "Default";
 			output.BodyScaleEnabled = false;
 
-			foreach(string codename in BoneData.GetFilteredBoneCodenames(false, false, false, true))
+			foreach (string codename in BoneData.GetStandardBoneCodenames())
 			{
 				output.Bones.Add(codename, new BoneEditsContainer());
 			}
@@ -99,45 +108,41 @@ namespace CustomizePlus
 		/// Changes state of <see cref="InclHroth"/> property.
 		/// Toggling on has side-effect of toggling <see cref="InclViera"/> off.
 		/// </summary>
-		public void ToggleHrothgarFeatures(bool active)
-		{
-			if (active)
-			{
-				this.InclHroth = true;
-				this.InclViera = false;
-			}
-			else
-			{
-				this.InclHroth = false;
-			}
-			UpdateBoneList();
-		}
+		public void ToggleHrothgarFeatures(bool active) => ToggleExclusive(active, ref this.InclHroth, ref this.InclViera);
 
 		/// <summary>
 		/// Changes state of <see cref="InclViera"/> property.
 		/// Toggling on has side-effect of toggling <see cref="InclHroth"/> off.
 		/// </summary>
-		public void ToggleVieraFeatures(bool active)
-		{
-			if (active)
-			{
-				this.InclViera = true;
-				this.InclHroth = false;
-			}
-			else
-			{
-				this.InclViera = false;
-			}
-			UpdateBoneList();
-		}
+		public void ToggleVieraFeatures(bool active) => ToggleExclusive(active, ref this.InclViera, ref this.InclHroth);
 
 		/// <summary>
 		/// Changes state of <see cref="InclIVCS"/> property.
 		/// </summary>
 		public void ToggleIVCSFeatures(bool active)
 		{
-			this.InclIVCS = active;
-			UpdateBoneList();
+			if (this.InclIVCS != active)
+			{
+				this.InclIVCS = active;
+				UpdateBoneList();
+			}
+		}
+
+		private void ToggleExclusive(bool toggleState, ref bool toggledOption, ref bool exOption)
+		{
+			if (toggleState != toggledOption)
+			{
+				if (toggleState)
+				{
+					toggledOption = true;
+					exOption = false;
+				}
+				else
+				{
+					toggledOption = false;
+				}
+				this.UpdateBoneList();
+			}
 		}
 
 		/// <summary>
@@ -173,21 +178,17 @@ namespace CustomizePlus
 		/// </summary>
 		public void UpdateBoneList()
 		{
-			Dictionary<string, BoneEditsContainer> updated = new();
-
-			foreach (string codename in BoneData.GetFilteredBoneCodenames(this.InclHroth, this.InclViera, this.InclIVCS, true))
+			foreach (string codename in BoneData.GetFilteredBoneCodenames(this, true).Except(this.Bones.Keys))
 			{
-				if (this.Bones.TryGetValue(codename, out BoneEditsContainer? bEC) && bEC != null)
-				{
-					updated[codename] = bEC;
-				}
-				else
-				{
-					updated[codename] = new BoneEditsContainer();
-				}
+				this.Bones[codename] = new BoneEditsContainer();
 			}
+		}
 
-			this.Bones = updated;
+		public IEnumerable<BoneData.BoneFamily> GetUniqueFamilies()
+		{
+			return BoneData.DisplayableFamilies.Where(x => this.Bones.Keys.Any(y => BoneData.GetBoneFamily(y) == x));
+
+			//return this.Bones.Select(x => BoneData.GetBoneFamily(x.Key)).Distinct();
 		}
 
 		/// <summary>
@@ -198,7 +199,7 @@ namespace CustomizePlus
 		{
 			Dictionary<string, BoneEditsContainer> pruned = new();
 
-			foreach(string codename in BoneData.GetFilteredBoneCodenames(this.InclHroth, this.InclViera, this.InclIVCS, true))
+			foreach(string codename in BoneData.GetFilteredBoneCodenames(this, true))
 			{
 				if (this.Bones.TryGetValue(codename, out BoneEditsContainer? bEC) && bEC != null && (bEC.IsEdited() || codename == "n_root"))
 				{
@@ -206,11 +207,7 @@ namespace CustomizePlus
 				}
 			}
 
-			BodyScale output = new BodyScale(this);
-
-			output.Bones = pruned;
-
-			return output;
+			return new BodyScale(this, pruned);
 		}
 
 		public bool SameNamesAs(BodyScale other)
@@ -222,7 +219,18 @@ namespace CustomizePlus
 		//Makes it easier to get a sense of what we're looking at while debugging
 		public override string ToString()
 		{
-			return $"{this.ScaleName} on {this.CharacterName}, {this.Bones.Count} bones, {(this.BodyScaleEnabled ? "ACTIVE" : "NOT active")}";
+			return $"'{this.ScaleName}' on {this.CharacterName}, {this.Bones.Count} bones, {(this.BodyScaleEnabled ? "ACTIVE" : "NOT active")}";
+		}
+
+		public override bool Equals(object? obj)
+		{
+			if (obj is BodyScale bs)
+			{
+				return bs.CharacterName == this.CharacterName
+					&& bs.ScaleName == this.ScaleName;
+			}
+
+			return false;
 		}
 
 		public override int GetHashCode()
