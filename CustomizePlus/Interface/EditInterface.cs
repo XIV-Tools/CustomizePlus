@@ -350,6 +350,8 @@ namespace CustomizePlus.Interface
 			Plugin.ConfigurationManager.SaveConfiguration();
 
 			this.BackupScale = new BodyScale(pruned);
+			this.WorkingScale = new BodyScale(BackupScale);
+			this.dirty = false;
 		}
 
 		private void UpdateCurrent(string boneName, BoneEditsContainer boneValue, bool autoMode = false)
