@@ -101,7 +101,7 @@ namespace CustomizePlus.Interface
 			{
 				this.UpdateBoneGroups(this.WorkingScale);
 			}
-			AppendTooltip("Show bones added by the Illusio Vitae Custom Skeleton mod");
+			AppendTooltip("Show bones added by the Illusio Vitae Custom Skeleton mod (NSFW)");
 
 			ImGui.SameLine();
 
