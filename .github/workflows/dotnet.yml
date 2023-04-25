@@ -36,4 +36,3 @@ jobs:
         with:
           path: |
             ${{ github.workspace }}/CustomizePlus/bin/x64/Release/
-            ${{ github.workspace }}/CustomizePlus/bin/x64/Release/CustomizePlus/CustomizePlus.zip
