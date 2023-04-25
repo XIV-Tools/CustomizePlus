@@ -8,38 +8,26 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
-using System.Text;
 using CustomizePlus.Api;
 using CustomizePlus.Core;
-using CustomizePlus.Data.Configuration;
 using CustomizePlus.Extensions;
 using CustomizePlus.Helpers;
 using CustomizePlus.Interface;
 using CustomizePlus.Services;
 using CustomizePlus.Util;
 using Dalamud.Game;
-using Dalamud.Game.ClientState;
-using Dalamud.Game.ClientState.Objects;
 using Dalamud.Game.ClientState.Objects.Types;
-using Dalamud.Game.Command;
-using Dalamud.Game.Gui;
 using Dalamud.Hooking;
-using Dalamud.IoC;
 using Dalamud.Logging;
 using Dalamud.Plugin;
-using FFXIVClientStructs.FFXIV.Client.System.String;
 using FFXIVClientStructs.FFXIV.Client.UI;
-using FFXIVClientStructs.FFXIV.Common.Lua;
 using FFXIVClientStructs.FFXIV.Component.GUI;
-using Lumina.Excel.GeneratedSheets;
 using Newtonsoft.Json;
 using Penumbra.String;
 
 using CharacterStruct = FFXIVClientStructs.FFXIV.Client.Game.Character.Character;
-using CustomizeData = Penumbra.GameData.Structs.CustomizeData;
 using ObjectKind = Dalamud.Game.ClientState.Objects.Enums.ObjectKind;
 using ObjectStruct = FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject;
 
@@ -482,20 +470,27 @@ namespace CustomizePlus
 		// the player name should be used.
 		private static unsafe string? GetCutsceneName(ObjectStruct* gameObject)
 		{
-			if (gameObject->Name[0] != 0 || gameObject->ObjectKind != (byte)ObjectKind.Player)
-			{
+			if (gameObject->Name[0] != 0 || gameObject->ObjectKind != (byte)ObjectKind.Player) {
 				return null;
 			}
 
 			var player = DalamudServices.ObjectTable[0];
-			if (player == null)
-			{
+			if (player == null) {
 				return null;
 			}
 
-			var customize1 = (CustomizeData*)((CharacterStruct*)gameObject)->CustomizeData;
-			var customize2 = (CustomizeData*)((CharacterStruct*)player.Address)->CustomizeData;
-			return customize1->Equals(*customize2) ? player.Name.ToString() : null;
+			bool customizeEqual = true;
+			var customize1 = ((CharacterStruct*)gameObject)->CustomizeData;
+			var customize2 = ((CharacterStruct*)player.Address)->CustomizeData;
+			for (int i = 0;i < 26;i++) {
+				var data1 = Marshal.ReadByte((IntPtr)customize1, i);
+				var data2 = Marshal.ReadByte((IntPtr)customize2, i);
+				if (data1 != data2) {
+					customizeEqual = false;
+					break;
+				}
+			}
+			return customizeEqual ? player.Name.ToString() : null;
 		}
 
 		private static unsafe string? GetInspectName()
