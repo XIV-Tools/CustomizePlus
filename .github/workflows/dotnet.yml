@@ -30,7 +30,7 @@ jobs:
         run: |
           dotnet build --no-restore --configuration Release --nologo
       - name: Archive
-        run: Compress-Archive -Path CustomizePlus/bin/Release/* -DestinationPath CustomizePlus.zip
+        run: Compress-Archive -Path CustomizePlus/CustomizePlus/bin/Release/* -DestinationPath CustomizePlus.zip
       - name: Upload a Build Artifact
         uses: actions/upload-artifact@v2.2.1
         with:
