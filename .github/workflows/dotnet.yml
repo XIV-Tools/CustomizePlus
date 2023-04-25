@@ -29,10 +29,8 @@ jobs:
       - name: Build
         run: |
           dotnet build --no-restore --configuration Release --nologo
-      - name: Archive
-        run: Compress-Archive -Path D:\a\CustomizePlus\CustomizePlus\CustomizePlus\bin\x64\Release\* -DestinationPath D:\a\CustomizePlus\CustomizePlus\CustomizePlus\CustomizePlus.zip
       - name: Upload a Build Artifact
         uses: actions/upload-artifact@v2.2.1
         with:
           path: |
-            D:\a\CustomizePlus\CustomizePlus\CustomizePlus\CustomizePlus.zip
+            ${GITHUB_WORKSPACE}\CustomizePlus\
