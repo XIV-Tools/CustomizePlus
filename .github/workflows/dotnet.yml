@@ -33,4 +33,4 @@ jobs:
         uses: actions/upload-artifact@v2.2.1
         with:
           path: |
-            ${GITHUB_WORKSPACE}\CustomizePlus\
+            ${{ github.workspace }}/CustomizePlus/
