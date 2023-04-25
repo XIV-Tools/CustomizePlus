@@ -30,7 +30,7 @@ jobs:
         run: |
           dotnet build --no-restore --configuration Release --nologo
       - name: Rename file 
-        run: mv ${{ github.workspace }}/CustomizePlus/bin/x64/Release/CustomizePlus/latest.zip CustomizePlus.zip
+        run: mv ${{ github.workspace }}/CustomizePlus/bin/x64/Release/CustomizePlus/latest.zip ${{ github.workspace }}/CustomizePlus/bin/x64/Release/CustomizePlus/CustomizePlus.zip
       - name: Upload a Build Artifact
         uses: actions/upload-artifact@v2.2.1
         with:
