@@ -124,9 +124,10 @@ namespace CustomizePlus
 				defaultRetainerScale = null;
 				defaultCutsceneScale = null;
 
+				PoseCache.ClearCache();
+
 				foreach (BodyScale bodyScale in ConfigurationManager.Configuration.BodyScales)
 				{
-					bodyScale.ClearCache();
 					if (bodyScale.CharacterName == "Default" && bodyScale.BodyScaleEnabled)
 					{
 						defaultScale = bodyScale;
@@ -228,7 +229,7 @@ namespace CustomizePlus
 					(BodyScale? scale, bool applyRootScale) = FindScale(i);
 					if (scale == null)
 						continue;
-					scale.ApplyNonRootBonesAndRootScale(obj, applyRootScale);
+					PoseCache.ApplyNonRootBonesAndRootScale(obj, scale, applyRootScale);
 				}
 				catch (Exception ex)
 				{
@@ -435,7 +436,7 @@ namespace CustomizePlus
 			(BodyScale? scale, bool applyRootScale) = FindScale(gameObject.ObjectIndex);
 			if (scale == null)
 				return;
-			scale.ApplyRootPosition(gameObject);
+			PoseCache.ApplyRootPosition(gameObject, scale);
 		}
 
 		// All functions related to this process for non-named objects adapted from Penumbra logic. Credit to Ottermandias et al.
