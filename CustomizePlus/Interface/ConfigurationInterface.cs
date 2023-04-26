@@ -16,7 +16,8 @@ namespace CustomizePlus.Interface
 	using CustomizePlus.Data;
 	using CustomizePlus.Data.Configuration;
 	using CustomizePlus.Memory;
-    using Dalamud.Game.ClientState.Objects.Types;
+	using Dalamud.Game.ClientState.Objects.SubKinds;
+	using Dalamud.Game.ClientState.Objects.Types;
     using Dalamud.Interface;
     using Dalamud.Interface.Components;
     using Dalamud.Logging;
@@ -27,6 +28,8 @@ namespace CustomizePlus.Interface
 	{
 		private string newScaleName = string.Empty;
 		private string newScaleCharacter = string.Empty;
+
+		private string? playerCharacterName;
 
 		protected override string Title => "Customize+ Configuration";
 		protected override bool SingleInstance => true;
@@ -43,6 +46,8 @@ namespace CustomizePlus.Interface
 		protected override void DrawContents()
 		{
 			PluginConfiguration config = Plugin.ConfigurationManager.Configuration;
+
+			playerCharacterName = DalamudServices.ObjectTable[0]?.Name.ToString();
 
 			/* Upcoming feature to group by either scale name or character name
 			List<string> uniqueCharacters = new();
@@ -194,6 +199,31 @@ namespace CustomizePlus.Interface
 			if (ImGui.IsItemHovered())
 				ImGui.SetTooltip("Add a character from your Clipboard");
 
+			if (playerCharacterName != null)
+			{
+				ImGui.SameLine();
+				if (ImGui.Button($"Add Scale for {playerCharacterName}"))
+				{
+					BodyScale newBS = new BodyScale()
+					{
+						CharacterName = playerCharacterName,
+						ScaleName = "Default",
+						BodyScaleEnabled = false
+					};
+
+					int tryIndex = 1;
+
+					while(config.BodyScales.Contains(newBS))
+					{
+						newBS.ScaleName = $"Default-{tryIndex}";
+						tryIndex++;
+					}
+
+					config.BodyScales.Add(newBS);
+				}
+			}
+
+
 			// IPC Testing Window - Hidden unless enabled in json.
 			if (config.DebuggingMode)
 			{
@@ -247,7 +277,11 @@ namespace CustomizePlus.Interface
 					string characterName = extBS.CharacterName ?? string.Empty;
 					ImGui.PushItemWidth(-1);
 					if (ImGui.InputText("##Character", ref characterName, 64, ImGuiInputTextFlags.NoHorizontalScroll)) {
-						extBS.CharacterName = characterName;
+						
+						if (ImGui.IsItemDeactivatedAfterEdit())
+						{
+							extBS.CharacterName = characterName;
+						}
 					}
 
 					if (ImGui.IsItemHovered())
@@ -258,7 +292,27 @@ namespace CustomizePlus.Interface
 					ImGui.PushItemWidth(-1);
 					string scaleName = extBS.ScaleName ?? string.Empty;
 					if (ImGui.InputText("##Scale Name", ref scaleName, 64, ImGuiInputTextFlags.NoHorizontalScroll)) {
-						extBS.ScaleName = scaleName;
+						
+						if (ImGui.IsItemDeactivatedAfterEdit() && config.BodyScales.Remove(extBS))
+						{
+							extBS.ScaleName = scaleName;
+
+							if (config.BodyScales.Contains(extBS))
+							{
+								int tryIndex = 1;
+
+								do
+								{
+									extBS.ScaleName = $"{scaleName}-{tryIndex}";
+									tryIndex++;
+								}
+								while (config.BodyScales.Contains(extBS));
+
+								MessageWindow.Show($"Scaling '{scaleName}' already exists for {extBS.CharacterName}. Renamed to '{extBS.ScaleName}'.");
+							}
+
+							config.BodyScales.Add(extBS);
+						}
 					}
 
 					if (ImGui.IsItemHovered())
