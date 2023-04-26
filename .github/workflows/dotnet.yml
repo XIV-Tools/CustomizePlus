@@ -14,11 +14,11 @@ jobs:
   build:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3.5.2
         with:
           submodules: true
       - name: Setup .NET
-        uses: actions/setup-dotnet@v1
+        uses: actions/setup-dotnet@v3.0.3
         with:
           dotnet-version: '7.x.x'
       - name: Restore dependencies
@@ -33,7 +33,7 @@ jobs:
       - name: Rename file 
         run: mv ${{ github.workspace }}/CustomizePlus/bin/x64/Release/CustomizePlus/latest.zip ${{ github.workspace }}/CustomizePlus/bin/x64/Release/CustomizePlus/CustomizePlus.zip
       - name: Upload a Build Artifact
-        uses: actions/upload-artifact@v2.2.1
+        uses: actions/upload-artifact@v3.1.2
         with:
           path: |
             ${{ github.workspace }}/CustomizePlus/bin/x64/Release/
