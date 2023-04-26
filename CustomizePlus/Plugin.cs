@@ -29,7 +29,6 @@ using Newtonsoft.Json;
 using Penumbra.String;
 
 using CharacterStruct = FFXIVClientStructs.FFXIV.Client.Game.Character.Character;
-using CustomizeData = Penumbra.GameData.Structs.CustomizeData;
 using ObjectKind = Dalamud.Game.ClientState.Objects.Enums.ObjectKind;
 using ObjectStruct = FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject;
 
@@ -525,20 +524,27 @@ namespace CustomizePlus
 		// the player name should be used.
 		private static unsafe string? GetCutsceneName(ObjectStruct* gameObject)
 		{
-			if (gameObject->Name[0] != 0 || gameObject->ObjectKind != (byte)ObjectKind.Player)
-			{
+			if (gameObject->Name[0] != 0 || gameObject->ObjectKind != (byte)ObjectKind.Player) {
 				return null;
 			}
 
 			var player = DalamudServices.ObjectTable[0];
-			if (player == null)
-			{
+			if (player == null) {
 				return null;
 			}
 
-			var customize1 = (CustomizeData*)((CharacterStruct*)gameObject)->CustomizeData;
-			var customize2 = (CustomizeData*)((CharacterStruct*)player.Address)->CustomizeData;
-			return customize1->Equals(*customize2) ? player.Name.ToString() : null;
+			bool customizeEqual = true;
+			var customize1 = ((CharacterStruct*)gameObject)->CustomizeData;
+			var customize2 = ((CharacterStruct*)player.Address)->CustomizeData;
+			for (int i = 0;i < 26;i++) {
+				var data1 = Marshal.ReadByte((IntPtr)customize1, i);
+				var data2 = Marshal.ReadByte((IntPtr)customize2, i);
+				if (data1 != data2) {
+					customizeEqual = false;
+					break;
+				}
+			}
+			return customizeEqual ? player.Name.ToString() : null;
 		}
 
 		private static unsafe string? GetInspectName()
