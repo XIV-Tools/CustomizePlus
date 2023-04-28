@@ -47,12 +47,26 @@ namespace CustomizePlus.Data
 			}
 			else if (which == EditMode.Rotation)
 			{
+				ClampRotation(ref newVec);
 				this.Rotation = newVec;
 			}
 			else
 			{
 				this.Scale = newVec;
 			}
+		}
+
+		private static void ClampRotation(ref Vector3 rotVec)
+		{
+			static void Clamp(ref float angle)
+			{
+				if (angle > 180) angle -= 360;
+				else if (angle < -180) angle += 360;
+			}
+
+			Clamp(ref rotVec.X);
+			Clamp(ref rotVec.Y);
+			Clamp(ref rotVec.Z);
 		}
 
 		public BoneEditsContainer ReflectAcrossZPlane()
