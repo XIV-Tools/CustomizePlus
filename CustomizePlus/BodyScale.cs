@@ -8,12 +8,17 @@ namespace CustomizePlus
 	using System.Collections.Generic;
 	using System.Linq;
 	using System.Numerics;
+	using System.Windows.Forms;
+	using System.Xml.Linq;
 	using Anamnesis.Posing;
 	using CustomizePlus.Data;
 	using CustomizePlus.Extensions;
 	using CustomizePlus.Memory;
 	using CustomizePlus.Services;
 	using Dalamud.Game.ClientState.Objects.Types;
+	using Dalamud.Logging;
+	using Dalamud.Utility;
+	using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
 
 	[Serializable]
 	public class BodyScale
@@ -23,19 +28,6 @@ namespace CustomizePlus
 		public string CharacterName;
 		public string ScaleName;
 		public bool BodyScaleEnabled;
-
-		/// <summary>
-		/// Gets a value indicating whether or not this BodyScale contains hrothgar-exclusive bones.
-		/// </summary>
-		public bool InclHroth;
-		/// <summary>
-		/// Gets a value indicating whether or not this BodyScale contains viera-exclusive bones.
-		/// </summary>
-		public bool InclViera;
-		/// <summary>
-		/// Gets a value indicating whether or not this BodyScale contains IVCS-exclusive bones.
-		/// </summary>
-		public bool InclIVCS;
 
 		public Dictionary<string, BoneEditsContainer> Bones { get; private set; } = new();
 
@@ -50,10 +42,6 @@ namespace CustomizePlus
 			this.CharacterName = String.Empty;
 			this.ScaleName = String.Empty;
 			this.BodyScaleEnabled = true;
-
-			this.InclHroth = false;
-			this.InclViera = false;
-			this.InclIVCS = false;
 
 			this.Bones = new Dictionary<string, BoneEditsContainer>();
 		}
@@ -70,20 +58,12 @@ namespace CustomizePlus
 			this.ScaleName = original.ScaleName;
 			this.BodyScaleEnabled = original.BodyScaleEnabled;
 
-			this.InclHroth = original.InclHroth;
-			this.InclViera = original.InclViera;
-			this.InclIVCS = original.InclIVCS;
-
 			this.Bones = original.Bones.ToDictionary(x => x.Key, x => x.Value.DeepCopy());
 		}
 
 		private BodyScale(BodyScale original, Dictionary<string, BoneEditsContainer> newBones) : this(original)
 		{
 			this.Bones = newBones;
-
-			this.InclHroth = newBones.Keys.Any(BoneData.IsHrothgarBone);
-			this.InclViera = newBones.Keys.Any(BoneData.IsVieraBone);
-			this.InclIVCS = newBones.Keys.Any(BoneData.IsIVCSBone);
 		}
 
 		/// <summary>
@@ -96,53 +76,12 @@ namespace CustomizePlus
 			output.ScaleName = "Default";
 			output.BodyScaleEnabled = false;
 
-			foreach (string codename in BoneData.GetStandardBoneCodenames())
+			foreach (string codename in BoneData.GetBoneCodenames())
 			{
 				output.Bones.Add(codename, new BoneEditsContainer());
 			}
 
 			return output;
-		}
-
-		/// <summary>
-		/// Changes state of <see cref="InclHroth"/> property.
-		/// Toggling on has side-effect of toggling <see cref="InclViera"/> off.
-		/// </summary>
-		public void ToggleHrothgarFeatures(bool active) => ToggleExclusive(active, ref this.InclHroth, ref this.InclViera);
-
-		/// <summary>
-		/// Changes state of <see cref="InclViera"/> property.
-		/// Toggling on has side-effect of toggling <see cref="InclHroth"/> off.
-		/// </summary>
-		public void ToggleVieraFeatures(bool active) => ToggleExclusive(active, ref this.InclViera, ref this.InclHroth);
-
-		/// <summary>
-		/// Changes state of <see cref="InclIVCS"/> property.
-		/// </summary>
-		public void ToggleIVCSFeatures(bool active)
-		{
-			if (this.InclIVCS != active)
-			{
-				this.InclIVCS = active;
-				UpdateBoneList();
-			}
-		}
-
-		private void ToggleExclusive(bool toggleState, ref bool toggledOption, ref bool exOption)
-		{
-			if (toggleState != toggledOption)
-			{
-				if (toggleState)
-				{
-					toggledOption = true;
-					exOption = false;
-				}
-				else
-				{
-					toggledOption = false;
-				}
-				this.UpdateBoneList();
-			}
 		}
 
 		/// <summary>
@@ -172,39 +111,123 @@ namespace CustomizePlus
 			}
 		}
 
+
 		/// <summary>
-		/// Internally updates this BodyScale's bone list in accordance with its specified inclusions.
-		/// n_root is always included.
+		/// Fill this BodyScale's bone list with every Default bone it doesn't already have
 		/// </summary>
-		public void UpdateBoneList()
+		public void CreateDefaultBoneList()
 		{
-			foreach (string codename in BoneData.GetFilteredBoneCodenames(this, true).Except(this.Bones.Keys))
+			foreach (string codename in BoneData.GetBoneCodenames().Except(this.Bones.Keys).Where(x => BoneData.IsDefaultBone(x)))
 			{
 				this.Bones[codename] = new BoneEditsContainer();
 			}
 		}
 
-		public IEnumerable<BoneData.BoneFamily> GetUniqueFamilies()
+		/// <summary>
+		/// Attempts to fill this BodyScale's bone list by scraping bone info from the game using
+		/// the <see cref="CharacterName"/>. Returns whether doing so was successful.
+		/// </summary>
+		public bool TryRepopulateBoneList()
 		{
-			//this seems less than ideal, but if it works?
-			return BoneData.DisplayableFamilies.Where(x => BoneData.GetFilteredBoneCodenames(this).Any(y => BoneData.GetBoneFamily(y) == x));
+			GameObject? obj = Plugin.FindModelByName(this.CharacterName);
+			if (obj == null)
+			{
+				return false;
+			}
 
-			//return this.Bones.Select(x => BoneData.GetBoneFamily(x.Key)).Distinct();
+			Dictionary<string, BoneEditsContainer> newBoneList = new();
+			HashSet<string> unknownBoneNames = new();
+
+			try
+			{
+				unsafe
+				{
+					RenderObject* render = RenderObject.FromActor(obj);
+
+					for (int i = 0; i < render->Skeleton->Length; ++i)
+					{
+						var partialSkele = render->Skeleton->PartialSkeletons[i];
+
+						HkaPose*[] poses = new HkaPose*[]
+						{
+							partialSkele.Pose1,
+							partialSkele.Pose2,
+							partialSkele.Pose3,
+							partialSkele.Pose4
+						};
+
+						for (int j = 0; j < poses.Length && poses[j] != null; ++j)
+						{
+							HkaSkeleton* hkaSkele = poses[j]->Skeleton;
+
+							for (int k = 0; k < hkaSkele->Bones.Count; ++k)
+							{
+								HkaBone bone = hkaSkele->Bones[k];
+
+								if (bone.GetName() is string name && name != null)
+								{
+									if (!this.Bones.ContainsKey(name))
+									{
+										newBoneList[name] = new BoneEditsContainer();
+									}
+
+									if (BoneData.NewBone(name))
+									{
+										unknownBoneNames.Add(name);
+									}
+								}
+							}
+						}
+					}
+				}
+				
+				foreach(var kvp in newBoneList)
+				{
+					this.Bones.Add(kvp.Key, kvp.Value);
+				}
+
+				BoneData.LogNewBones(unknownBoneNames.ToArray());
+
+				return true;
+			}
+			catch (Exception ex)
+			{
+				PluginLog.Error($"Failed to get bones from skeleton by name: {ex}");
+			}
+
+			return false;
+		}
+
+		public Dictionary<BoneData.BoneFamily, string[]> GetBonesByFamily()
+		{
+			Dictionary<BoneData.BoneFamily, string[]> output = new();
+
+			foreach(BoneData.BoneFamily bf in BoneData.DisplayableFamilies.Keys)
+			{
+				string[] newEntry = this.Bones.Keys.Where(x => BoneData.GetBoneFamily(x) == bf).ToArray();
+
+				if (newEntry.Any())
+				{
+					output.Add(bf, newEntry.ToArray());
+				}
+			}
+
+			return output;
 		}
 
 		/// <summary>
-		/// Returns a compact BodyScale with redundant bones removed.
-		/// Bones not required by inclusions are removed, as well as any unaltered bones.
+		/// Returns a compact BodyScale including only bones that have edits applied to them,
+		/// except for the Root bone, which is included regardless.
 		/// </summary>
 		public BodyScale GetPrunedScale()
 		{
 			Dictionary<string, BoneEditsContainer> pruned = new();
 
-			foreach(string codename in BoneData.GetFilteredBoneCodenames(this, true))
+			foreach(var kvp in this.Bones)
 			{
-				if (this.Bones.TryGetValue(codename, out BoneEditsContainer? bEC) && bEC != null && (bEC.IsEdited() || codename == "n_root"))
+				if (kvp.Value != null && (kvp.Value.IsEdited() || kvp.Key == "n_root"))
 				{
-					pruned[codename] = bEC;
+					pruned.Add(kvp.Key, kvp.Value);
 				}
 			}
 
@@ -238,6 +261,9 @@ namespace CustomizePlus
 		{
 			return String.Concat(this.CharacterName, this.ScaleName).GetHashCode();
 		}
+
+
+		#region pose stuff
 
 		// This works fine on generic GameObject if previously checked for correct types.
 		public unsafe void ApplyNonRootBonesAndRootScale(GameObject character, bool applyRootScale)
@@ -394,6 +420,13 @@ namespace CustomizePlus
 
 					string? boneName = bone.GetName();
 
+
+					if (boneName.Contains("ex"))
+					{
+						//what is happening here...?
+					}
+
+
 					if (this.scaleCache.TryGetValue(index, out var boneScale))
 					{
 						Transform transform = pose->Transforms[index];
@@ -429,5 +462,7 @@ namespace CustomizePlus
 				}
 			}
 		}
+
+		#endregion
 	}
 }

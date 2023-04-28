@@ -324,11 +324,13 @@ namespace CustomizePlus.Interface
 
 				ImGui.PushID(i);
 
+				/*
 				if (!BoneData.IsEditableBone(codenameLocal))
 				{
 					ImGui.PopID();
 					continue;
 				}
+				*/
 
 				BoneEditsContainer currentEditsContainer = new BoneEditsContainer { Position = Constants.ZeroVector, Rotation = Constants.ZeroVector, Scale = Constants.OneVector };
 				string label = "Not Found";
