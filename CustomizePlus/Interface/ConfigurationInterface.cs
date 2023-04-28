@@ -567,10 +567,6 @@ namespace CustomizePlus.Interface
 				if (codename == "n_root")
 					continue;
 
-				if (BoneData.IsHrothgarBone(codename)) scale.ToggleHrothgarFeatures(true);
-				if (BoneData.IsVieraBone(codename)) scale.ToggleVieraFeatures(true);
-				if (BoneData.IsIVCSBone(codename)) scale.ToggleIVCSFeatures(true);
-
 				var editsContainer = new BoneEditsContainer { Position = Constants.ZeroVector, Rotation = Constants.ZeroVector, Scale = new Vector3(bone.Scale.X, bone.Scale.Y, bone.Scale.Z) };
 
 				if (!scale.Bones.ContainsKey(codename))
