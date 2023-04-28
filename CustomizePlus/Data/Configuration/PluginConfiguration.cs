@@ -18,6 +18,7 @@ namespace CustomizePlus.Data.Configuration
 		public bool Enable { get; set; } = true;
 		public bool AutomaticEditMode { get; set; } = false;
 		public bool MirrorMode { get; set; } = false;
+		public bool ParentingMode { get; set; } = false;
 		public EditMode EditingAttribute { get; set; } = EditMode.Scale;
 
 		public bool ApplyToNpcs { get; set; } = true;

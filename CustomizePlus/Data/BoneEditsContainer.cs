@@ -39,7 +39,7 @@ namespace CustomizePlus.Data
 			return new BoneEditsContainer { Position = Position, Rotation = Rotation, Scale = Scale };
 		}
 
-		public void UpdateVector(EditMode which, Vector3 newVec)
+		public void UpdateComponent(EditMode which, Vector3 newVec)
 		{
 			if (which == EditMode.Position)
 			{
@@ -54,6 +54,22 @@ namespace CustomizePlus.Data
 			{
 				this.Scale = newVec;
 			}
+		}
+
+		public void UpdateAsEffector(Matrix4x4 effectorTransform, Vector3 newRotation, Vector3 newScaling)
+		{
+			this.Position = Vector3.Transform(this.Position, effectorTransform);
+			this.Rotation = newRotation;
+			this.Scale = newScaling;
+		}
+
+		public Matrix4x4 GetEffectorTransform()
+		{
+			return
+				Matrix4x4.CreateScale(this.Scale)
+				* Matrix4x4.CreateTranslation(this.Position)
+				* Matrix4x4.CreateFromYawPitchRoll(this.Rotation.X, this.Rotation.Y, this.Rotation.Z)
+				* Matrix4x4.CreateTranslation(this.Position * -1);
 		}
 
 		private static void ClampRotation(ref Vector3 rotVec)

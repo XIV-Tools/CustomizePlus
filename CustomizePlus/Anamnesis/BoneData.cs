@@ -50,8 +50,10 @@ namespace Anamnesis.Posing
 			{ BoneFamily.Unknown, "These bones weren't immediately identifiable.\nIf you can figure out what they're for, let us know and we'll add them to the table." }
 		};
 
-		public struct BoneDatum
+		public struct BoneDatum : IComparable<BoneDatum>
 		{
+			public int RowIndex;
+
 			public string Codename;
 			public string DisplayName;
 			public BoneFamily Family;
@@ -64,8 +66,10 @@ namespace Anamnesis.Posing
 
 			public string[] Children;
 
-			public BoneDatum(string[] fields)
+			public BoneDatum(int row, string[] fields)
 			{
+				RowIndex = row;
+
 				int i = 0;
 
 				Codename = fields[i++];
@@ -80,6 +84,18 @@ namespace Anamnesis.Posing
 				MirroredCodename = fields[i].IsNullOrEmpty() ? null : fields[i]; i++;
 
 				Children = Array.Empty<string>();
+			}
+
+			public int CompareTo(BoneDatum other)
+			{
+				if (this.RowIndex != other.RowIndex)
+				{
+					return this.RowIndex.CompareTo(other.RowIndex);
+				}
+				else
+				{
+					return this.DisplayName.CompareTo(other.DisplayName);
+				}
 			}
 		}
 
@@ -96,10 +112,12 @@ namespace Anamnesis.Posing
 			{
 				BoneDatum newBone = new BoneDatum()
 				{
+					RowIndex = -1,
 					Codename = boneName,
 					DisplayName = $"Unknown ({boneName})",
 					Family = BoneFamily.Unknown,
 					Parent = "j_kosi",
+					Children = Array.Empty<string>(),
 					MirroredCodename = null
 				};
 			}
@@ -139,12 +157,14 @@ namespace Anamnesis.Posing
 
 						BoneDatum result = new BoneDatum()
 						{
+							RowIndex = -1,
 							Codename = boneInfo.name,
 							DisplayName = dispName.ToString(),
 							Family = BoneFamily.Hair,
 							Default = false,
 							IVCS = false,
 							Parent = "j_kao",
+							Children = Array.Empty<string>(),
 							MirroredCodename = null
 						};
 
@@ -229,7 +249,7 @@ namespace Anamnesis.Posing
 						string codename = cells[0];
 						string dispName = cells[1];
 
-						BoneTable[codename] = new BoneDatum(cells);
+						BoneTable[codename] = new BoneDatum(rowIndex, cells);
 						BoneLookupByDispName[dispName] = codename;
 
 						if (BoneTable[codename].Family == BoneFamily.Unknown)
@@ -301,12 +321,17 @@ namespace Anamnesis.Posing
 			return BoneTable.TryGetValue(codename, out BoneDatum row) ? row.MirroredCodename : null;
 		}
 
+		public static string[] GetChildren(string codename)
+		{
+			return BoneTable.TryGetValue(codename, out BoneDatum row) ? row.Children : Array.Empty<string>();
+		}
+
 		public static bool IsProbablyHairstyle(string codename)
 		{
 			return Regex.IsMatch(codename, @"j_ex_h\d\d\d\d_ke_[abcdeflrsu](_[abcdeflrsu])?");
 		}
 
-		public static bool NewBone(string codename)
+		public static bool IsNewBone(string codename)
 		{
 			return !BoneTable.ContainsKey(codename);
 		}

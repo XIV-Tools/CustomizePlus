@@ -30,6 +30,7 @@ namespace CustomizePlus
 		public bool BodyScaleEnabled;
 
 		public Dictionary<string, BoneEditsContainer> Bones { get; private set; } = new();
+		public static Dictionary<string, bool> BoneVisibility = new();
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="BodyScale"/> class.
@@ -166,12 +167,16 @@ namespace CustomizePlus
 
 								if (bone.GetName() is string name && name != null)
 								{
-									if (!this.Bones.ContainsKey(name))
+									if (this.Bones.TryGetValue(name, out var bec) && bec != null)
+									{
+										newBoneList[name] = bec;
+									}
+									else
 									{
 										newBoneList[name] = new BoneEditsContainer();
 									}
 
-									if (BoneData.NewBone(name))
+									if (BoneData.IsNewBone(name))
 									{
 										unknownBoneNames.Add(name);
 									}
@@ -180,11 +185,13 @@ namespace CustomizePlus
 						}
 					}
 				}
-				
+
 				foreach(var kvp in newBoneList)
 				{
-					this.Bones.Add(kvp.Key, kvp.Value);
+					this.Bones[kvp.Key] = kvp.Value;
 				}
+
+				BoneVisibility = this.Bones.Keys.ToDictionary(x => x, newBoneList.ContainsKey);
 
 				BoneData.LogNewBones(unknownBoneNames.ToArray());
 
@@ -204,7 +211,11 @@ namespace CustomizePlus
 
 			foreach(BoneData.BoneFamily bf in BoneData.DisplayableFamilies.Keys)
 			{
-				string[] newEntry = this.Bones.Keys.Where(x => BoneData.GetBoneFamily(x) == bf).ToArray();
+				string[] newEntry = this.Bones.Keys
+					.Where(x => BoneVisibility[x])
+					.Where(x => BoneData.GetBoneFamily(x) == bf)
+					.Order()
+					.ToArray();
 
 				if (newEntry.Any())
 				{
@@ -421,13 +432,7 @@ namespace CustomizePlus
 					string? boneName = bone.GetName();
 
 
-					if (boneName.Contains("ex"))
-					{
-						//what is happening here...?
-					}
-
-
-					if (this.scaleCache.TryGetValue(index, out var boneScale))
+					if (boneName != null && BodyScale.BoneVisibility[boneName] && this.scaleCache.TryGetValue(index, out var boneScale))
 					{
 						Transform transform = pose->Transforms[index];
 
