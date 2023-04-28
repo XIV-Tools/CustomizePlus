@@ -33,16 +33,16 @@ namespace CustomizePlus.Interface
 
 		private bool dirty = false;
 
-		private Dictionary<BoneData.BoneFamily, bool> boneGroups = new();
+		private Dictionary<BoneData.BoneFamily, bool> boneGroups = BoneData.DisplayableFamilies.ToDictionary(x => x.Key, x => false);
 
-		private EditMode mode;
-		private bool mirrorMode;
+		private static readonly PluginConfiguration Config = Plugin.ConfigurationManager.Configuration;
+		private bool autoPopulated = true;
+
 		private float windowHorz; //for formatting :V
 
 		public static void Show(BodyScale scale)
 		{
 			EditInterface editWnd = Plugin.InterfaceManager.Show<EditInterface>();
-			editWnd.mode = EditMode.Scale;
 
 			if (scale == null)
 			{
@@ -54,8 +54,13 @@ namespace CustomizePlus.Interface
 			}
 
 			editWnd.WorkingScale = new BodyScale(editWnd.BackupScale);
-			editWnd.WorkingScale.UpdateBoneList();
-			editWnd.UpdateBoneGroups(editWnd.WorkingScale);
+
+			editWnd.autoPopulated = editWnd.WorkingScale.TryRepopulateBoneList();
+			if (!editWnd.autoPopulated)
+			{
+				MessageWindow.Show($"Unable to locate bone data of {editWnd.WorkingScale.CharacterName} within running game.\nDefault bones will be loaded instead.");
+				editWnd.WorkingScale.CreateDefaultBoneList();
+			}
 		}
 		
 		protected override void DrawContents()
@@ -72,43 +77,21 @@ namespace CustomizePlus.Interface
 			RenderTextBox("Character Name", ref this.WorkingScale.CharacterName);
 
 			ImGui.SameLine();
-
-			RenderCheckBox("Enable", ref this.WorkingScale.BodyScaleEnabled);
+			ImGui.Spacing();
 
 			ImGui.SetNextItemWidth(windowHorz / 4);
 			RenderTextBox("Scale Name", ref this.WorkingScale.ScaleName);
 
+			RenderCheckBox("Enabled", ref this.WorkingScale.BodyScaleEnabled);
+
 			ImGui.SameLine();
 
-			RenderCheckBox("Automatic Mode", config.AutomaticEditMode, (b) => config.AutomaticEditMode = b);
+			RenderCheckBox("Dynamic Preview", config.AutomaticEditMode, (b) => config.AutomaticEditMode = b);
 			AppendTooltip($"Applies changes automatically without saving.");
 
-			if (RenderCheckBox("Hrothgar", this.WorkingScale.InclHroth, this.WorkingScale.ToggleHrothgarFeatures))
-			{
-				this.UpdateBoneGroups(this.WorkingScale);
-			}
-			AppendTooltip("Show bones exclusive to hrothgar");
-
 			ImGui.SameLine();
 
-			if (RenderCheckBox("Viera", this.WorkingScale.InclViera, this.WorkingScale.ToggleVieraFeatures))
-			{
-				this.UpdateBoneGroups(this.WorkingScale);
-			}
-			AppendTooltip("Show bones exclusive to viera");
-
-
-			ImGui.SameLine();
-
-			if (RenderCheckBox("IVCS", this.WorkingScale.InclIVCS, this.WorkingScale.ToggleIVCSFeatures))
-			{
-				this.UpdateBoneGroups(this.WorkingScale);
-			}
-			AppendTooltip("Show bones added by the Illusio Vitae Custom Skeleton mod (NSFW)");
-
-			ImGui.SameLine();
-
-			RenderCheckBox("Mirror Mode", ref this.mirrorMode);
+			RenderCheckBox("Mirror Mode", Config.MirrorMode, (b) => Config.MirrorMode = b);
 			AppendTooltip($"Bone changes will be reflected from left to right and vice versa");
 
 			ImGui.SameLine();
@@ -119,35 +102,35 @@ namespace CustomizePlus.Interface
 
 			ImGui.Separator();
 
-			if (ImGui.RadioButton("Position", mode == EditMode.Position))
-				mode = EditMode.Position;
+			if (ImGui.RadioButton("Position", Config.EditingAttribute == EditMode.Position))
+				Config.EditingAttribute = EditMode.Position;
 
 			ImGui.SameLine();
-			if (ImGui.RadioButton("Rotation", mode == EditMode.Rotation))
-				mode = EditMode.Rotation;
+			if (ImGui.RadioButton("Rotation", Config.EditingAttribute == EditMode.Rotation))
+				Config.EditingAttribute = EditMode.Rotation;
 
 			ImGui.SameLine();
-			if (ImGui.RadioButton("Scale", mode == EditMode.Scale))
-				mode = EditMode.Scale;
+			if (ImGui.RadioButton("Scale", Config.EditingAttribute == EditMode.Scale))
+				Config.EditingAttribute = EditMode.Scale;
 
-            if (mode != EditMode.Scale)
+            if (Config.EditingAttribute != EditMode.Scale)
 			{
 				ImGui.SameLine();
 				ImGui.PushFont(UiBuilder.IconFont);
 				ImGui.Text(FontAwesomeIcon.ExclamationTriangle.ToIconString());
 				ImGui.PopFont();
 				ImGui.SameLine();
-				ImGui.Text($"{mode} is an advanced setting and might not look properly with some animations, use at your own risk.");
+				ImGui.Text($"{Config.EditingAttribute} is an advanced setting and might not look properly with some animations, use at your own risk.");
 			}
 
 			ImGui.Separator();
 
 			RenderBoneRow("n_root");
 
-			string col1Label = mode == EditMode.Rotation ? "Yaw" : "X";
-			string col2Label = mode == EditMode.Rotation ? "Pitch" : "Y";
-			string col3Label = mode == EditMode.Rotation ? "Roll" : "Z";
-			string col4Label = mode == EditMode.Scale ? "All" : "N/A";
+			string col1Label = Config.EditingAttribute == EditMode.Rotation ? "Yaw" : "X";
+			string col2Label = Config.EditingAttribute == EditMode.Rotation ? "Pitch" : "Y";
+			string col3Label = Config.EditingAttribute == EditMode.Rotation ? "Roll" : "Z";
+			string col4Label = Config.EditingAttribute == EditMode.Scale ? "All" : "N/A";
 
 			ImGui.Separator();
 			ImGui.BeginTable("Bones", 6, ImGuiTableFlags.SizingStretchSame);
@@ -168,48 +151,32 @@ namespace CustomizePlus.Interface
 
 			ImGui.BeginChild("scrolling", new Vector2(0, ImGui.GetFrameHeightWithSpacing() - 56), false);
 
-			IEnumerable<string> relevantBoneNames = BoneData.GetFilteredBoneCodenames(this.WorkingScale);
-
-			foreach(var fam in this.WorkingScale.GetUniqueFamilies())
+			foreach(var famGroup in this.WorkingScale.GetBonesByFamily())
 			{
-				bool tempRef = this.boneGroups[fam];
-				RenderArrowToggle($"##{fam}", ref tempRef);
+				bool tempRef = this.boneGroups[famGroup.Key];
+				RenderArrowToggle($"##{famGroup.Key}", ref tempRef);
 				ImGui.SameLine();
-				RenderLabel(fam.ToString());
+				RenderLabel(famGroup.Key.ToString());
+				if (BoneData.DisplayableFamilies.TryGetValue(famGroup.Key, out string? tip) && tip != null)
+				{
+					AppendTooltip(tip);
+				}
 
 				if (tempRef)
 				{
 					ImGui.Spacing();
 
-					foreach(string codename in relevantBoneNames.Where(x => BoneData.GetBoneFamily(x) == fam))
+					foreach(string codename in famGroup.Value)
 					{
 						RenderBoneRow(codename);
 					}
 
 					ImGui.Spacing();
 				}
-				this.boneGroups[fam] = tempRef;
+				this.boneGroups[famGroup.Key] = tempRef;
 
 				ImGui.Separator();
 			}
-			/*
-			foreach(string codename in relevantBoneNames)
-			{
-				var familyType = BoneData.GetBoneFamily(codename);
-				if (priorFam != familyType)
-				{
-					ImGui.Separator();
-					ImGui.Spacing();
-					ImGui.Separator();
-					RenderLabel("\t" + familyType.ToString());
-					ImGui.Separator();
-
-					priorFam = familyType;
-				}
-
-				RenderBoneRow(codename);
-			}
-			*/
 
 			ImGui.EndChild();
 
@@ -226,13 +193,12 @@ namespace CustomizePlus.Interface
 					Plugin.LoadConfig();
 				}
 
-				if ((this.BackupScale.InclHroth && !this.WorkingScale.InclHroth)
-					|| (this.BackupScale.InclViera && !this.WorkingScale.InclViera)
-					|| (this.BackupScale.InclIVCS && !this.WorkingScale.InclIVCS))
+				if ((this.WorkingScale.CharacterName != this.BackupScale.CharacterName
+					|| this.WorkingScale.ScaleName != this.BackupScale.ScaleName)
+					&& config.BodyScales.Contains(this.WorkingScale))
 				{
-					ConfirmationDialog.Show("Certain optional bones were turned off since the last save.\n"
-						+ "Saving now will reset those bones to their default state.\n\nContinue?",
-						Proceed, "Confirm Bone Deletion");
+					ConfirmationDialog.Show($"Overwrite existing scaling '{this.WorkingScale.ScaleName}' on {this.WorkingScale.CharacterName}?",
+						Proceed, "Confirm Overwrite");
 				}
 				else
 				{
@@ -259,13 +225,12 @@ namespace CustomizePlus.Interface
 						this.Close();
 					}
 
-					if ((this.BackupScale.InclHroth && !this.WorkingScale.InclHroth)
-						|| (this.BackupScale.InclViera && !this.WorkingScale.InclViera)
-						|| (this.BackupScale.InclIVCS && !this.WorkingScale.InclIVCS))
+					if ((this.WorkingScale.CharacterName != this.BackupScale.CharacterName
+						|| this.WorkingScale.ScaleName != this.BackupScale.ScaleName)
+						&& config.BodyScales.Contains(this.WorkingScale))
 					{
-						ConfirmationDialog.Show("Certain optional bones were turned off since the last save.\n"
-							+ "Saving now will reset those bones to their default state.\n\nContinue?",
-							Proceed, "Confirm Bone Deletion");
+						ConfirmationDialog.Show($"Overwrite existing scaling '{this.WorkingScale.ScaleName}' on {this.WorkingScale.CharacterName}?",
+							Proceed, "Confirm Overwrite");
 					}
 					else
 					{
@@ -310,27 +275,6 @@ namespace CustomizePlus.Interface
 			AppendTooltip("Close the editor without saving\n(reverting all unsaved changes)");
 		}
 
-		private void UpdateBoneGroups(BodyScale bs)
-		{
-			Dictionary<BoneData.BoneFamily, bool> output = new();
-
-			foreach(BoneData.BoneFamily bf in bs.GetUniqueFamilies())
-			{
-				if (bf == BoneData.BoneFamily.Root) continue;
-
-				if (this.boneGroups.TryGetValue(bf, out bool prior))
-				{
-					output[bf] = prior;
-				}
-				else
-				{
-					output[bf] = false;
-				}
-			}
-
-			this.boneGroups = output;
-		}
-
 		private void AddToConfig()
 		{
 			PluginConfiguration config = Plugin.ConfigurationManager.Configuration;
@@ -350,7 +294,6 @@ namespace CustomizePlus.Interface
 			Plugin.ConfigurationManager.SaveConfiguration();
 
 			this.BackupScale = new BodyScale(pruned);
-			this.WorkingScale = new BodyScale(BackupScale);
 			this.dirty = false;
 		}
 
@@ -373,7 +316,7 @@ namespace CustomizePlus.Interface
 			var config = Plugin.ConfigurationManager.Configuration;
 
 			this.WorkingScale = new BodyScale(this.BackupScale);
-			this.WorkingScale.UpdateBoneList();
+			this.WorkingScale.CreateDefaultBoneList();
 
 			if (config.BodyScales.Remove(this.WorkingScale))
 			{
@@ -432,11 +375,11 @@ namespace CustomizePlus.Interface
 		private bool RenderResetButton(string codename, ref Vector3 value)
 		{
 			bool output = ImGuiComponents.IconButton(codename, FontAwesomeIcon.Recycle);
-			AppendTooltip($"Reset '{BoneData.GetBoneDisplayName(codename)}' to default {this.mode} values");
+			AppendTooltip($"Reset '{BoneData.GetBoneDisplayName(codename)}' to default {Config.EditingAttribute} values");
 
 			if (output)
 			{
-				value = this.mode switch
+				value = Config.EditingAttribute switch
 				{
 					EditMode.Scale => Vector3.One,
 					_ => Vector3.Zero
@@ -449,16 +392,29 @@ namespace CustomizePlus.Interface
 		private bool RenderRevertButton(string codename, ref Vector3 value)
 		{
 			bool output = ImGuiComponents.IconButton(codename, FontAwesomeIcon.ArrowCircleLeft);
-			AppendTooltip($"Revert '{BoneData.GetBoneDisplayName(codename)}' to last saved {this.mode} values");
+			AppendTooltip($"Revert '{BoneData.GetBoneDisplayName(codename)}' to last saved {Config.EditingAttribute} values");
 
 			if (output)
 			{
-				value = this.mode switch
+				//if the backup scale doesn't contain bone values to revert TO, then just reset it
+
+				if (this.BackupScale.TryGetBone(codename, out BoneEditsContainer bec) && bec != null)
 				{
-					EditMode.Position => this.BackupScale.Bones[codename].Position,
-					EditMode.Rotation => this.BackupScale.Bones[codename].Rotation,
-					_ => this.BackupScale.Bones[codename].Scale
-				};
+					value = Config.EditingAttribute switch
+					{
+						EditMode.Position => bec.Position,
+						EditMode.Rotation => bec.Rotation,
+						_ => bec.Scale
+					};
+				}
+				else
+				{
+					value = Config.EditingAttribute switch
+					{
+						EditMode.Scale => Vector3.One,
+						_ => Vector3.Zero
+					};
+				}
 			}
 
 			return output;
@@ -466,11 +422,11 @@ namespace CustomizePlus.Interface
 
 		private bool RenderDragBox(string label, ref Vector3 value)
 		{
-			float velocity = this.mode == EditMode.Rotation ? 1.0f : 0.001f;
-			float minValue = this.mode == EditMode.Rotation ? -360.0f : -10.0f;
-			float maxValue = this.mode == EditMode.Rotation ? 360.0f : 10.0f;
+			float velocity = Config.EditingAttribute == EditMode.Rotation ? 1.0f : 0.001f;
+			float minValue = Config.EditingAttribute == EditMode.Rotation ? -360.0f : -10.0f;
+			float maxValue = Config.EditingAttribute == EditMode.Rotation ? 360.0f : 10.0f;
 
-			float temp = this.mode switch
+			float temp = Config.EditingAttribute switch
 			{
 				EditMode.Position => 0.0f,
 				EditMode.Rotation => 0.0f,
@@ -488,9 +444,9 @@ namespace CustomizePlus.Interface
 
 		private bool RenderTripleDragBoxes(string label, ref Vector3 value)
 		{
-			float velocity = mode == EditMode.Rotation ? 1.0f : 0.001f;
-			float minValue = mode == EditMode.Rotation ? -360.0f : -10.0f;
-			float maxValue = mode == EditMode.Rotation ? 360.0f : 10.0f;
+			float velocity = Config.EditingAttribute == EditMode.Rotation ? 1.0f : 0.001f;
+			float minValue = Config.EditingAttribute == EditMode.Rotation ? -360.0f : -10.0f;
+			float maxValue = Config.EditingAttribute == EditMode.Rotation ? 360.0f : 10.0f;
 
 			return ImGui.DragFloat3(label, ref value, velocity, minValue, maxValue, $"%.{precision}f");
 		}
@@ -516,7 +472,7 @@ namespace CustomizePlus.Interface
 
 			bool flagUpdate = false;
 
-			Vector3 whichBoneVector = mode switch
+			Vector3 whichBoneVector = Config.EditingAttribute switch
 			{
 				EditMode.Position => currentBoneEdits.Position,
 				EditMode.Rotation => currentBoneEdits.Rotation,
@@ -538,18 +494,18 @@ namespace CustomizePlus.Interface
 
 			ImGui.SameLine();
 
-			if (mode != EditMode.Scale)
+			if (Config.EditingAttribute != EditMode.Scale)
 				ImGui.BeginDisabled();
 
 			ImGui.SetNextItemWidth(this.windowHorz / 7);
 			flagUpdate |= RenderDragBox($"##{displayName}AllAxes", ref whichBoneVector);
 
-			if (mode != EditMode.Scale)
+			if (Config.EditingAttribute != EditMode.Scale)
 				ImGui.EndDisabled();
 
 			ImGui.SameLine();
 
-			RenderLabel(displayName, codename);
+			RenderLabel(displayName, BoneData.IsIVCSBone(codename) ? $"(IVCS) {codename}" : codename);
 
 			ImGui.PopID();
 
@@ -557,13 +513,13 @@ namespace CustomizePlus.Interface
 			{
 				this.dirty = true;
 
-				currentBoneEdits.UpdateVector(mode, whichBoneVector);
+				currentBoneEdits.UpdateVector(Config.EditingAttribute, whichBoneVector);
 
 				//this is really ugly, but I couldn't think of a better way to pull these values out
 				//and be able to pass them back further below
 				string mirrorName = String.Empty;
 				BoneEditsContainer? mirrorEdits = null;
-				if (this.mirrorMode)
+				if (Config.MirrorMode)
 				{
 					mirrorName = BoneData.GetBoneMirror(codename);
 					if (mirrorName != null
@@ -586,7 +542,7 @@ namespace CustomizePlus.Interface
 				{
 					this.UpdateCurrent(codename, currentBoneEdits, true);
 
-					if (this.mirrorMode && !mirrorName.IsNullOrEmpty() && mirrorEdits != null)
+					if (Config.MirrorMode && !mirrorName.IsNullOrEmpty() && mirrorEdits != null)
 					{
 						this.UpdateCurrent(mirrorName, mirrorEdits, true);
 					}
