@@ -19,7 +19,7 @@ namespace CustomizePlus.Interface
 
 	public class EditInterface : WindowBase
 	{
-		protected override string Title => $"(WIP) Edit Scale: {this.BackupScale.ScaleName}";
+		protected override string Title => $"Edit Scale: {this.BackupScale.ScaleName}";
 		protected override string DrawTitle => $"{this.Title}###customize_plus_scale_edit_window{this.Index}"; //keep the same ID for all scale editor windows
 
 		protected override ImGuiWindowFlags WindowFlags => ImGuiWindowFlags.NoScrollbar |
