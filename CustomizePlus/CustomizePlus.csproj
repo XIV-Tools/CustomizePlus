@@ -71,7 +71,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="customizePlus.json">
+    <None Update="CustomizePlus.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
