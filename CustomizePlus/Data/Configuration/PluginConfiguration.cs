@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using CustomizePlus.Interface;
 using Dalamud.Configuration;
 
 namespace CustomizePlus.Data.Configuration
@@ -13,9 +14,11 @@ namespace CustomizePlus.Data.Configuration
 		public const int CurrentVersion = Constants.ConfigurationVersion;
 
 		public int Version { get; set; } = CurrentVersion;
-		public List<BodyScale> BodyScales { get; set; } = new();
+		public HashSet<BodyScale> BodyScales { get; set; } = new();
 		public bool Enable { get; set; } = true;
 		public bool AutomaticEditMode { get; set; } = false;
+		public bool MirrorMode { get; set; } = false;
+		public EditMode EditingAttribute { get; set; } = EditMode.Scale;
 
 		public bool ApplyToNpcs { get; set; } = true;
 		// public bool	ApplyToNpcsInBusyAreas { get; set; } = false;

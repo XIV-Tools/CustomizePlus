@@ -7,6 +7,7 @@ namespace CustomizePlus.Interface
     using System.Collections.Generic;
     using System.IO;
 	using System.IO.Compression;
+	using System.Linq;
 	using System.Numerics;
 	using System.Text;
 	using System.Windows.Forms;
@@ -15,7 +16,8 @@ namespace CustomizePlus.Interface
 	using CustomizePlus.Data;
 	using CustomizePlus.Data.Configuration;
 	using CustomizePlus.Memory;
-    using Dalamud.Game.ClientState.Objects.Types;
+	using Dalamud.Game.ClientState.Objects.SubKinds;
+	using Dalamud.Game.ClientState.Objects.Types;
     using Dalamud.Interface;
     using Dalamud.Interface.Components;
     using Dalamud.Logging;
@@ -26,6 +28,8 @@ namespace CustomizePlus.Interface
 	{
 		private string newScaleName = string.Empty;
 		private string newScaleCharacter = string.Empty;
+
+		private string? playerCharacterName;
 
 		protected override string Title => "Customize+ Configuration";
 		protected override bool SingleInstance => true;
@@ -42,6 +46,8 @@ namespace CustomizePlus.Interface
 		protected override void DrawContents()
 		{
 			PluginConfiguration config = Plugin.ConfigurationManager.Configuration;
+
+			playerCharacterName = DalamudServices.ObjectTable[0]?.Name.ToString();
 
 			/* Upcoming feature to group by either scale name or character name
 			List<string> uniqueCharacters = new();
@@ -131,14 +137,14 @@ namespace CustomizePlus.Interface
 				if (ImGui.Button("OK"))
 				{
 					string characterName = this.newScaleCharacter;
-					BodyScale scale = new();
+					BodyScale scale = BodyScale.BuildDefault();
 					scale.CharacterName = characterName;
 
 					// TODO: Build scales from only present bones
 					// scale = this.BuildFromName(scale, characterName);
-					scale = BuildDefault(scale);
+
 					Plugin.ConfigurationManager.Configuration.BodyScales.Add(scale);
-					Plugin.ConfigurationManager.ToggleOffAllOtherMatching(characterName, scale.ScaleName);
+					Plugin.ConfigurationManager.ToggleOffAllOtherMatching(scale);
 					if (config.AutomaticEditMode)
 					{
 						Plugin.ConfigurationManager.SaveConfiguration();
@@ -166,16 +172,19 @@ namespace CustomizePlus.Interface
 				BodyScale importScale = null;
 				string json = null;
 
-				try {
+				try
+				{
 					importVer = ImportFromBase64(Clipboard.GetText(),out json);
 					importScale = BuildFromCustomizeJSON(json) ;
-				} catch (Exception e) {
+				}
+				catch (Exception e)
+				{
 					PluginLog.Error(e, "An error occured during import conversion. Please check you coppied the right thing!");
 				}
 
 				if (importVer == (byte)Constants.ImportExportVersion && importScale != null) {
 					Plugin.ConfigurationManager.Configuration.BodyScales.Add(importScale);
-					Plugin.ConfigurationManager.ToggleOffAllOtherMatching(importScale.CharacterName, importScale.ScaleName);
+					Plugin.ConfigurationManager.ToggleOffAllOtherMatching(importScale);
 					if (config.AutomaticEditMode) {
 						Plugin.ConfigurationManager.SaveConfiguration();
 						Plugin.LoadConfig(true);
@@ -189,6 +198,31 @@ namespace CustomizePlus.Interface
 
 			if (ImGui.IsItemHovered())
 				ImGui.SetTooltip("Add a character from your Clipboard");
+
+			if (playerCharacterName != null)
+			{
+				ImGui.SameLine();
+				if (ImGui.Button($"Add Scale for {playerCharacterName}"))
+				{
+					BodyScale newBS = new BodyScale()
+					{
+						CharacterName = playerCharacterName,
+						ScaleName = "Default",
+						BodyScaleEnabled = false
+					};
+
+					int tryIndex = 1;
+
+					while(config.BodyScales.Contains(newBS))
+					{
+						newBS.ScaleName = $"Default-{tryIndex}";
+						tryIndex++;
+					}
+
+					config.BodyScales.Add(newBS);
+				}
+			}
+
 
 			// IPC Testing Window - Hidden unless enabled in json.
 			if (config.DebuggingMode)
@@ -214,11 +248,11 @@ namespace CustomizePlus.Interface
 				ImGui.TableSetupColumn("Options", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize);
 				ImGui.TableHeadersRow();
 
-				for (int i = 0;i < config.BodyScales.Count;i++) {
-					BodyScale bodyScale = config.BodyScales[i];
-					bool bodyScaleEnabled = bodyScale.BodyScaleEnabled;
+				foreach(BodyScale extBS in config.BodyScales.OrderBy(x => x.CharacterName).ThenBy(x => x.ScaleName))
+				{
+					bool bodyScaleEnabled = extBS.BodyScaleEnabled;
 
-					ImGui.PushID(i);
+					ImGui.PushID(extBS.GetHashCode());
 
 					ImGui.TableNextRow();
 					ImGui.TableNextColumn();
@@ -226,9 +260,9 @@ namespace CustomizePlus.Interface
 					// Enable
 					ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (12 * fontScale));
 					if (ImGui.Checkbox("##Enable", ref bodyScaleEnabled)) {
-						if (bodyScale.CharacterName != null)
-							Plugin.ConfigurationManager.ToggleOffAllOtherMatching(bodyScale.CharacterName, bodyScale.ScaleName == null ? "" : bodyScale.ScaleName);
-						bodyScale.BodyScaleEnabled = bodyScaleEnabled;
+						if (extBS.CharacterName != null)
+							Plugin.ConfigurationManager.ToggleOffAllOtherMatching(extBS);
+						extBS.BodyScaleEnabled = bodyScaleEnabled;
 						Plugin.ConfigurationManager.SaveConfiguration();
 						if (config.AutomaticEditMode) {
 							Plugin.LoadConfig(true);
@@ -240,10 +274,14 @@ namespace CustomizePlus.Interface
 
 					// Character Name
 					ImGui.TableNextColumn();
-					string characterName = bodyScale.CharacterName ?? string.Empty;
+					string characterName = extBS.CharacterName ?? string.Empty;
 					ImGui.PushItemWidth(-1);
 					if (ImGui.InputText("##Character", ref characterName, 64, ImGuiInputTextFlags.NoHorizontalScroll)) {
-						bodyScale.CharacterName = characterName;
+						
+						if (ImGui.IsItemDeactivatedAfterEdit())
+						{
+							extBS.CharacterName = characterName;
+						}
 					}
 
 					if (ImGui.IsItemHovered())
@@ -252,9 +290,29 @@ namespace CustomizePlus.Interface
 					// Scale Name
 					ImGui.TableNextColumn();
 					ImGui.PushItemWidth(-1);
-					string scaleName = bodyScale.ScaleName ?? string.Empty;
+					string scaleName = extBS.ScaleName ?? string.Empty;
 					if (ImGui.InputText("##Scale Name", ref scaleName, 64, ImGuiInputTextFlags.NoHorizontalScroll)) {
-						bodyScale.ScaleName = scaleName;
+						
+						if (ImGui.IsItemDeactivatedAfterEdit() && config.BodyScales.Remove(extBS))
+						{
+							extBS.ScaleName = scaleName;
+
+							if (config.BodyScales.Contains(extBS))
+							{
+								int tryIndex = 1;
+
+								do
+								{
+									extBS.ScaleName = $"{scaleName}-{tryIndex}";
+									tryIndex++;
+								}
+								while (config.BodyScales.Contains(extBS));
+
+								MessageWindow.Show($"Scaling '{scaleName}' already exists for {extBS.CharacterName}. Renamed to '{extBS.ScaleName}'.");
+							}
+
+							config.BodyScales.Add(extBS);
+						}
 					}
 
 					if (ImGui.IsItemHovered())
@@ -263,7 +321,7 @@ namespace CustomizePlus.Interface
 					// Edit
 					ImGui.TableNextColumn();
 					if (ImGuiComponents.IconButton(FontAwesomeIcon.Pen)) {
-						EditInterface.Show(bodyScale);
+						EditInterface.Show(extBS);
 					}
 
 					if (ImGui.IsItemHovered())
@@ -272,7 +330,9 @@ namespace CustomizePlus.Interface
 					// Import Ana
 					ImGui.SameLine();
 					if (ImGuiComponents.IconButton(FontAwesomeIcon.FileImport)) {
-						this.Import(bodyScale);
+						this.Import(extBS);
+						Plugin.ConfigurationManager.SaveConfiguration();
+						Plugin.LoadConfig(true);
 					}
 
 					if (ImGui.IsItemHovered())
@@ -281,7 +341,7 @@ namespace CustomizePlus.Interface
 					// Import Clipboard
 					ImGui.SameLine();
 					if (ImGuiComponents.IconButton(FontAwesomeIcon.FileExport)) {
-						Clipboard.SetText(this.ExportToBase64(bodyScale, Constants.ImportExportVersion));
+						Clipboard.SetText(this.ExportToBase64(extBS, Constants.ImportExportVersion));
 					}
 
 					if (ImGui.IsItemHovered())
@@ -290,7 +350,8 @@ namespace CustomizePlus.Interface
 					// Remove
 					ImGui.SameLine();
 					if (ImGuiComponents.IconButton(FontAwesomeIcon.Trash)) {
-						config.BodyScales.Remove(bodyScale);
+						string msg = $"Are you sure you want to permanently delete '{extBS.ScaleName}' scaling for {extBS.CharacterName}?";
+						ConfirmationDialog.Show(msg, () => config.BodyScales.Remove(extBS), "Delete Scaling?");
 					}
 
 					if (ImGui.IsItemHovered())
@@ -392,17 +453,23 @@ namespace CustomizePlus.Interface
 
 		// TODO: Finish feature. May require additional skeleton code from Anamnesis
 		// Process only works properly in that when in GPose as it is.
+
 		private unsafe BodyScale BuildFromName(BodyScale scale, string characterName)
 		{
 			if (characterName == null)
 			{
-				return BuildDefault(scale);
+				scale = BodyScale.BuildDefault();
+				return scale;
 			}
 			else
 			{
 				GameObject? obj = Plugin.FindModelByName(characterName);
 				if (obj == null)
-					return BuildDefault(scale);
+				{
+					scale = BodyScale.BuildDefault();
+					return scale;
+				}
+
 				try
 				{
 					List<string> boneNameList = new();
@@ -414,29 +481,30 @@ namespace CustomizePlus.Interface
 					// skele
 
 					// PluginLog.Information(skele->ToString());
-					/*
-					while (realBones.MoveNext())
-					{
-						string? boneName = realBones.Current.GetName();
-						if (boneName == null)
-						{
-							PluginLog.Error($"Null bone found: {realBones.ToString()}");
-						}
-						else
-						{
-							boneNameList.Add(boneName);
-						}
-					}
-					*/
+					
+					//while (realBones.MoveNext())
+					//{
+					//	string? boneName = realBones.Current.GetName();
+					//	if (boneName == null)
+					//	{
+					//		PluginLog.Error($"Null bone found: {realBones.ToString()}");
+					//	}
+					//	else
+					//	{
+					//		boneNameList.Add(boneName);
+					//	}
+					//}
+					
 					scale.ScaleName = $"Built from real bones of {scale.CharacterName}";
 				}
 				catch (Exception ex)
 				{
-					PluginLog.Error($"Failed to get bones from skelton by name:{ex}");
+					PluginLog.Error($"Failed to get bones from skeleton by name: {ex}");
 				}
 			}
 			scale.ScaleName = $"Default";
-			return BuildDefault(scale);
+			scale = BodyScale.BuildDefault();
+			return scale;
 		}
 
 		// Scale returns as null if it fails.
@@ -451,6 +519,7 @@ namespace CustomizePlus.Interface
 		}
 
 		// TODO: Change to using real bone dict and not existing JSON logic.
+		/*
 		public static BodyScale BuildDefault(BodyScale scale)
 		{
 			string json = DefaultFile;
@@ -461,6 +530,7 @@ namespace CustomizePlus.Interface
 
 			return scale;
 		}
+		*/
 
 		//todo: further refactoring
 		private static BodyScale? BuildFromJSON(BodyScale scale, string json)
@@ -490,19 +560,19 @@ namespace CustomizePlus.Interface
 				if (bone.Scale == null)
 					continue;
 
-				string? modernName = LegacyBoneNameConverter.GetModernName(boneName);
-				if (modernName == null)
-					modernName = boneName;
+				string? codename = BoneData.GetBoneCodename(boneName);
+				if (codename == null)
+					codename = boneName;
 
-				if (modernName == "n_root")
+				if (codename == "n_root")
 					continue;
 
 				var editsContainer = new BoneEditsContainer { Position = Constants.ZeroVector, Rotation = Constants.ZeroVector, Scale = new Vector3(bone.Scale.X, bone.Scale.Y, bone.Scale.Z) };
 
-				if (!scale.Bones.ContainsKey(modernName))
-					scale.Bones.Add(modernName, editsContainer);
+				if (!scale.Bones.ContainsKey(codename))
+					scale.Bones.Add(codename, editsContainer);
 
-				scale.Bones[modernName] = editsContainer;
+				scale.Bones[codename] = editsContainer;
 			}
 
 			scale.Bones["n_root"] = new BoneEditsContainer { Position = Constants.ZeroVector, Rotation = Constants.ZeroVector, Scale = Constants.OneVector };
@@ -521,132 +591,5 @@ namespace CustomizePlus.Interface
 
 			return scale;
 		}
-
-		private static readonly string DefaultFile = @"{""FileExtension"": "".pose"", ""TypeName"": ""Default"", ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""0, 0, 0"", ""Bones"": {
-			""Root"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 1"", ""Scale"": ""1, 1, 1""},
-			""Abdomen"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 1"", ""Scale"": ""1, 1, 1"" },
-			""Throw"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 1"", ""Scale"": ""1, 1, 1"" },
-			""Waist"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""SpineA"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""LegLeft"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""LegRight"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""HolsterLeft"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""HolsterRight"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""SheatheLeft"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""SheatheRight"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""SpineB"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""ClothBackALeft"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_sk_b_a_r"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_sk_f_a_l"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_sk_f_a_r"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_sk_s_a_l"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_sk_s_a_r"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_asi_b_l"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_asi_b_r"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_mune_l"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_mune_r"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_sebo_c"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_sk_b_b_l"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_sk_b_b_r"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_sk_f_b_l"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_sk_f_b_r"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_sk_s_b_l"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_sk_s_b_r"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_asi_c_l"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_asi_c_r"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_buki_sebo_l"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_buki_sebo_r"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_kubi"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_sako_l"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_sako_r"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_sk_b_c_l"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_sk_b_c_r"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_sk_f_c_l"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_sk_f_c_r"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_sk_s_c_l"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_sk_s_c_r"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""n_hizasoubi_l"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""n_hizasoubi_r"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_asi_d_l"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_asi_d_r"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_kao"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_ude_a_l"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_ude_a_r"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""n_kataarmor_l"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""n_kataarmor_r"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_ago"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_asi_e_l"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_asi_e_r"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_kami_a"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_kami_f_l"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_kami_f_r"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_mimi_l"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_mimi_r"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_ude_b_l"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_ude_b_r"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""n_hkata_l"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""n_hkata_r"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_kami_b"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_te_l"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_te_r"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""n_buki_tate_l"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""n_buki_tate_r"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""n_ear_a_l"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""n_ear_a_r"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""n_hhiji_l"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""n_hhiji_r"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""n_hijisoubi_l"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""n_hijisoubi_r"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""n_hte_l"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""n_hte_r"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_hito_a_l"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_hito_a_r"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_ko_a_l"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_ko_a_r"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_kusu_a_l"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_kusu_a_r"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_naka_a_l"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_naka_a_r"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_oya_a_l"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_oya_a_r"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""n_buki_l"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""n_buki_r"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""n_ear_b_l"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""n_ear_b_r"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_hito_b_l"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_hito_b_r"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_ko_b_l"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_ko_b_r"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_kusu_b_l"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_kusu_b_r"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_naka_b_l"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_naka_b_r"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_oya_b_l"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_oya_b_r"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_f_dmab_l"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_f_dmab_r"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_f_eye_l"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_f_eye_r"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_f_hana"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_f_hoho_l"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_f_hoho_r"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_f_lip_l"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_f_lip_r"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_f_mayu_l"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_f_mayu_r"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_f_memoto"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_f_miken_l"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_f_miken_r"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_f_ulip_a"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_f_umab_l"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_f_umab_r"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_f_dlip_a"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_f_ulip_b"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_f_dlip_b"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_ex_h0106_ke_f_a"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_ex_h0106_ke_l"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"", ""Scale"": ""1, 1, 1"" },
-			""j_ex_h0106_ke_f_b"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 0"",""Scale"": ""1, 1, 1""},
-			""mh_n_root"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 1"",""Scale"": ""1, 1, 1""},
-			""mh_n_hara"": { ""Position"": ""0, 0, 0"", ""Rotation"": ""0, 0, 0, 1"",""Scale"": ""1, 1, 1""} } }";
 	}
 }

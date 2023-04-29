@@ -16,8 +16,8 @@ namespace CustomizePlus.Interface
 		protected abstract string Title { get; }
 
 		protected virtual Vector2? ForcedSize { get; set; }
-		protected virtual Vector2 MinSize => new Vector2(256, 256);
-		protected virtual Vector2 MaxSize => new Vector2(1920, 1080);
+		protected virtual Vector2 MinSize => new Vector2(550, 256);
+		protected virtual Vector2 MaxSize => new Vector2(2560, 1440);
 
 		protected virtual ImGuiWindowFlags WindowFlags { get; set; } = ImGuiWindowFlags.None;
 		protected virtual bool LockCloseButton { get; set; }

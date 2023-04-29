@@ -43,7 +43,7 @@ namespace CustomizePlus.Data.Configuration.Version0
 				ApplyToNpcs = ApplyToNpcs,
 				ApplyToNpcsInCutscenes = ApplyToNpcsInCutscenes,
 				DebuggingMode = DebuggingMode,
-				BodyScales = new List<BodyScale>(BodyScales.Count)
+				BodyScales = new(BodyScales.Count)
 			};
 
 			foreach (var bodyScale in BodyScales)
