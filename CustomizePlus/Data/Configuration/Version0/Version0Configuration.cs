@@ -57,31 +57,31 @@ namespace CustomizePlus.Data.Configuration.Version0
 
 				foreach (var kvPair in bodyScale.Bones)
 				{
-					BoneEditsContainer boneEditsContainer = new BoneEditsContainer
+					BoneTransform boneEditsContainer = new BoneTransform
 					{
-						Position = Constants.ZeroVector,
-						Rotation = Constants.ZeroVector,
-						Scale = Constants.OneVector
+						Translation = Vector3.Zero,
+						EulerRotation = Vector3.Zero,
+						Scaling = Vector3.One
 					};
 
 					if (kvPair.Value.W != 0)
-						boneEditsContainer.Scale = new Vector3(kvPair.Value.W, kvPair.Value.W, kvPair.Value.W);
+						boneEditsContainer.Scaling = new Vector3(kvPair.Value.W, kvPair.Value.W, kvPair.Value.W);
 					else if (kvPair.Value.X != 0 || kvPair.Value.Y != 0 || kvPair.Value.Z != 0)
-						boneEditsContainer.Scale = new Vector3(kvPair.Value.X, kvPair.Value.Y, kvPair.Value.Z);
+						boneEditsContainer.Scaling = new Vector3(kvPair.Value.X, kvPair.Value.Y, kvPair.Value.Z);
 
 					newBodyScale.Bones.Add(kvPair.Key, boneEditsContainer);
 				}
 
-				newBodyScale.Bones["n_root"] = new BoneEditsContainer
+				newBodyScale.Bones["n_root"] = new BoneTransform
 				{
-					Position = Constants.ZeroVector,
-					Rotation = Constants.ZeroVector
+					Translation = Vector3.Zero,
+					EulerRotation = Vector3.Zero
 				};
 
 				if (bodyScale.RootScale.W != 0)
-					newBodyScale.Bones["n_root"].Scale = new Vector3(bodyScale.RootScale.W, bodyScale.RootScale.W, bodyScale.RootScale.W);
+					newBodyScale.Bones["n_root"].Scaling = new Vector3(bodyScale.RootScale.W, bodyScale.RootScale.W, bodyScale.RootScale.W);
 				else if (bodyScale.RootScale.X != 0 || bodyScale.RootScale.Y != 0 || bodyScale.RootScale.Z != 0)
-					newBodyScale.Bones["n_root"].Scale = new Vector3(bodyScale.RootScale.X, bodyScale.RootScale.Y, bodyScale.RootScale.Z);
+					newBodyScale.Bones["n_root"].Scaling = new Vector3(bodyScale.RootScale.X, bodyScale.RootScale.Y, bodyScale.RootScale.Z);
 
 				configuration.BodyScales.Add(newBodyScale);
 			}

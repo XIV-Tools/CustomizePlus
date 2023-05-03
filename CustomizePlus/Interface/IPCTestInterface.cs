@@ -9,7 +9,6 @@ namespace CustomizePlus.Interface
 	using System.Numerics;
 	using System.Windows.Forms;
 	using Anamnesis.Files;
-	using Anamnesis.Posing;
 	using CustomizePlus.Memory;
 	using Dalamud.Interface;
 	using Dalamud.Interface.Components;
@@ -72,10 +71,10 @@ namespace CustomizePlus.Interface
 		private string newScaleCharacter = string.Empty;
 		private string originalScaleName = string.Empty;
 		private string originalScaleCharacter = string.Empty;
-		private BoneEditsContainer rootEditsContainer = new BoneEditsContainer();
+		private BoneTransform rootEditsContainer = new BoneTransform();
 
-		private Dictionary<string, BoneEditsContainer> boneValuesOriginal = new Dictionary<string, BoneEditsContainer>();
-		private Dictionary<string, BoneEditsContainer> boneValuesNew = new Dictionary<string, BoneEditsContainer>();
+		private Dictionary<string, BoneTransform> boneValuesOriginal = new Dictionary<string, BoneTransform>();
+		private Dictionary<string, BoneTransform> boneValuesNew = new Dictionary<string, BoneTransform>();
 		private readonly List<string> boneCodenames = BoneData.GetBoneCodenames();
 		private readonly List<string> boneDispNames = BoneData.GetBoneDisplayNames();
 		private List<string> boneDispNamesUsed = new List<string>();
@@ -119,7 +118,7 @@ namespace CustomizePlus.Interface
 
 			for (int i = 0; i < editWnd.boneCodenames.Count && i < editWnd.boneDispNames.Count; i++)
 			{
-				BoneEditsContainer tempContainer = new BoneEditsContainer { Scale = Constants.OneVector };
+				BoneTransform tempContainer = new BoneTransform { Scaling = Vector3.One };
 				if (scale.Bones.TryGetValue(editWnd.boneCodenames[i], out tempContainer))
 				{
 					editWnd.boneValuesOriginal.Add(editWnd.boneCodenames[i], tempContainer);
@@ -210,7 +209,7 @@ namespace CustomizePlus.Interface
 
 			if (ImGuiComponents.IconButton(-1, FontAwesomeIcon.Recycle))
 			{
-				this.rootEditsContainer = new BoneEditsContainer();
+				this.rootEditsContainer = new BoneTransform();
 				if (automaticEditMode)
 				{
 					this.UpdateCurrent("n_root", this.rootEditsContainer);
@@ -223,19 +222,19 @@ namespace CustomizePlus.Interface
 
 			ImGui.SameLine();
 
-			Vector3 rootLocalTemp = Constants.OneVector;
+			Vector3 rootLocalTemp = Vector3.One;
 			bool isRootControlDisabled = false;
 			switch (editMode)
 			{
 				case EditMode.Position:
-					rootLocalTemp = rootEditsContainer.Position;
+					rootLocalTemp = rootEditsContainer.Translation;
 					break;
 				case EditMode.Rotation:
-					rootLocalTemp = Constants.ZeroVector;
+					rootLocalTemp = Vector3.Zero;
 					isRootControlDisabled = true;
 					break;
 				case EditMode.Scale:
-					rootLocalTemp = rootEditsContainer.Scale;
+					rootLocalTemp = rootEditsContainer.Scaling;
 					break;
 			}
 
@@ -262,13 +261,13 @@ namespace CustomizePlus.Interface
 				switch (editMode)
 				{
 					case EditMode.Position:
-						rootEditsContainer.Position = new Vector3(rootLocalTemp.X, rootLocalTemp.Y, rootLocalTemp.Z);
+						rootEditsContainer.Translation = new Vector3(rootLocalTemp.X, rootLocalTemp.Y, rootLocalTemp.Z);
 						break;
 					case EditMode.Rotation:
-						rootEditsContainer.Rotation = new Vector3(rootLocalTemp.X, rootLocalTemp.Y, rootLocalTemp.Z);
+						rootEditsContainer.EulerRotation = new Vector3(rootLocalTemp.X, rootLocalTemp.Y, rootLocalTemp.Z);
 						break;
 					case EditMode.Scale:
-						rootEditsContainer.Scale = new Vector3(rootLocalTemp.X, rootLocalTemp.Y, rootLocalTemp.Z);
+						rootEditsContainer.Scaling = new Vector3(rootLocalTemp.X, rootLocalTemp.Y, rootLocalTemp.Z);
 						break;
 				}
 
@@ -332,7 +331,7 @@ namespace CustomizePlus.Interface
 				}
 				*/
 
-				BoneEditsContainer currentEditsContainer = new BoneEditsContainer { Position = Constants.ZeroVector, Rotation = Constants.ZeroVector, Scale = Constants.OneVector };
+				BoneTransform currentEditsContainer = new BoneTransform { Translation = Vector3.Zero, EulerRotation = Vector3.Zero, Scaling = Vector3.One };
 				string label = "Not Found";
 
 				try
@@ -342,24 +341,24 @@ namespace CustomizePlus.Interface
 					else if (this.boneValuesNew.TryGetValue(dispNameLocal, out currentEditsContainer))
 						label = dispNameLocal;
 					else
-						currentEditsContainer = new BoneEditsContainer { Position = Constants.ZeroVector, Rotation = Constants.ZeroVector, Scale = Constants.OneVector };
+						currentEditsContainer = new BoneTransform { Translation = Vector3.Zero, EulerRotation = Vector3.Zero, Scaling = Vector3.One };
 				}
 				catch (Exception ex)
 				{
 
 				}
 
-				Vector3 currentVector = Constants.OneVector;
+				Vector3 currentVector = Vector3.One;
 				switch (editMode)
 				{
 					case EditMode.Position:
-						currentVector = currentEditsContainer.Position;
+						currentVector = currentEditsContainer.Translation;
 						break;
 					case EditMode.Rotation:
-						currentVector = currentEditsContainer.Rotation;
+						currentVector = currentEditsContainer.EulerRotation;
 						break;
 					case EditMode.Scale:
-						currentVector = currentEditsContainer.Scale;
+						currentVector = currentEditsContainer.Scaling;
 						break;
 				}
 
@@ -373,7 +372,7 @@ namespace CustomizePlus.Interface
 
 				if (this.reset)
 				{
-					BoneEditsContainer editsContainer = null;
+					BoneTransform editsContainer = null;
 
 					switch (editMode)
 					{
@@ -396,7 +395,7 @@ namespace CustomizePlus.Interface
 					{
 						if (this.boneValuesNew.ContainsKey(dispNameLocal))
 							editsContainer = this.boneValuesNew[dispNameLocal];
-						else if (this.boneValuesNew.Remove(codenameLocal, out BoneEditsContainer removedContainer))
+						else if (this.boneValuesNew.Remove(codenameLocal, out BoneTransform removedContainer))
 						{
 							editsContainer = removedContainer;
 							this.boneValuesNew[codenameLocal] = editsContainer;
@@ -407,13 +406,13 @@ namespace CustomizePlus.Interface
 						switch (editMode)
 						{
 							case EditMode.Position:
-								editsContainer.Position = new Vector3(currentVector.X, currentVector.Y, currentVector.Z);
+								editsContainer.Translation = new Vector3(currentVector.X, currentVector.Y, currentVector.Z);
 								break;
 							case EditMode.Rotation:
-								editsContainer.Rotation = new Vector3(currentVector.X, currentVector.Y, currentVector.Z);
+								editsContainer.EulerRotation = new Vector3(currentVector.X, currentVector.Y, currentVector.Z);
 								break;
 							case EditMode.Scale:
-								editsContainer.Scale = new Vector3(currentVector.X, currentVector.Y, currentVector.Z);
+								editsContainer.Scaling = new Vector3(currentVector.X, currentVector.Y, currentVector.Z);
 								break;
 						}
 					}
@@ -454,7 +453,7 @@ namespace CustomizePlus.Interface
 
 				if (ImGui.DragFloat3(label, ref currentVector, increment, minLimit, maxLimit))
 				{
-					BoneEditsContainer editsContainer = null;
+					BoneTransform editsContainer = null;
 					try
 					{
 						if (this.reset)
@@ -496,7 +495,7 @@ namespace CustomizePlus.Interface
 					{
 						if (this.boneValuesNew.ContainsKey(dispNameLocal))
 							editsContainer = this.boneValuesNew[dispNameLocal];
-						else if (this.boneValuesNew.Remove(codenameLocal, out BoneEditsContainer removedContainer))
+						else if (this.boneValuesNew.Remove(codenameLocal, out BoneTransform removedContainer))
 						{
 							editsContainer = removedContainer;
 							this.boneValuesNew[codenameLocal] = editsContainer;
@@ -507,13 +506,13 @@ namespace CustomizePlus.Interface
 						switch (editMode)
 						{
 							case EditMode.Position:
-								editsContainer.Position = new Vector3(currentVector.X, currentVector.Y, currentVector.Z);
+								editsContainer.Translation = new Vector3(currentVector.X, currentVector.Y, currentVector.Z);
 								break;
 							case EditMode.Rotation:
-								editsContainer.Rotation = new Vector3(currentVector.X, currentVector.Y, currentVector.Z);
+								editsContainer.EulerRotation = new Vector3(currentVector.X, currentVector.Y, currentVector.Z);
 								break;
 							case EditMode.Scale:
-								editsContainer.Scale = new Vector3(currentVector.X, currentVector.Y, currentVector.Z);
+								editsContainer.Scaling = new Vector3(currentVector.X, currentVector.Y, currentVector.Z);
 								break;
 						}
 					}
@@ -612,7 +611,7 @@ namespace CustomizePlus.Interface
 			revert.InvokeAction(newScaleCharacter);
 		}
 
-		private void UpdateCurrent(string boneName, BoneEditsContainer boneValue)
+		private void UpdateCurrent(string boneName, BoneTransform boneValue)
 		{
 			BodyScale newBody = this.ScaleUpdated;
 
