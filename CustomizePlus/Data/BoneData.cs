@@ -1,7 +1,7 @@
 ﻿// © Customize+.
 // Licensed under the MIT license.
 
-namespace Anamnesis.Posing
+namespace CustomizePlus.Data
 {
 	using CustomizePlus;
 	using Dalamud.Logging;
@@ -88,13 +88,13 @@ namespace Anamnesis.Posing
 
 			public int CompareTo(BoneDatum other)
 			{
-				if (this.RowIndex != other.RowIndex)
+				if (RowIndex != other.RowIndex)
 				{
-					return this.RowIndex.CompareTo(other.RowIndex);
+					return RowIndex.CompareTo(other.RowIndex);
 				}
 				else
 				{
-					return this.DisplayName.CompareTo(other.DisplayName);
+					return DisplayName.CompareTo(other.DisplayName);
 				}
 			}
 		}
@@ -103,7 +103,7 @@ namespace Anamnesis.Posing
 		{
 			string[] probablyHairstyleBones = boneNames.Where(IsProbablyHairstyle).ToArray();
 
-			foreach(BoneDatum hairBone in ParseHairstyle(probablyHairstyleBones))
+			foreach (BoneDatum hairBone in ParseHairstyle(probablyHairstyleBones))
 			{
 				BoneTable[hairBone.Codename] = hairBone;
 			}
@@ -141,7 +141,7 @@ namespace Anamnesis.Posing
 					//and we can then presume that the second subs are directional
 					//or vice versa. the naming conventions aren't really consistent about whether the sequence is first or second
 
-					foreach(var boneInfo in parsedBones)
+					foreach (var boneInfo in parsedBones)
 					{
 						StringBuilder dispName = new();
 						dispName.Append($"Hair #{boneInfo.id}");
@@ -237,7 +237,7 @@ namespace Anamnesis.Posing
 			//apparently static constructors are only guaranteed to START before the class is called
 			//which can apparently lead to race conditions, as I've found out
 			//this lock is to make sure the table is fully initialized before anything else can try to look at it
-			lock(BoneTable)
+			lock (BoneTable)
 			{
 
 				int rowIndex = 0;
@@ -338,7 +338,7 @@ namespace Anamnesis.Posing
 
 		private static BoneFamily ParseFamilyName(string n)
 		{
-			string simplified = n.Split(' ').FirstOrDefault()?.ToLower() ?? String.Empty;
+			string simplified = n.Split(' ').FirstOrDefault()?.ToLower() ?? string.Empty;
 
 			BoneFamily fam = simplified switch
 			{

@@ -1,7 +1,7 @@
 ﻿// © Customize+.
 // Licensed under the MIT license.
 
-namespace CustomizePlus.Util
+namespace CustomizePlus.Data
 {
 	using System;
 	using System.Collections.Generic;

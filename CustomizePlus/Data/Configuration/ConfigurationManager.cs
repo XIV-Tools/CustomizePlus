@@ -1,7 +1,6 @@
 ﻿// © Customize+.
 // Licensed under the MIT license.
 
-using CustomizePlus.Data.Configuration;
 using CustomizePlus.Data.Configuration.Interfaces;
 using CustomizePlus.Data.Configuration.Version0;
 using CustomizePlus.Helpers;
@@ -14,41 +13,53 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CustomizePlus.Util
+namespace CustomizePlus.Data.Configuration
 {
 	/// <summary>
 	/// Configuration manager. Implemented because dalamud can't handle several configuration classes in a single plugin properly.
 	/// </summary>
-	public class ConfigurationManager
+	public static class ConfigurationManager
 	{
-		public PluginConfiguration Configuration { get; private set; }
+		public static PluginConfiguration Configuration { get; private set; }
 
-		public ConfigurationManager()
+		static ConfigurationManager()
 		{
-			this.Configuration = new PluginConfiguration();
+			try
+			{
+				LoadConfigurationFromFile(DalamudServices.PluginInterface.ConfigFile.FullName);
+			}
+			catch (FileNotFoundException ex)
+			{
+				CreateNewConfiguration();
+			}
+			catch (Exception ex)
+			{
+				PluginLog.Error(ex, "Unable to load plugin config");
+				ChatHelper.PrintInChat("There was an error while loading plugin configuration, details have been printed into dalamud console.");
+			}
 		}
 
-		public void CreateNewConfiguration()
+		public static void CreateNewConfiguration()
 		{
-			Configuration = new PluginConfiguration(); 
+			Configuration = new PluginConfiguration();
 		}
 
-		public void SaveConfiguration(string? path = null)
+		public static void SaveConfiguration(string? path = null)
 		{
 			string json = JsonConvert.SerializeObject(Configuration, Formatting.Indented);
 			File.WriteAllText(path ?? DalamudServices.PluginInterface.ConfigFile.FullName, json);
 		}
 
-		public void LoadConfigurationFromFile(string path)
+		public static void LoadConfigurationFromFile(string path)
 		{
 			if (!Path.Exists(path))
 			{
 				throw new FileNotFoundException("Specified config path is invalid");
 			}
 
-			this.Configuration = ConvertConfigIfNeeded(path);
+			Configuration = ConvertConfigIfNeeded(path);
 
-			if (this.Configuration != null)
+			if (Configuration != null)
 			{
 				SaveConfiguration();
 			}
@@ -60,9 +71,9 @@ namespace CustomizePlus.Util
 
 		// Used any time a scale is added or enabled to ensure multiple scales for a single character
 		// aren't on at the same time.
-		public void ToggleOffAllOtherMatching(BodyScale bs)
+		public static void ToggleOffAllOtherMatching(BodyScale bs)
 		{
-			foreach(BodyScale offScale in Configuration.BodyScales
+			foreach (BodyScale offScale in Configuration.BodyScales
 				.Where(x => x.CharacterName == bs.CharacterName && x.ScaleName != bs.ScaleName))
 			{
 				offScale.BodyScaleEnabled = false;
@@ -71,13 +82,13 @@ namespace CustomizePlus.Util
 			SaveConfiguration();
 		}
 
-		private PluginConfiguration? ConvertConfigIfNeeded(string path)
+		private static PluginConfiguration? ConvertConfigIfNeeded(string path)
 		{
 			int? currentConfigVersion = GetCurrentConfigurationVersion();
 			if (currentConfigVersion == null || currentConfigVersion == PluginConfiguration.CurrentVersion)
 			{
 				return null;
-			}	
+			}
 
 			//TODO: In the future this will need to be rewritten to properly handle multiversion upgrades
 			ILegacyConfiguration? legacyConfiguration = null;
@@ -104,7 +115,7 @@ namespace CustomizePlus.Util
 		/// <summary>
 		/// Returns current configuration file version, returns null if configuration file does not exist.
 		/// </summary>
-		private int? GetCurrentConfigurationVersion()
+		private static int? GetCurrentConfigurationVersion()
 		{
 			if (!DalamudServices.PluginInterface.ConfigFile.Exists)
 				return null;
