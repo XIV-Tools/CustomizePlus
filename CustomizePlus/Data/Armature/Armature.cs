@@ -1,15 +1,13 @@
 ﻿// © Customize+.
 // Licensed under the MIT license.
 
+using CustomizePlus.Data.Profile;
+using CustomizePlus.Memory;
+using Dalamud.Game.ClientState.Objects.Types;
+using Dalamud.Game.ClientState.Objects.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using CustomizePlus.Memory;
-using Dalamud.Game.ClientState.Objects.Types;
-using static Anamnesis.Files.PoseFile;
 
 namespace CustomizePlus.Data.Armature
 {
@@ -19,126 +17,303 @@ namespace CustomizePlus.Data.Armature
 	/// </summary>
 	public unsafe class Armature
 	{
+		private static int NextGlobalID = 0;
+		private readonly int LocalID;
+
 		public CharacterProfile Profile;
 
-		RenderSkeleton* RSkeleton;
+		public bool Visible { get; set; }
 
-		ModelBone ModelRoot;
+		//public GameObject? ObjectRef;
+		public RenderObject* ObjectRef;
 
-		private Dictionary<string, ModelBone> Bones;
-
-		public Armature(CharacterProfile prof, GameObject obj)
+		public RenderSkeleton* InGameSkeleton
 		{
+			get => this.ObjectRef != null
+				? this.ObjectRef->Skeleton
+				: (RenderSkeleton*)IntPtr.Zero;
+		}
+		//public ObjectKind DalamudObjectKind
+		//{
+		//	get => ObjectRef == null
+		//		? ObjectKind.None
+		//		: this.ObjectRef.ObjectKind;
+		//}
+
+		public readonly Dictionary<string, ModelBone> Bones;
+
+		public Armature(CharacterProfile prof)
+		{
+			this.LocalID = NextGlobalID++;
+
 			this.Profile = prof;
-			this.RSkeleton = RenderObject.FromActor(obj)->Skeleton;
+			this.Visible = false;
+			this.ObjectRef = null;
+			this.Bones = new();
 
-			//build the skeleton
-			for(int i = 0; i < this.RSkeleton->Length; ++i)
+			this.Profile.Armature = this;
+
+			this.TryLinkSkeleton();
+
+			Dalamud.Logging.PluginLog.LogDebug($"Instantiated {this}, attached to {this.Profile}");
+		}
+
+		public override string ToString()
+		{
+			if (this.ObjectRef == null)
 			{
-				HkaPose* currentPose = this.RSkeleton->PartialSkeletons[i].Pose1;
+				return $"Armature ({this.LocalID}) on {this.Profile.CharName} with no skeleton reference";
+			}
+			else
+			{
+				return $"Armature ({this.LocalID}) on {this.Profile.CharName} with {this.Bones.Count} bones";
+			}
+		}
 
-				for (int j = 0; j < currentPose->Skeleton->Bones.Count; ++j)
+		public IEnumerable<string> GetExtantBoneNames()
+		{
+			return this.Bones.Keys;
+		}
+
+		private string[] GetHypotheticalBoneNames()
+		{
+			List<string> output = new List<string>();
+
+			for (int pSkeleIndex = 0; pSkeleIndex < this.InGameSkeleton->Length; ++pSkeleIndex)
+			{
+				for (int poseIndex = 0; poseIndex < 4; ++poseIndex)
 				{
-					var bone = currentPose->Skeleton->Bones[j];
-
-					if (bone.GetName() is string boneName)
+					HkaPose* currentPose = poseIndex switch
 					{
-						this.Bones[boneName] = new ModelBone(this, boneName, j, currentPose);
+						0 => this.InGameSkeleton->PartialSkeletons[pSkeleIndex].Pose1,
+						1 => this.InGameSkeleton->PartialSkeletons[pSkeleIndex].Pose1,
+						3 => this.InGameSkeleton->PartialSkeletons[pSkeleIndex].Pose1,
+						_ => null
+					};
+
+					if (currentPose != null)
+					{
+						for (int boneIndex = 0; boneIndex < currentPose->Skeleton->Bones.Count; ++boneIndex)
+						{
+							if (currentPose->Skeleton->Bones[boneIndex].GetName() is string boneName && boneName != null)
+							{
+								output.Add(boneName);
+							}
+						}
 					}
 				}
 			}
 
-			if (this.Bones.TryGetValue(Constants.RootBoneName, out ModelBone mb))
+			return output.ToArray();
+		}
+
+		public bool TryLinkSkeleton()
+		{
+			if (Helpers.GameDataHelper.FindModelByName(this.Profile.CharName) is GameObject obj && obj != null)
 			{
-				this.ModelRoot = mb;
-				DiscoverParentage();
-				DiscoverSiblings();
+				RenderObject* ro = RenderObject.FromActor(obj);
+
+				if (ro != this.ObjectRef)
+				{
+					this.ObjectRef = ro;
+					this.RebuildSkeleton(obj);
+				}
+
+				return true;
 			}
 			else
 			{
-				Dalamud.Logging.PluginLog.LogError("Armature didn't contain root bone");
+				this.ObjectRef = null;
+				return false;
 			}
 		}
 
-		public void UpdateTransformation(string boneName, BoneTransform bec)
+		public void RebuildSkeleton(GameObject? obj = null)
 		{
-			this.Bones[boneName].PluginTransform = bec;
-			this.Profile.Bones[boneName] = bec;
+			if (obj != null)
+			{
+				this.ObjectRef = RenderObject.FromActor(obj);
+			}
+
+			if (this.InGameSkeleton == null)
+			{
+				Dalamud.Logging.PluginLog.LogError($"Error obtaining skeleton from GameObject '{obj}'");
+				return;
+			}
+
+			this.Bones.Clear();
+
+			try
+			{
+				//build the skeleton
+				for (int pSkeleIndex = 0; pSkeleIndex < this.InGameSkeleton->Length; ++pSkeleIndex)
+				{
+					for (int poseIndex = 0; poseIndex < 4; ++poseIndex)
+					{
+						HkaPose* currentPose = poseIndex switch
+						{
+							0 => this.InGameSkeleton->PartialSkeletons[pSkeleIndex].Pose1,
+							1 => this.InGameSkeleton->PartialSkeletons[pSkeleIndex].Pose1,
+							3 => this.InGameSkeleton->PartialSkeletons[pSkeleIndex].Pose1,
+							_ => null
+						};
+
+						if (currentPose != null)
+						{
+							for (int boneIndex = 0; boneIndex < currentPose->Skeleton->Bones.Count; ++boneIndex)
+							{
+								if (currentPose->Skeleton->Bones[boneIndex].GetName() is string boneName && boneName != null)
+								{
+									if (this.Bones.TryGetValue(boneName, out var dummy) && dummy != null)
+									{
+										this.Bones[boneName].TripleIndices.Add(new Tuple<int, int, int>(pSkeleIndex, poseIndex, boneIndex));
+									}
+									else
+									{
+										string? parentBone = null;
+
+										if (currentPose->Skeleton->ParentIndices.Count > boneIndex
+											&& currentPose->Skeleton->ParentIndices[boneIndex] is short pIndex
+											&& pIndex >= 0
+											&& currentPose->Skeleton->Bones.Count > pIndex
+											&& currentPose->Skeleton->Bones[pIndex].GetName() is string outParentBone
+											&& outParentBone != null)
+										{
+											parentBone = outParentBone;
+										}
+
+										this.Bones[boneName] = new ModelBone(this, boneName, parentBone ?? String.Empty, pSkeleIndex, poseIndex, boneIndex);
+
+										if (this.Profile.Bones.TryGetValue(boneName, out var bt) && bt.IsEdited())
+										{
+											this.Bones[boneName].PluginTransform = bt;
+										}
+										else
+										{
+											this.Bones[boneName].PluginTransform = new BoneTransform();
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+
+				DiscoverParentage();
+				DiscoverSiblings();
+
+				Dalamud.Logging.PluginLog.LogDebug($"Rebuilt {this}:");
+				foreach(var kvp in this.Bones)
+				{
+					Dalamud.Logging.PluginLog.LogDebug($"\t- {kvp.Value}");
+				}
+			}
+			catch (Exception ex)
+			{
+				Dalamud.Logging.PluginLog.LogError($"Error rebuilding armature skeleton: {ex}");
+			}
+		}
+
+		public void UpdateBoneTransform(string boneName, BoneTransform bt, bool mirror = false, bool propagate = false)
+		{
+			if (this.Bones.TryGetValue(boneName, out var mb) && mb != null)
+			{
+				mb.UpdateModel(bt, mirror, propagate);
+			}
+			else
+			{
+				Dalamud.Logging.PluginLog.LogError($"{boneName} doesn't exist in armature {this}");
+			}
+
+			this.Bones[boneName].UpdateModel(bt, mirror, propagate);
 		}
 
 		public void ApplyTransformation()
 		{
-			foreach(var kvp in this.Bones)
+			//for (int i = 0; i < this.InGameSkeleton->Length; ++i)
+			//{
+			//	for (int k = 0; k < this.InGameSkeleton->PartialSkeletons[i].Pose1->Skeleton->Bones.Count; ++k)
+			//	{
+			//		string name = this.InGameSkeleton->PartialSkeletons[i].Pose1->Skeleton->Bones[k].GetName() ?? String.Empty;
+
+			//		if (this.Bones.TryGetValue(name, out ModelBone? mb) && mb != null)
+			//		{
+			//			Transform temp = this.InGameSkeleton->PartialSkeletons[i].Pose1->Transforms[k];
+			//			temp = mb.PluginTransform.ModifyExistingTransformation(temp);
+			//			this.InGameSkeleton->PartialSkeletons[i].Pose1->Transforms[k] = temp;
+			//		}
+			//	}
+			//}
+
+			foreach (var kvp in this.Bones.Where(x => x.Value.PluginTransform.IsEdited()))
 			{
 				kvp.Value.ApplyModelTransform();
 			}
 		}
 
+
 		private void DiscoverParentage()
 		{
-			foreach(var kvp in this.Bones)
+			foreach (var potentialParent in this.Bones)
 			{
-				List<ModelBone> children = new List<ModelBone>();
-
-				//iterate through all the bones and tally up which ones are
-				//children of the one we're looking at
-
-				for (int i = 0; i < this.RSkeleton->Length; ++i)
+				foreach(var potentialChild in this.Bones)
 				{
-					HkaPose* currentPose = this.RSkeleton->PartialSkeletons[i].Pose1;
-
-					for (int j = 0; j < currentPose->Skeleton->Bones.Count; ++j)
+					if (potentialChild.Value.ParentBoneName == potentialParent.Key)
 					{
-						if (currentPose->Skeleton->ParentIndices[j] == kvp.Value.BoneIndex
-							&& currentPose->Skeleton->Bones[j].GetName() is string childName)
-						{
-							ModelBone mb = this.Bones[childName];
-							children.Add(mb);
-
-							mb.Parent = kvp.Value;
-						}
+						potentialParent.Value.Children.Add(potentialChild.Value);
+						potentialChild.Value.Parent = potentialParent.Value;
 					}
 				}
-
-				kvp.Value.Children = children.ToArray();
 			}
 		}
 
 		private void DiscoverSiblings()
 		{
-			HashSet<ModelBone> bonesByLevel = new HashSet<ModelBone>() { this.ModelRoot };
-			int depth = 0;
-
-			while(bonesByLevel.Any())
+			foreach (var potentialLefty in this.Bones.Where(x => x.Key[^1] == 'l'))
 			{
-				//grab up all the bones on the level following this one
-				HashSet<ModelBone> nextLevel = new(bonesByLevel.SelectMany(x => x.Children));
-
-				//pick off one bone at a time and check to see if it looks like part of a pair
-				//if so, see if any other bones at this level match it, and pair them up
-				while(bonesByLevel.Any())
+				foreach (var potentialRighty in this.Bones.Where(x => x.Key[^1] == 'r'))
 				{
-					ModelBone mb = bonesByLevel.First();
-					bonesByLevel.Remove(mb);
-
-					if (mb.BoneName[^1] == 'l' || mb.BoneName[^1] == 'r')
+					if (potentialLefty.Key[0..^1] == potentialRighty.Key[0..^1])
 					{
-						ModelBone? mb2 = bonesByLevel.Where(x => x.BoneName[0..1] == mb.BoneName[0..1]).FirstOrDefault();
-
-						if (mb2 != null)
-						{
-							bonesByLevel.Remove(mb2);
-							mb.Sibling = mb2;
-							mb2.Sibling = mb;
-						}
+						potentialLefty.Value.Sibling = potentialRighty.Value;
+						potentialRighty.Value.Sibling = potentialLefty.Value;
 					}
 				}
-
-				//once we've checked every bone at this level, move onto the next
-
-				bonesByLevel = new HashSet<ModelBone>(nextLevel);
-				++depth;
 			}
 		}
+
+		private static ModelBone TraceAncestry(ModelBone mb)
+		{
+			ModelBone ancestor = mb;
+
+			while (ancestor.Parent != null)
+			{
+				ancestor = ancestor.Parent;
+			}
+
+			return ancestor;
+		}
+
+		//private bool TryDiscoverDangling(out ModelBone[] dangling)
+		//{
+		//	if (this.modelRoot == null)
+		//	{
+		//		dangling = Array.Empty<ModelBone>();
+		//		return true; //the whole skeleton is dangling
+		//	}
+
+		//	List<ModelBone> danglingBones = new();
+
+		//	foreach (ModelBone mb in this.Bones.Values)
+		//	{
+		//		if (TraceAncestry(mb) != this.modelRoot)
+		//		{
+		//			danglingBones.Add(mb);
+		//		}
+		//	}
+
+		//	dangling = danglingBones.ToArray();
+		//	return danglingBones.Any();
+		//}
 	}
 }
