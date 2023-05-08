@@ -311,6 +311,11 @@ namespace CustomizePlus.Data
 			return BoneTable.TryGetValue(codename, out BoneDatum row) ? row.Default : false;
 		}
 
+		public static int GetBoneIndex(string codename)
+		{
+			return BoneTable.TryGetValue(codename, out BoneDatum row) ? row.RowIndex : 0;
+		}
+
 		public static bool IsIVCSBone(string codename)
 		{
 			return BoneTable.TryGetValue(codename, out BoneDatum row) ? row.IVCS : false;
