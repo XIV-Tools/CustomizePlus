@@ -11,9 +11,19 @@ using System.Text;
 using System.Threading.Tasks;
 using CustomizePlus.Extensions;
 using System.Transactions;
+using Newtonsoft.Json;
 
 namespace CustomizePlus.Data
 {
+	//not the correct terms but they double as user-visible labels so ¯\_(ツ)_/¯
+	public enum BoneAttribute
+	{
+		//hard-coding the backing values for legacy purposes
+		Position = 0,
+		Rotation = 1,
+		Scale = 2
+	}
+
 	[Serializable]
 	public class BoneTransform
 	{
@@ -23,33 +33,33 @@ namespace CustomizePlus.Data
 		//	to when the user is updating things instead of during the render loop
 
 		public Vector3 Translation { get; set; }
-		public Quaternion Rotation { get; set; }
-		public Vector3 Scaling { get; set; }
 
-		public Vector3 EulerRotation
+		[JsonIgnore]
+		private Vector3 eulerRotation;
+		public Vector3 Rotation
 		{
-			//Use the quaternion rotation as the backing value
-			//For the sake of avoiding precision errors, swap with identities when it makes sense to
-			get => this.Rotation == Quaternion.Identity
-				? Vector3.Zero
-				: this.Rotation.ToEulerAngles();
-			set => this.Rotation = value == Vector3.Zero
-				? Quaternion.Identity
-				: ClampRotation(value).ToQuaternion();
+			get => this.eulerRotation;
+			set => this.eulerRotation = ClampRotation(value);
 		}
+		public Vector3 Scaling { get; set; }
 
 		public BoneTransform()
 		{
 			Translation = Vector3.Zero;
-			Rotation = Quaternion.Identity;
+			Rotation = Vector3.Zero;
 			Scaling = Vector3.One;
+		}
+
+		public BoneTransform(BoneTransform original)
+		{
+			this.UpdateToMatch(original);
 		}
 
 		public bool IsEdited()
 		{
-			return this.Translation != Vector3.Zero
-				|| this.Rotation != Quaternion.Identity
-				|| this.Scaling != Vector3.One;
+			return !this.Translation.IsApproximately(Vector3.Zero, 0.00001f)
+				|| !this.Rotation.IsApproximately(Vector3.Zero, 0.1f)
+				|| !this.Scaling.IsApproximately(Vector3.One, 0.00001f);
 		}
 
 		public BoneTransform DeepCopy()
@@ -60,6 +70,22 @@ namespace CustomizePlus.Data
 				Rotation = this.Rotation,
 				Scaling = this.Scaling
 			};
+		}
+
+		public void UpdateAttribute(BoneAttribute which, Vector3 newValue)
+		{
+			if (which == BoneAttribute.Position)
+			{
+				this.Translation = newValue;
+			}
+			else if (which == BoneAttribute.Rotation)
+			{
+				this.Rotation = newValue;
+			}
+			else
+			{
+				this.Scaling = newValue;
+			}
 		}
 
 		public void UpdateToMatch(BoneTransform newValues)
@@ -95,7 +121,7 @@ namespace CustomizePlus.Data
 			return new BoneTransform()
 			{
 				Translation = new Vector3(this.Translation.X, this.Translation.Y, -1 * this.Translation.Z),
-				EulerRotation = new Vector3(-1 * this.EulerRotation.X, -1 * this.EulerRotation.Y, this.EulerRotation.Z),
+				Rotation = new Vector3(-1 * this.Rotation.X, -1 * this.Rotation.Y, this.Rotation.Z),
 				Scaling = this.Scaling
 			};
 		}
@@ -109,7 +135,7 @@ namespace CustomizePlus.Data
 			return new BoneTransform()
 			{
 				Translation = new Vector3(this.Translation.X, -1 * this.Translation.Y, this.Translation.Z),
-				EulerRotation = new Vector3(this.EulerRotation.X, -1 * this.EulerRotation.Y, -1 * this.EulerRotation.Z),
+				Rotation = new Vector3(this.Rotation.X, -1 * this.Rotation.Y, -1 * this.Rotation.Z),
 				Scaling = this.Scaling
 			};
 		}
@@ -122,62 +148,65 @@ namespace CustomizePlus.Data
 		/// <param name="pointPos">The spacial origin of the transformation.</param>
 		/// <param name="pointRot">The spacial orientation of the transformation at the origin.</param>
 		/// <param name="inheritedScale">The scaling values from the previous link in the kinematic chain, which will apply to this link's translation.</param>
-		public BoneTransform ReorientKinematically(BoneTransform aggregate, Vector3 pointPos, Quaternion pointRot, Vector3 inheritedScale)
+		public BoneTransform ReorientKinematically(BoneTransform aggregate, Vector3 pointPos, Vector3 pointRot, Vector3 inheritedScale)
 		{
-			//record the initial values for later
-			Vector3 originalTranslation = this.Translation - pointPos;
-			Quaternion originalRotation = this.Rotation / pointRot;
-			Vector3 originalScaling = this.Scaling / inheritedScale;
+			this.Translation = aggregate.Translation;
+			this.Rotation = aggregate.Rotation;
+			this.Scaling = aggregate.Scaling;
+			return aggregate;
 
-			//place the bone back at the origin of the transformation (in effect "undoing" those initial values)
-			this.Translation = pointPos;
-			this.Rotation = pointRot;
+			////record the initial values for later
+			//Vector3 originalTranslation = this.Translation - pointPos;
+			//Vector3 originalRotation = this.Rotation - pointRot;
+			//Vector3 originalScaling = this.Scaling / inheritedScale;
 
-			//apply the aggregate transformation
-			//canonical ordering is Scale, Rotation, Transformation
-			Vector3 newScaling = Vector3.Multiply(aggregate.Scaling, this.Scaling);
-			Quaternion newrotation = Quaternion.Multiply(aggregate.Rotation, this.Rotation);
-			Vector3 newTranslation = Vector3.Transform(aggregate.Translation, newrotation);
+			////place the bone back at the origin of the transformation (in effect "undoing" those initial values)
+			//this.Translation = pointPos;
+			//this.Rotation = pointRot;
 
-			//re-apply the original transforms
-			//also apply the inherited scale to the translation to represent the changed offset
-			this.Scaling *= originalScaling;
-			this.Rotation *= originalRotation;
-			this.Translation += Vector3.Multiply(originalTranslation, inheritedScale);
+			////apply the aggregate transformation to get new SRT values
+			//Vector3 newScaling = Vector3.Multiply(aggregate.Scaling, this.Scaling);
+			//Vector3 newrotation = aggregate.Rotation + this.Rotation;
+			//Vector3 newTranslation = aggregate.Translation + this.Translation;
+
+			////re-apply the original transforms
+			////also apply the inherited scale to the translation to represent the changed offset
+			//this.Scaling *= originalScaling;
+			//this.Rotation += originalRotation;
+			//this.Translation += Vector3.Multiply(originalTranslation, inheritedScale);
 
 			//record the new aggregated transform
-			return new BoneTransform()
-			{
-				Translation = this.Translation,
-				EulerRotation = this.EulerRotation,
-				Scaling = this.Scaling
-			};
+			//return new BoneTransform()
+			//{
+			//	Translation = this.Translation,
+			//	Rotation = this.Rotation,
+			//	Scaling = this.Scaling
+			//};
 		}
 
 		/// <summary>
 		/// Given a transformation represented by the given parameters, apply this transform's
 		/// operations to further modify them.
 		/// </summary>
-		/// <param name="translation">The original translation value.</param>
-		/// <param name="rotation">The original rotation value.</param>
-		/// <param name="scaling">The original scalar values.</param>
-		public void ModifyExistingTransformation(ref HkVector4 translation, ref HkVector4 rotation, ref HkVector4 scaling)
+		public Transform ModifyExistingTransformation(Transform tr)
 		{
-			scaling.X *= this.Scaling.X;
-			scaling.Y *= this.Scaling.Y;
-			scaling.Z *= this.Scaling.Z;
+			tr.Scale.X *= this.Scaling.X;
+			tr.Scale.Y *= this.Scaling.Y;
+			tr.Scale.Z *= this.Scaling.Z;
 
-			Quaternion newRotation = Quaternion.Multiply(scaling.ToQuaternion(), this.Rotation);
-			rotation.X = newRotation.X;
-			rotation.Y = newRotation.Y;
-			rotation.Z = newRotation.Z;
-			rotation.W = newRotation.W;
+			Quaternion newRotation = Quaternion.Multiply(tr.Rotation.ToQuaternion(), this.Rotation.ToQuaternion());
+			tr.Rotation.X = newRotation.X;
+			tr.Rotation.Y = newRotation.Y;
+			tr.Rotation.Z = newRotation.Z;
+			tr.Rotation.W = newRotation.W;
 
 			Vector4 adjustedTranslation = Vector4.Transform(this.Translation, newRotation);
-			translation.X += adjustedTranslation.X;
-			translation.Y += adjustedTranslation.Y;
-			translation.Z += adjustedTranslation.Z;
-			translation.W += adjustedTranslation.W;
+			tr.Translation.X += adjustedTranslation.X;
+			tr.Translation.Y += adjustedTranslation.Y;
+			tr.Translation.Z += adjustedTranslation.Z;
+			tr.Translation.W += adjustedTranslation.W;
+
+			return tr;
 		}
 	}
 }
