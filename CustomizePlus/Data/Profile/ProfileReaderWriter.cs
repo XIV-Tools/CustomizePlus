@@ -20,26 +20,49 @@ namespace CustomizePlus.Data.Profile
 	public static class ProfileReaderWriter
 	{
 		#region Save/Load
-		private static string CreatePath(string fileName)
-		{
-			System.IO.Directory.CreateDirectory(Plugin.Config.ProfileDirectory);
 
-			return $"{Plugin.Config.ProfileDirectory}\\{fileName}";
+		private static string CreateFileName(CharacterProfile prof)
+		{
+			var invalidCharacters = Path.GetInvalidFileNameChars();
+			string fileName = $"{prof.CharName}-{prof.ProfName}-{prof.UniqueID}.profile";
+			fileName = String.Join(String.Empty, fileName.Split(invalidCharacters, StringSplitOptions.RemoveEmptyEntries));
+			return fileName;
 		}
 
-		public static void SaveProfile(CharacterProfile prof)
+		private static string CreatePath(string fileName)
+		{
+			Directory.CreateDirectory(Plugin.ConfigurationManager.GetProfileDirectory());
+
+			return Path.GetFullPath($"{Plugin.Config.ProfileDirectory}\\{fileName}");
+		}
+
+		public static void SaveProfile(CharacterProfile prof, bool archival = false)
 		{
 			try
 			{
-				string json = JsonConvert.SerializeObject(prof, Formatting.Indented);
+				string oldFilePath = prof.OriginalFilePath ?? string.Empty;
+				string newFilePath = CreatePath(CreateFileName(prof));
 
-				var invalidCharacters = System.IO.Path.GetInvalidFileNameChars();
-				string fileName = $"{prof.CharacterName}--{prof.ProfileName}.profile";
-				fileName = String.Join(String.Empty, fileName.Split(invalidCharacters, StringSplitOptions.RemoveEmptyEntries));
+				if (!archival)
+				{
+					string json = JsonConvert.SerializeObject(prof, Formatting.Indented);
 
-				string filePath = CreatePath(fileName);
+					File.WriteAllText(newFilePath, json);
+				}
+				else
+				{
+					newFilePath += "_arch";
+					string text = Helpers.Base64Helper.ExportToBase64(prof, Constants.ConfigurationVersion);
 
-				File.WriteAllText(filePath, json);
+					File.WriteAllText(newFilePath, text);
+				}
+
+				if (newFilePath != oldFilePath && oldFilePath != String.Empty)
+				{
+					File.Delete(oldFilePath);
+				}
+				
+				prof.OriginalFilePath = newFilePath;
 			}
 			catch (Exception ex)
 			{
@@ -47,22 +70,40 @@ namespace CustomizePlus.Data.Profile
 			}
 		}
 
+		public static void DeleteProfile(CharacterProfile prof)
+		{
+			//SaveProfile(prof, true);
+			if (CreatePath(CreateFileName(prof)) is string path && File.Exists(path))
+			{
+				File.Delete(path);
+			}
+		}
+
 		public static string[] GetProfilePaths()
 		{
-			return Directory.GetFiles(Plugin.Config.ProfileDirectory, "*.profile");
+			if (Directory.Exists(Plugin.Config.ProfileDirectory))
+			{
+				return Directory.GetFiles(Plugin.Config.ProfileDirectory, "*.profile");
+			}
+			else
+			{
+				Directory.CreateDirectory(Plugin.Config.ProfileDirectory);
+				return Array.Empty<string>();
+			}
 		}
 
 		public static bool TryLoadProfile(string path, out CharacterProfile? prof)
 		{
 			try
 			{
-				if (System.IO.Path.Exists(path))
+				if (Path.Exists(path))
 				{
 					var file = JsonConvert.DeserializeObject<CharacterProfile>(File.ReadAllText(path));
 
 					if (file != null)
 					{
 						prof = file;
+						prof.OriginalFilePath = path;
 						return true;
 					}
 				}
@@ -74,93 +115,6 @@ namespace CustomizePlus.Data.Profile
 
 			prof = null;
 			return false;
-		}
-
-		#endregion
-
-
-		#region Converters
-
-		public static void SaveConvertedProfiles(params CharacterProfile[] profs)
-		{
-			foreach (var prof in profs)
-			{
-				SaveProfile(prof);
-			}
-		}
-
-		private static bool BackupOldConfig(string path)
-		{
-			try
-			{
-				if (File.Exists(path))
-				{
-					string fileName = System.IO.Path.GetFileName(path);
-					string backupPath = CreatePath(fileName);
-
-					System.IO.File.Copy(path, backupPath);
-					return true;
-				}
-			}
-			catch (Exception ex)
-			{
-				PluginLog.LogError($"Error backing up file at '{path}': {ex}");
-			}
-			return false;
-		}
-
-		public static bool ConvertConfigVersion2()
-		{
-			string path = DalamudServices.PluginInterface.ConfigFile.FullName;
-			if (!BackupOldConfig(path))
-			{
-				PluginLog.LogError("Error backing up config file. Aborting conversion...");
-				return false;
-			}
-
-			string text = File.ReadAllText(path);
-
-			var blob = Newtonsoft.Json.Linq.JObject.Parse(text);
-
-			foreach (var bs in blob["BodyScales"])
-			{
-				CharacterProfile newProfile = new CharacterProfile()
-				{
-					CharacterName = bs.Value<string>("CharacterName") ?? String.Empty,
-					ProfileName = bs.Value<string>("ScaleName") ?? String.Empty,
-					Enabled = bs.Value<bool>("BodyScaleEnabled")
-				};
-
-				foreach (var bone in bs["Bones"])
-				{
-					string boneName = bone.ToString();
-					Vector3 pos = new(
-						bone["Position"].Value<float>("X"),
-						bone["Position"].Value<float>("Y"),
-						bone["Position"].Value<float>("Z"));
-					Vector3 rot = new(
-						bone["Rotation"].Value<float>("X"),
-						bone["Rotation"].Value<float>("Y"),
-						bone["Rotation"].Value<float>("Z"));
-					Vector3 scale = new(
-						bone["Scale"].Value<float>("X"),
-						bone["Scale"].Value<float>("Y"),
-						bone["Scale"].Value<float>("Z"));
-
-					BoneTransform bec = new BoneTransform()
-					{
-						Translation = pos,
-						EulerRotation = rot,
-						Scaling = scale
-					};
-
-					newProfile.Bones[boneName] = bec;
-				}
-
-				SaveProfile(newProfile);
-			}
-
-			return true;
 		}
 
 		#endregion
