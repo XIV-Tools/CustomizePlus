@@ -22,8 +22,8 @@ namespace CustomizePlus.Data.Profile
 			{
 				return x.UniqueID == y.UniqueID
 					&& x.CreationDate == y.CreationDate
-					&& x.CharacterName == y.CharacterName
-					&& x.ProfileName == y.ProfileName;
+					&& x.CharName == y.CharName
+					&& x.ProfName == y.ProfName;
 			}
 		}
 
