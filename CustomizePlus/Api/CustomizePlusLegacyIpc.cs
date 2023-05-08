@@ -8,6 +8,7 @@ using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 using CustomizePlus.Data;
+using CustomizePlus.Data.Profile;
 using CustomizePlus.Data.Configuration.Version0;
 using Dalamud.Game.ClientState;
 using Dalamud.Game.ClientState.Objects;
@@ -101,7 +102,7 @@ namespace CustomizePlus.Api
 
 		}
 
-		public void OnScaleUpdate(BodyScale bodyScale)
+		public void OnScaleUpdate(CharacterProfile bodyScale)
 		{
 			PluginLog.Debug("Sending legacy c+ ipc scale message.");
 			Version0BodyScale v0BodyScale = bodyScale != null ? BuildLegacyBodyScale(bodyScale) : null;
@@ -110,7 +111,7 @@ namespace CustomizePlus.Api
 
 		private string? GetBodyScale(string characterName)
 		{
-			BodyScale? bodyScale = Plugin.GetPlayerBodyScale(characterName);
+			CharacterProfile? bodyScale = Plugin.ProfileManager.GetProfileByCharacterName(characterName);
 			return bodyScale != null ? JsonConvert.SerializeObject(BuildLegacyBodyScale(bodyScale)) : null;
 		}
 
@@ -119,7 +120,7 @@ namespace CustomizePlus.Api
 			//Character? character = FindCharacterByName(characterName);
 			Version0BodyScale? bodyScale = JsonConvert.DeserializeObject<Version0BodyScale?>(bodyScaleString);
 			if (bodyScale != null)
-				Plugin.SetTemporaryCharacterScale(characterName, BuildModernBodyScale(bodyScale));
+				Plugin.ProfileManager.AddTemporaryProfile(characterName, BuildModernBodyScale(bodyScale));
 		}
 
 		private void SetBodyScaleToCharacter(string bodyScaleString, Character? character)
@@ -135,7 +136,7 @@ namespace CustomizePlus.Api
 			if (string.IsNullOrEmpty(characterName))
 				return;
 
-			Plugin.RemoveTemporaryCharacterScale(characterName);
+			Plugin.ProfileManager.RemoveTemporaryProfile(characterName);
 		}
 
 		private void RevertCharacter(Character? character)
@@ -146,21 +147,21 @@ namespace CustomizePlus.Api
 			Revert(character.Name.ToString());
 		}
 
-		private Version0BodyScale BuildLegacyBodyScale(BodyScale bodyScale)
+		private Version0BodyScale BuildLegacyBodyScale(CharacterProfile prof)
 		{
 			Version0BodyScale v0BodyScale = new Version0BodyScale
 			{
-				BodyScaleEnabled = bodyScale.BodyScaleEnabled,
-				CharacterName = bodyScale.CharacterName,
-				ScaleName = bodyScale.ScaleName
+				BodyScaleEnabled = prof.Enabled,
+				CharacterName = prof.CharName,
+				ScaleName = prof.ProfName
 			};
 
-			BoneTransform rootContainer = bodyScale.Bones["n_root"];
+			BoneTransform rootContainer = prof.Bones["n_root"];
 			float w = 0;
 			if (rootContainer.Scaling.X == rootContainer.Scaling.Y && rootContainer.Scaling.Y == rootContainer.Scaling.Z && rootContainer.Scaling.X == rootContainer.Scaling.Z)
 				w = rootContainer.Scaling.X;
 			v0BodyScale.RootScale = new CustomizePlus.Memory.HkVector4(rootContainer.Scaling.X, rootContainer.Scaling.Y, rootContainer.Scaling.Z, w);
-			foreach (var kvPair in bodyScale.Bones)
+			foreach (var kvPair in prof.Bones)
 			{
 				if (kvPair.Key == "n_root")
 					continue;
@@ -175,13 +176,13 @@ namespace CustomizePlus.Api
 			return v0BodyScale;
 		}
 
-		private BodyScale BuildModernBodyScale(Version0BodyScale bodyScale)
+		private CharacterProfile BuildModernBodyScale(Version0BodyScale bodyScale)
 		{
-			BodyScale newBodyScale = new BodyScale
+			CharacterProfile newBodyScale = new()
 			{
-				ScaleName = bodyScale.ScaleName,
-				BodyScaleEnabled = bodyScale.BodyScaleEnabled,
-				CharacterName = bodyScale.CharacterName
+				ProfName = bodyScale.ScaleName,
+				Enabled = bodyScale.BodyScaleEnabled,
+				CharName = bodyScale.CharacterName
 			};
 
 			foreach (var kvPair in bodyScale.Bones)
@@ -189,7 +190,7 @@ namespace CustomizePlus.Api
 				BoneTransform boneEditsContainer = new BoneTransform
 				{
 					Translation = Vector3.Zero,
-					EulerRotation = Vector3.Zero,
+					Rotation = Vector3.Zero,
 					Scaling = Vector3.One
 				};
 
@@ -204,7 +205,7 @@ namespace CustomizePlus.Api
 			newBodyScale.Bones["n_root"] = new BoneTransform
 			{
 				Translation = Vector3.Zero,
-				EulerRotation = Vector3.Zero
+				Rotation = Vector3.Zero
 			};
 
 			if (bodyScale.RootScale.W != 0)
