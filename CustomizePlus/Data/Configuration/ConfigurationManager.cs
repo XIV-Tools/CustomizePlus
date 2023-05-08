@@ -3,6 +3,7 @@
 
 using CustomizePlus.Data.Configuration.Interfaces;
 using CustomizePlus.Data.Configuration.Version0;
+using CustomizePlus.Data.Configuration.Version2;
 using CustomizePlus.Helpers;
 using Dalamud.Logging;
 using Newtonsoft.Json;
@@ -18,98 +19,76 @@ namespace CustomizePlus.Data.Configuration
 	/// <summary>
 	/// Configuration manager. Implemented because dalamud can't handle several configuration classes in a single plugin properly.
 	/// </summary>
-	public static class ConfigurationManager
+	public class ConfigurationManager
 	{
-		public static PluginConfiguration Configuration { get; private set; }
+		public PluginConfiguration Configuration { get; private set; }
+		private static string ConfigFilePath => DalamudServices.PluginInterface.ConfigFile.FullName;
 
-		static ConfigurationManager()
+		public ConfigurationManager()
+		{
+			this.Configuration = new PluginConfiguration();
+			this.ReloadConfiguration();
+		}
+
+		public void SaveConfiguration()
+		{
+			string json = JsonConvert.SerializeObject(this.Configuration, Formatting.Indented);
+			File.WriteAllText(ConfigFilePath, json);
+		}
+
+		public void ReloadConfiguration()
 		{
 			try
 			{
-				LoadConfigurationFromFile(DalamudServices.PluginInterface.ConfigFile.FullName);
-			}
-			catch (FileNotFoundException ex)
-			{
-				CreateNewConfiguration();
+				LoadConfigurationFromFile(ConfigFilePath);
 			}
 			catch (Exception ex)
 			{
 				PluginLog.Error(ex, "Unable to load plugin config");
-				ChatHelper.PrintInChat("There was an error while loading plugin configuration, details have been printed into dalamud console.");
+				ChatHelper.PrintInChat("There was an error while loading plugin configuration, details have been printed into the Dalamud console.");
 			}
 		}
 
-		public static void CreateNewConfiguration()
-		{
-			Configuration = new PluginConfiguration();
-		}
-
-		public static void SaveConfiguration(string? path = null)
-		{
-			string json = JsonConvert.SerializeObject(Configuration, Formatting.Indented);
-			File.WriteAllText(path ?? DalamudServices.PluginInterface.ConfigFile.FullName, json);
-		}
-
-		public static void LoadConfigurationFromFile(string path)
+		public void LoadConfigurationFromFile(string path)
 		{
 			if (!Path.Exists(path))
 			{
 				throw new FileNotFoundException("Specified config path is invalid");
 			}
 
-			Configuration = ConvertConfigIfNeeded(path);
-
-			if (Configuration != null)
-			{
-				SaveConfiguration();
-			}
-			else
-			{
-				Configuration = JsonConvert.DeserializeObject<PluginConfiguration>(File.ReadAllText(path));
-			}
+			this.Configuration = ConvertConfigIfNeeded(path);
+			this.SaveConfiguration();
 		}
 
-		// Used any time a scale is added or enabled to ensure multiple scales for a single character
-		// aren't on at the same time.
-		public static void ToggleOffAllOtherMatching(BodyScale bs)
+		private static PluginConfiguration ConvertConfigIfNeeded(string path)
 		{
-			foreach (BodyScale offScale in Configuration.BodyScales
-				.Where(x => x.CharacterName == bs.CharacterName && x.ScaleName != bs.ScaleName))
+			int? configVersion = GetCurrentConfigurationVersion();
+
+			PluginConfiguration output;
+
+			switch (configVersion)
 			{
-				offScale.BodyScaleEnabled = false;
+				case 0:
+					Version0Configuration legacyConfig0 = new Version0Configuration();
+					output = legacyConfig0.LoadFromFile(path).ConvertToLatestVersion();
+					break;
+
+				case 2:
+					Version2Configuration legacyConfig2 = new Version2Configuration();
+					output = legacyConfig2.LoadFromFile(path).ConvertToLatestVersion();
+					break;
+
+				case 3:
+					output = JsonConvert.DeserializeObject<PluginConfiguration>(File.ReadAllText(path))
+						?? new PluginConfiguration();
+					break;
+
+				default:
+					output = new PluginConfiguration();
+					break;
 			}
 
-			SaveConfiguration();
-		}
-
-		private static PluginConfiguration? ConvertConfigIfNeeded(string path)
-		{
-			int? currentConfigVersion = GetCurrentConfigurationVersion();
-			if (currentConfigVersion == null || currentConfigVersion == PluginConfiguration.CurrentVersion)
-			{
-				return null;
-			}
-
-			//TODO: In the future this will need to be rewritten to properly handle multiversion upgrades
-			ILegacyConfiguration? legacyConfiguration = null;
-			if (currentConfigVersion == 0)
-				legacyConfiguration = Version0Configuration.LoadFromFile(path);
-
-			if (legacyConfiguration == null)
-				return null;
-
-			PluginConfiguration configuration = legacyConfiguration.ConvertToLatestVersion();
-
-			if (configuration == null)
-				return null;
-
-			string legacyConfigName = $"{Path.GetFileNameWithoutExtension(path)}_v{currentConfigVersion}{Path.GetExtension(path)}";
-			File.Copy(path, Path.Combine(Path.GetDirectoryName(path), legacyConfigName));
-			PluginLog.Information($"Customize+ legacy config copy saved to {legacyConfigName}");
-
-			ChatHelper.PrintInChat($"Configuration has been updated to latest version, the copy of your old configuration file was saved to {legacyConfigName}");
-
-			return configuration;
+			return output;
 		}
 
 		/// <summary>
@@ -121,6 +100,18 @@ namespace CustomizePlus.Data.Configuration
 				return null;
 
 			return JsonConvert.DeserializeObject<ConfigurationVersion>(File.ReadAllText(DalamudServices.PluginInterface.ConfigFile.FullName)).Version;
+		}
+
+		public string GetProfileDirectory()
+		{
+			if (this.Configuration != null)
+			{
+				return this.Configuration.ProfileDirectory;
+			}
+			else
+			{
+				return Environment.ExpandEnvironmentVariables(Constants.DefaultProfileDirectory);
+			}
 		}
 	}
 }
