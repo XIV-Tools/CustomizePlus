@@ -12,6 +12,7 @@ namespace CustomizePlus.Data.Configuration.Interfaces
 {
 	internal interface ILegacyConfiguration
 	{
-		public PluginConfiguration ConvertToLatestVersion();
+		ILegacyConfiguration? LoadFromFile(string path);
+		PluginConfiguration ConvertToLatestVersion();
 	}
 }
