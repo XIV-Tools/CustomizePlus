@@ -14,7 +14,7 @@ namespace CustomizePlus.Data
 		/// Default save location in which to store character profiles. Path will be expanded at runtime
 		/// into regular "My Documents" folder, unless changed by user.
 		/// </summary>
-		public const string DefaultProfileDirectory = @"%UserProfile%\Documents\CustomizePlus\";
+		public const string DefaultProfileDirectory = @"%APPDATA%\XIVLauncher\pluginConfigs\CustomizePlus\";
 
 		/// <summary>
 		/// The name of the root bone.
@@ -44,5 +44,22 @@ namespace CustomizePlus.Data
 		/// NPC in a busy area (i.e. there are ~245 other objects already).
 		/// </summary>
 		public static bool InObjectTableBusyNPCRange(int index) => index > 245;
+
+		/// <summary>
+		/// A "null" havok vector. Since the type isn't inherently nullable, and the default value (0, 0, 0, 0)
+		/// is valid input in a lot of cases, we can use this instead.
+		/// </summary>
+		public static readonly Memory.HkVector4 NullVector = new(float.NaN, float.NaN, float.NaN, float.NaN);
+
+		/// <summary>
+		/// A "null" havok transform. Since the type isn't inherently nullable, and the default values
+		/// aren't immediately obviously wrong, we can use this instead.
+		/// </summary>
+		public static readonly Memory.Transform NullTransform = new()
+		{
+			Translation = NullVector,
+			Rotation = NullVector,
+			Scale = NullVector
+		};
 	}
 }
