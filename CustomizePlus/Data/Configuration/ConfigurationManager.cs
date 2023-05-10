@@ -101,17 +101,5 @@ namespace CustomizePlus.Data.Configuration
 
 			return JsonConvert.DeserializeObject<ConfigurationVersion>(File.ReadAllText(DalamudServices.PluginInterface.ConfigFile.FullName)).Version;
 		}
-
-		public string GetProfileDirectory()
-		{
-			if (this.Configuration != null)
-			{
-				return this.Configuration.ProfileDirectory;
-			}
-			else
-			{
-				return Environment.ExpandEnvironmentVariables(Constants.DefaultProfileDirectory);
-			}
-		}
 	}
 }

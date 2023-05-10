@@ -14,7 +14,6 @@ namespace CustomizePlus.Data.Configuration
 		public const int CurrentVersion = Constants.ConfigurationVersion;
 
 		public int Version { get; set; } = CurrentVersion;
-		public string ProfileDirectory { get; set; } = Environment.ExpandEnvironmentVariables(Constants.DefaultProfileDirectory);
 
 		//public HashSet<Data.Profile.CharacterProfile> Profiles { get; set; } = new(); //replace with new profile data structure
 		public bool PluginEnabled { get; set; } = true;

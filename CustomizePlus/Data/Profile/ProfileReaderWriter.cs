@@ -31,9 +31,11 @@ namespace CustomizePlus.Data.Profile
 
 		private static string CreatePath(string fileName)
 		{
-			Directory.CreateDirectory(Plugin.ConfigurationManager.GetProfileDirectory());
+			string dir = DalamudServices.PluginInterface.GetPluginConfigDirectory();
 
-			return Path.GetFullPath($"{Plugin.Config.ProfileDirectory}\\{fileName}");
+			Directory.CreateDirectory(dir);
+
+			return Path.GetFullPath($"{dir}\\{fileName}");
 		}
 
 		public static void SaveProfile(CharacterProfile prof, bool archival = false)
@@ -81,13 +83,14 @@ namespace CustomizePlus.Data.Profile
 
 		public static string[] GetProfilePaths()
 		{
-			if (Directory.Exists(Plugin.Config.ProfileDirectory))
+			string dir = DalamudServices.PluginInterface.GetPluginConfigDirectory();
+			if (Directory.Exists(dir))
 			{
-				return Directory.GetFiles(Plugin.Config.ProfileDirectory, "*.profile");
+				return Directory.GetFiles(dir, "*.profile");
 			}
 			else
 			{
-				Directory.CreateDirectory(Plugin.Config.ProfileDirectory);
+				Directory.CreateDirectory(dir);
 				return Array.Empty<string>();
 			}
 		}

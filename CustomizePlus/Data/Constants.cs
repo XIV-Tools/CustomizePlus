@@ -11,12 +11,6 @@ namespace CustomizePlus.Data
 		public const int ConfigurationVersion = 3;
 
 		/// <summary>
-		/// Default save location in which to store character profiles. Path will be expanded at runtime
-		/// into regular "My Documents" folder, unless changed by user.
-		/// </summary>
-		public const string DefaultProfileDirectory = @"%APPDATA%\XIVLauncher\pluginConfigs\CustomizePlus\";
-
-		/// <summary>
 		/// The name of the root bone.
 		/// </summary>
 		public const string RootBoneName = "n_root";
