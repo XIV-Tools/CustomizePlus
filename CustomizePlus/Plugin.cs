@@ -48,7 +48,7 @@ namespace CustomizePlus
 		private static CustomizePlusLegacyIpc legacyIpcManager = null!;
 		private static ServiceManager serviceManager { get; set; } = null!;
 
-		private delegate IntPtr RenderDelegate(IntPtr a1, long a2);
+		private delegate IntPtr RenderDelegate(IntPtr a1, long a2, int a3, int a4);
 		[UnmanagedFunctionPointer(CallingConvention.StdCall)]
 		private unsafe delegate void GameObjectMovementDelegate(IntPtr gameObject);
 
@@ -156,13 +156,13 @@ namespace CustomizePlus
 						if (renderManagerHook == null)
 						{
 							// "Render::Manager::Render"
-							IntPtr renderAddress = DalamudServices.SigScanner.ScanText("E8 ?? ?? ?? ?? 48 81 C3 ?? ?? ?? ?? BE ?? ?? ?? ?? 45 33 F6");
+							IntPtr renderAddress = DalamudServices.SigScanner.ScanText("E8 ?? ?? ?? ?? 48 81 C3 ?? ?? ?? ?? BF ?? ?? ?? ?? 33 ED");
 							renderManagerHook = Hook<RenderDelegate>.FromAddress(renderAddress, OnRender);
 						}
 
 						if(gameObjectMovementHook == null)
 						{
-							IntPtr movementAddress = DalamudServices.SigScanner.ScanText("E8 ?? ?? ?? ?? 48 8B CB E8 ?? ?? ?? ?? 48 8B CB E8 ?? ?? ?? ?? 48 8B 03 48 8B CB FF 50 ?? 83 F8 ?? 75 ??");
+							IntPtr movementAddress = DalamudServices.SigScanner.ScanText("E8 ?? ?? ?? ?? EB 29 48 8B 5F 08");
 							gameObjectMovementHook = Hook<GameObjectMovementDelegate>.FromAddress(movementAddress, new GameObjectMovementDelegate(OnGameObjectMove));
 						}
 
@@ -382,7 +382,7 @@ namespace CustomizePlus
 			}
 		}
 
-        private static IntPtr OnRender(IntPtr a1, long a2)
+        private static IntPtr OnRender(IntPtr a1, long a2, int a3, int a4)
         {
 			if (renderManagerHook == null)
 				throw new Exception();
@@ -400,7 +400,7 @@ namespace CustomizePlus
 				renderManagerHook?.Disable();
 			}
 
-			return original(a1, a2);
+			return original(a1, a2, a3, a4);
 		}
 
 		//todo: doesn't work in cutscenes, something getting called after this and resets changes
