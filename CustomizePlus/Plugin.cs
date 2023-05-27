@@ -45,7 +45,6 @@ namespace CustomizePlus
 		private static BodyScale? defaultRetainerScale;
 		private static BodyScale? defaultCutsceneScale;
 		private static CustomizePlusIpc ipcManager = null!;
-		private static CustomizePlusLegacyIpc legacyIpcManager = null!;
 		private static ServiceManager serviceManager { get; set; } = null!;
 
 		private delegate IntPtr RenderDelegate(IntPtr a1, long a2, int a3, int a4);
@@ -91,7 +90,6 @@ namespace CustomizePlus
 				}
 
 				ipcManager = new(DalamudServices.ObjectTable, DalamudServices.PluginInterface);
-				legacyIpcManager = new(DalamudServices.ObjectTable, DalamudServices.PluginInterface);
 
 				LoadConfig();
 
@@ -176,7 +174,6 @@ namespace CustomizePlus
 						if (playerName != null && !autoModeUpdate) {
 							BodyScale? playerScale = GetBodyScale(playerName);
 							ipcManager.OnScaleUpdate(JsonConvert.SerializeObject(playerScale));
-							legacyIpcManager.OnScaleUpdate(playerScale);
 						}
 						
 					}
@@ -254,7 +251,6 @@ namespace CustomizePlus
 			serviceManager.Dispose();
 
 			ipcManager?.Dispose();
-			legacyIpcManager?.Dispose();
 
 			gameObjectMovementHook?.Disable();
 			gameObjectMovementHook?.Dispose();
