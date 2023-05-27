@@ -8,6 +8,7 @@ namespace CustomizePlus
 	using System.Collections.Generic;
 	using System.Linq;
 	using System.Numerics;
+	using System.Runtime.Serialization;
 	using System.Windows.Forms;
 	using System.Xml.Linq;
 	using Anamnesis.Posing;
@@ -261,7 +262,6 @@ namespace CustomizePlus
 		{
 			return String.Concat(this.CharacterName, this.ScaleName).GetHashCode();
 		}
-
 
 		#region pose stuff
 
