@@ -17,17 +17,20 @@ namespace CustomizePlus.Interface
 	using CustomizePlus.Data.Configuration;
 	using CustomizePlus.Memory;
 	using Dalamud.Game.ClientState.Objects.SubKinds;
+	using Dalamud.Interface.ImGuiFileDialog;
 	using Dalamud.Game.ClientState.Objects.Types;
     using Dalamud.Interface;
     using Dalamud.Interface.Components;
     using Dalamud.Logging;
     using ImGuiNET;
     using Newtonsoft.Json;
+	using System.Windows.Forms.Design;
 
 	public class ConfigurationInterface : WindowBase
 	{
 		private string newScaleName = string.Empty;
 		private string newScaleCharacter = string.Empty;
+		private FileDialogManager picker = new();
 
 		private string? playerCharacterName;
 
@@ -48,6 +51,9 @@ namespace CustomizePlus.Interface
 			PluginConfiguration config = Plugin.ConfigurationManager.Configuration;
 
 			playerCharacterName = DalamudServices.ObjectTable[0]?.Name.ToString();
+
+			// Draw the File Picker
+			picker.Draw();
 
 			/* Upcoming feature to group by either scale name or character name
 			List<string> uniqueCharacters = new();
@@ -168,7 +174,7 @@ namespace CustomizePlus.Interface
 
 			ImGui.SameLine();
 			if (ImGui.Button("Add Character from Clipboard")) {
-				Byte importVer = 0;
+				byte importVer = 0;
 				BodyScale importScale = null;
 				string json = null;
 
@@ -330,7 +336,7 @@ namespace CustomizePlus.Interface
 					// Import Ana
 					ImGui.SameLine();
 					if (ImGuiComponents.IconButton(FontAwesomeIcon.FileImport)) {
-						this.Import(extBS);
+						this.ImportWithImgui(extBS);
 						Plugin.ConfigurationManager.SaveConfiguration();
 						Plugin.LoadConfig(true);
 					}
@@ -426,29 +432,56 @@ namespace CustomizePlus.Interface
 			return version;
 		}
 
-		private void Import(BodyScale scale)
-		{
-			Action importAction = () =>
-			{
-				OpenFileDialog picker = new();
-				picker.Filter = "Anamnesis Pose (*.pose)|*.pose";
-				picker.CheckFileExists = true;
-				picker.Title = "Customize+ - Import Anamnesis Pose";
+		// Deprecated, remove with the next update.
+		//private void Import(BodyScale scale)
+		//{
+		//	Action importAction = () =>
+		//	{
+		//		OpenFileDialog picker = new();
+		//		picker.Filter = "Anamnesis Pose (*.pose)|*.pose";
+		//		picker.CheckFileExists = true;
+		//		picker.Title = "Customize+ - Import Anamnesis Pose";
 
-				DialogResult result = picker.ShowDialog();
-				if (result != DialogResult.OK)
-					return;
+		//		DialogResult result = picker.ShowDialog();
+		//		if (result != DialogResult.OK)
+		//			return;
 
-				string json = File.ReadAllText(picker.FileName);
+		//		string json = File.ReadAllText(picker.FileName);
 
-				BuildFromJSON(scale, json);
+		//		BuildFromJSON(scale, json);
 
-				string name = Path.GetFileNameWithoutExtension(picker.FileName);
+		//		string name = Path.GetFileNameWithoutExtension(picker.FileName);
 
-				scale.ScaleName = name;
-			};
+		//		scale.ScaleName = name;
+		//	};
 
-			MessageWindow.Show("Customize+ is only able to import scale from the *.pose files. Position and rotation will be ignored.", new Vector2(570, 100), importAction, "ana_import_pos_rot_warning");
+		//	MessageWindow.Show("Customize+ is only able to import scale from the *.pose files. Position and rotation will be ignored.", new Vector2(570, 100), importAction, "ana_import_pos_rot_warning");
+		//}
+
+
+		/// <summary>
+		/// Imports a BodyScale using Dalamuds Imgui FileDialog.
+		/// </summary>
+		/// <param name="scale">The BodyScale object to import the data into.</param>
+		private void ImportWithImgui(BodyScale scale) {
+
+			/// <summary>
+			/// Action performed when the file is imported.
+			/// </summary>
+			void ImportAction() {
+				picker.OpenFileDialog("Import Pose File", ".pose", (isSuccess, path) => {
+					if (isSuccess) {
+						var result = path.FirstOrDefault();
+						var json = File.ReadAllText(result);
+						BuildFromJSON(scale, json);
+						scale.ScaleName = Path.GetFileNameWithoutExtension(result);
+					} else {
+						PluginLog.Information(isSuccess + " NO valid file has been selected. " + path);
+					}
+				}, 1, null, true);
+			}
+
+			MessageWindow.Show("Customize+ is only able to import scale from the *.pose files. Position and rotation will be ignored.", new Vector2(570, 100), ImportAction, "ana_import_pos_rot_warning");
 		}
 
 		// TODO: Finish feature. May require additional skeleton code from Anamnesis
