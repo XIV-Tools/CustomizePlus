@@ -38,6 +38,17 @@ namespace CustomizePlus.Helpers
 			//return null;
 		}
 
+		public static unsafe CharacterBase* ToCharacterBase(this DalamudObject obj)
+		{
+			if (obj.Address != IntPtr.Zero
+				&& Marshal.ReadIntPtr(obj.Address, 0x0100) is IntPtr drawObj
+				&& drawObj != IntPtr.Zero)
+			{
+				return (CharacterBase*)drawObj;
+			}
+			return null;
+		}
+
 		public static unsafe bool TryLookupCharacterBase(string name, out CharacterBase* cBase)
 		{
 			if (FindModelByName(name) is DalamudObject obj
