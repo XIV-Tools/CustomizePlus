@@ -105,6 +105,18 @@ namespace CustomizePlus.Interface
 
 			ImGui.SameLine();
 
+			ImGui.BeginDisabled();
+			bool tempRefSnap = profileInProgress.Armature.GetReferenceSnap();
+			if (CtrlHelper.Checkbox("A-Pose", ref tempRefSnap))
+			{
+				this.ConfirmSkeletonConnection();
+				profileInProgress.Armature.SetReferenceSnap(tempRefSnap);
+			}
+			CtrlHelper.AddHoverText($"Force character into their default reference pose");
+			ImGui.EndDisabled();
+
+			ImGui.SameLine();
+
 			if (CtrlHelper.Checkbox("Mirror Mode", ref Settings.MirrorModeEnabled))
 			{
 				this.ConfirmSkeletonConnection();
@@ -124,10 +136,6 @@ namespace CustomizePlus.Interface
 			ImGui.SameLine();
 			ImGui.Spacing();
 			ImGui.SameLine();
-
-			ImGui.SetNextItemWidth(150);
-			ImGui.SliderInt("Precision", ref precision, 1, 6);
-			CtrlHelper.AddHoverText("Level of precision to display while editing values");
 
 			ImGui.Separator();
 
@@ -195,6 +203,21 @@ namespace CustomizePlus.Interface
 			}
 			CtrlHelper.AddHoverText("Refresh the skeleton data obtained from in-game");
 			if (!this.profileInProgress.Enabled) ImGui.EndDisabled();
+
+			ImGui.SameLine();
+			ImGui.Spacing();
+			ImGui.SameLine();
+
+			ImGui.TextUnformatted("|");
+
+			ImGui.SameLine();
+			ImGui.Spacing();
+			ImGui.SameLine();
+
+			ImGui.SetNextItemWidth(150);
+			//ImGui.SliderInt("Precision", ref precision, 1, 6);
+			ImGui.SliderInt(String.Empty, ref precision, 1, 6, $"Precision = {precision}");
+			CtrlHelper.AddHoverText("Level of precision to display while editing values");
 
 			ImGui.Separator();
 
