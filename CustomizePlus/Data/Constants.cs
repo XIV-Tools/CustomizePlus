@@ -1,8 +1,6 @@
 ﻿// © Customize+.
 // Licensed under the MIT license.
 
-using CustomizePlus.Memory;
-
 namespace CustomizePlus.Data
 {
 	internal static class Constants
@@ -75,17 +73,17 @@ namespace CustomizePlus.Data
 			Scale = NullVector
 		};
 
-        /// <summary>
-        /// Minimum allowed value for any of the vector values
-        /// </summary>
-        public const int MinVectorValueLimit = -512;
+		/// <summary>
+		/// Minimum allowed value for any of the vector values
+		/// </summary>
+		public const int MinVectorValueLimit = -512;
 
-        /// <summary>
-        /// Maximum allowed value for any of the vector values
-        /// </summary>
-        public const int MaxVectorValueLimit = 512;
+		/// <summary>
+		/// Maximum allowed value for any of the vector values
+		/// </summary>
+		public const int MaxVectorValueLimit = 512;
 
-        //public static Vector3 ZeroVector = new Vector3(0, 0, 0);
-        //public static Vector3 OneVector = new Vector3(1, 1, 1);
-    }
+		//public static Vector3 ZeroVector = new Vector3(0, 0, 0);
+		//public static Vector3 OneVector = new Vector3(1, 1, 1);
+	}
 }

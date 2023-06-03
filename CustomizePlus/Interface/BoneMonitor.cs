@@ -5,21 +5,18 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using System.Runtime.CompilerServices;
+
 using CustomizePlus.Data;
-using CustomizePlus.Data.Configuration;
-using CustomizePlus.Data.Profile;
 using CustomizePlus.Data.Armature;
+using CustomizePlus.Data.Profile;
+using CustomizePlus.Extensions;
 using CustomizePlus.Helpers;
+
 using Dalamud.Interface;
 using Dalamud.Interface.Components;
-using Dalamud.Logging;
 using Dalamud.Utility;
+
 using ImGuiNET;
-using Newtonsoft.Json.Linq;
-using System.Drawing;
-using CustomizePlus.Extensions;
-using CustomizePlus.Memory;
 
 namespace CustomizePlus.Interface
 {
@@ -325,7 +322,7 @@ namespace CustomizePlus.Interface
 				ImGui.PopFont();
 
 				ImGui.PopID();
-			}			
+			}
 		}
 
 		#endregion
