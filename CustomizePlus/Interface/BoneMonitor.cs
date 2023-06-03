@@ -25,7 +25,7 @@ namespace CustomizePlus.Interface
 {
 	internal class BoneMonitor : WindowBase
 	{
-		protected override string Title => $"Bone Monitor: {this.targetProfile}";
+		protected override string Title => $"Bone Monitor: {this.targetProfile.ToDebugString()}";
 		protected override string DrawTitle => $"{this.Title}###customize_plus_scale_edit_window{this.Index}"; //keep the same ID for all scale editor windows
 
 		protected override ImGuiWindowFlags WindowFlags => ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse;
@@ -142,10 +142,16 @@ namespace CustomizePlus.Interface
 
 				ImGui.TableHeadersRow();
 
+				if (TargetSkeleton == null) return;
 
 				var relevantBoneNames = targetProfile.Enabled
 				? this.TargetSkeleton.GetExtantBoneNames()
 				: this.targetProfile.Bones.Keys;
+
+				//TODO this shouldn't be necessary, the armature shouldn't cease to exist when the profile is disabled?
+				//if it must, then this section should conditionally reroute to show the saved values from within the profile
+				//instead of showing nothing
+				if (relevantBoneNames.Any(x => !TargetSkeleton.Bones.ContainsKey(x))) return;
 
 				var groupedBones = relevantBoneNames.GroupBy(x => BoneData.GetBoneFamily(this.TargetSkeleton.Bones[x].BoneName));
 
@@ -219,7 +225,7 @@ namespace CustomizePlus.Interface
 		private bool MysteryButton(string codename, ref Vector4 value)
 		{
 			bool output = ImGuiComponents.IconButton(codename, FontAwesomeIcon.ChartLine);
-			CtrlHelper.AddHoverText($"This will do... something... with {{{value}}}... at some point...");
+			CtrlHelper.AddHoverText($"This will do... something... at some point...?");
 
 			return output;
 		}
@@ -263,16 +269,19 @@ namespace CustomizePlus.Interface
 							.GetAttribute(this.targetAttribute)
 							.GetAsNumericsVector());
 
-					rowVector = vectors.Aggregate((x, y) =>
+					if (vectors.Any())
 					{
-						return this.targetAttribute switch
+						rowVector = vectors.Aggregate((x, y) =>
 						{
-							BoneAttribute.Position => x + y,
-							BoneAttribute.Rotation => Quaternion.Multiply(x.ToQuaternion(), y.ToQuaternion()).GetAsNumericsVector(),
-							BoneAttribute.Scale => x * y,
-							_ => throw new NotImplementedException()
-						};
-					});
+							return this.targetAttribute switch
+							{
+								BoneAttribute.Position => x + y,
+								BoneAttribute.Rotation => Quaternion.Multiply(x.ToQuaternion(), y.ToQuaternion()).GetAsNumericsVector(),
+								BoneAttribute.Scale => x * y,
+								_ => throw new NotImplementedException()
+							};
+						});
+					}
 				}
 
 				ImGui.PushID(codename.GetHashCode() + triplexIndex);
@@ -285,16 +294,16 @@ namespace CustomizePlus.Interface
 				ImGui.PushFont(UiBuilder.MonoFont);
 
 				ImGui.TableNextColumn();
-				ImGui.TextDisabled($"{rowVector.X,-10:0.00000}");
+				ImGui.TextDisabled($"{rowVector.X,8:0.00000}");
 
 				ImGui.TableNextColumn();
-				ImGui.TextDisabled($"{rowVector.Y,-10:0.00000}");
+				ImGui.TextDisabled($"{rowVector.Y,8:0.00000}");
 
 				ImGui.TableNextColumn();
-				ImGui.TextDisabled($"{rowVector.Z,-10:0.00000}");
+				ImGui.TextDisabled($"{rowVector.Z,8:0.00000}");
 
 				ImGui.TableNextColumn();
-				ImGui.TextDisabled($"{rowVector.W,-10:0.00000}");
+				ImGui.TextDisabled($"{rowVector.W,8:0.00000}");
 
 				//----------------------------------
 

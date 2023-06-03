@@ -71,7 +71,12 @@ namespace CustomizePlus.Data.Profile
 
 		public override string ToString()
 		{
-			return $"Profile ({this.LocalID}) '{this.ProfName}' on {this.CharName}";
+			return $"Profile '{this.ProfName}' on {this.CharName}";
+		}
+
+		public string ToDebugString()
+		{
+			return $"Profile (ID #{this.LocalID}) '{this.ProfName}' on {this.CharName}";
 		}
 
 		public override bool Equals(object? obj)
