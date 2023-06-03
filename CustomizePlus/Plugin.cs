@@ -59,8 +59,6 @@ namespace CustomizePlus
 
 
 		private static CustomizePlusIpc ipcManager = null!;
-		private static CustomizePlusLegacyIpc legacyIpcManager = null!;
-
 
 		public static InterfaceManager InterfaceManager { get; private set; } = new InterfaceManager();
 		public static ServiceManager ServiceManager { get; private set; } = new ServiceManager();
@@ -93,8 +91,6 @@ namespace CustomizePlus
 				ProfileManager.LoadProfiles();
 
 				ipcManager = new(DalamudServices.ObjectTable, DalamudServices.PluginInterface);
-				legacyIpcManager = new(DalamudServices.ObjectTable, DalamudServices.PluginInterface);
-
 
 				DalamudServices.CommandManager.AddCommand((s, t) => MainInterface.Toggle(), "/customize", "Toggles the Customize+ configuration window.");
 				DalamudServices.CommandManager.AddCommand((s, t) => ApplyByCommand(t), "/customize-apply", "Apply a specific Scale (usage: /customize-apply {Character Name},{Scale Name})");
@@ -223,7 +219,6 @@ namespace CustomizePlus
 				if (ProfileManager.GetProfileByCharacterName(name) is CharacterProfile prof && prof != null)
 				{
 					ipcManager.OnScaleUpdate(JsonConvert.SerializeObject(prof));
-					legacyIpcManager.OnScaleUpdate(prof);
 				}
 			}
 		}
@@ -236,7 +231,6 @@ namespace CustomizePlus
 			DalamudServices.Framework.Update -= Framework_Update;
 
 			ipcManager?.Dispose();
-			legacyIpcManager?.Dispose();
 
 			gameObjectMovementHook?.Disable();
 			gameObjectMovementHook?.Dispose();

@@ -11,6 +11,7 @@ namespace CustomizePlus.Interface
 	using Dalamud.Game.ClientState.Objects.Types;
 	using Dalamud.Interface;
 	using Dalamud.Interface.Components;
+	using Dalamud.Interface.ImGuiFileDialog;
 	using Dalamud.Logging;
 	using ImGuiNET;
 	using Newtonsoft.Json;
@@ -27,6 +28,7 @@ namespace CustomizePlus.Interface
 
 		private static string newCharName = GameDataHelper.GetPlayerName() ?? String.Empty;
 		private static string newProfName = "Default";
+		private readonly FileDialogManager _importFilePicker = new();
 
 		protected override string Title => "Customize+ Configuration";
 		protected override bool SingleInstance => true;
@@ -55,6 +57,9 @@ namespace CustomizePlus.Interface
 					uniqueScales.Add(config.BodyScales[i].ScaleName);
 			}
 			*/
+
+			// Draw the File Picker
+			_importFilePicker.Draw();
 
 			bool enable = Plugin.Config.PluginEnabled;
 			if (ImGui.Checkbox("Enable", ref enable))
@@ -160,7 +165,7 @@ namespace CustomizePlus.Interface
 			ImGui.SameLine();
 			if (ImGui.Button("Add from Clipboard"))
 			{
-				Byte importVer = 0;
+				byte importVer = 0;
 				CharacterProfile importedProfile = null;
 				string json = null;
 
@@ -211,8 +216,7 @@ namespace CustomizePlus.Interface
 			ImGui.SameLine();
 			if (ImGui.Button("Add from Pose"))
 			{
-				MessageWindow.Show("Due to technical limitations, Customize+ is only able to import scale values from *.pose files.\nPosition and rotation information will be ignored.",
-					new Vector2(570, 100), () => Anamnesis.Importer.ImportFiles(Plugin.ProfileManager), "ana_import_pos_rot_warning");
+				ImportWithImgui();
 			}
 
 			if (ImGui.IsItemHovered())
@@ -404,7 +408,48 @@ namespace CustomizePlus.Interface
 			}
 		}
 
+		/// <summary>
+		/// Imports a BodyScale using Dalamuds Imgui FileDialog.
+		/// </summary>
+		private void ImportWithImgui()
+		{
+			/// <summary>
+			/// Action performed when the file is imported.
+			/// </summary>
+			void ImportAction()
+			{
+				_importFilePicker.OpenFileDialog("Import Pose File", ".pose", (isSuccess, path) => {
+					if (isSuccess)
+					{
+						var selectedFilePath = path.FirstOrDefault();
+						//todo: check for selectedFilePath == null?
+						string? json = Helpers.FileHelper.ReadFileAtPath(selectedFilePath);
 
+						if (json != null)
+						{
+							string profileName = Path.GetFileNameWithoutExtension(selectedFilePath);
+							CharacterProfile? import = ProfileConverter.ConvertFromAnamnesis(json, profileName);
+
+							if (import != null)
+							{
+								Plugin.ProfileManager.AddAndSaveProfile(import);
+							}
+							else
+							{
+								Dalamud.Logging.PluginLog.LogError($"Error parsing character profile from anamnesis pose file at '{path}'");
+							}
+						}
+					}
+					else
+					{
+						PluginLog.Information(isSuccess + " NO valid file has been selected. " + path);
+					}
+				}, 1, null, true);
+			}
+
+			MessageWindow.Show("Due to technical limitations, Customize+ is only able to import scale values from *.pose files.\nPosition and rotation information will be ignored.",
+				new Vector2(570, 100), ImportAction, "ana_import_pos_rot_warning");
+		}
 
 		// TODO: Finish feature. May require additional skeleton code from Anamnesis
 		// Process only works properly in that when in GPose as it is.

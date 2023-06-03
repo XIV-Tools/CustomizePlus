@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 using CustomizePlus.Extensions;
 using System.Transactions;
 using Newtonsoft.Json;
+using System.Runtime.Serialization;
 
 namespace CustomizePlus.Data
 {
@@ -32,16 +33,27 @@ namespace CustomizePlus.Data
 		//that way the cost of translating back and forth to vector3s would be frontloaded
 		//	to when the user is updating things instead of during the render loop
 
-		public Vector3 Translation { get; set; }
+		private Vector3 _translation;
+		public Vector3 Translation
+		{
+			get => _translation;
+			set => _translation = ClampToDefaultLimits(value);
+		}
 
 		[JsonIgnore]
-		private Vector3 eulerRotation;
+		private Vector3 _eulerRotation;
 		public Vector3 Rotation
 		{
-			get => this.eulerRotation;
-			set => this.eulerRotation = ClampRotation(value);
+			get => this._eulerRotation;
+			set => this._eulerRotation = ClampRotation(value);
 		}
-		public Vector3 Scaling { get; set; }
+
+		private Vector3 _scaling;
+		public Vector3 Scaling
+		{
+			get => _scaling;
+			set => _scaling = ClampToDefaultLimits(value);
+		}
 
 		public BoneTransform()
 		{
@@ -53,6 +65,15 @@ namespace CustomizePlus.Data
 		public BoneTransform(BoneTransform original)
 		{
 			this.UpdateToMatch(original);
+		}
+
+		[OnDeserialized]
+		internal void OnDeserialized(StreamingContext context)
+		{
+			//Sanitize all values on deserialization
+			_translation = ClampToDefaultLimits(_translation);
+			_eulerRotation = ClampRotation(_eulerRotation);
+			_scaling = ClampToDefaultLimits(_scaling);
 		}
 
 		public bool IsEdited()
@@ -93,23 +114,6 @@ namespace CustomizePlus.Data
 			this.Translation = newValues.Translation;
 			this.Rotation = newValues.Rotation;
 			this.Scaling = newValues.Scaling;
-		}
-
-		private static Vector3 ClampRotation(Vector3 rotVec)
-		{
-			static float Clamp(float angle)
-			{
-				if (angle > 180) angle -= 360;
-				else if (angle < -180) angle += 360;
-
-				return angle;
-			}
-
-			rotVec.X = Clamp(rotVec.X);
-			rotVec.Y = Clamp(rotVec.Y);
-			rotVec.Z = Clamp(rotVec.Z);
-
-			return rotVec;
 		}
 
 		/// <summary>
@@ -207,6 +211,36 @@ namespace CustomizePlus.Data
 			tr.Translation.W += adjustedTranslation.W;
 
 			return tr;
+		}
+
+		/// <summary>
+		/// Clamp all vector values to be within allowed limits
+		/// </summary>
+		/// <param name="vector"></param>
+		private static Vector3 ClampToDefaultLimits(Vector3 vector)
+		{
+			vector.X = Math.Clamp(vector.X, Constants.MinVectorValueLimit, Constants.MaxVectorValueLimit);
+			vector.Y = Math.Clamp(vector.Y, Constants.MinVectorValueLimit, Constants.MaxVectorValueLimit);
+			vector.Z = Math.Clamp(vector.Z, Constants.MinVectorValueLimit, Constants.MaxVectorValueLimit);
+
+			return vector;
+		}
+
+		private static Vector3 ClampRotation(Vector3 rotVec)
+		{
+			static float Clamp(float angle)
+			{
+				if (angle > 180) angle -= 360;
+				else if (angle < -180) angle += 360;
+
+				return angle;
+			}
+
+			rotVec.X = Clamp(rotVec.X);
+			rotVec.Y = Clamp(rotVec.Y);
+			rotVec.Z = Clamp(rotVec.Z);
+
+			return rotVec;
 		}
 	}
 }
