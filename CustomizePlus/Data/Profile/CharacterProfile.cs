@@ -1,96 +1,83 @@
 ﻿// © Customize+.
 // Licensed under the MIT license.
 
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Dalamud.Logging;
-using Newtonsoft.Json.Linq;
-using System.Numerics;
 using Newtonsoft.Json;
 
 namespace CustomizePlus.Data.Profile
 {
-	/// <summary>
-	/// Encapsulates the user-controlled aspects of a character profile, ie all of
-	/// the information that gets saved to disk by the plugin.
-	/// </summary>
-	[Serializable]
-	public sealed class CharacterProfile
-	{
-		[NonSerialized]
-		private static int NextGlobalID = 0;
-		[NonSerialized]
-		private readonly int LocalID;
+    /// <summary>
+    ///     Encapsulates the user-controlled aspects of a character profile, ie all of
+    ///     the information that gets saved to disk by the plugin.
+    /// </summary>
+    [Serializable]
+    public sealed class CharacterProfile
+    {
+        [NonSerialized] private static int _nextGlobalId;
 
-		public string CharName { get; set; } = "Default";
-		public string ProfName { get; set; } = "Profile";
-		public bool Enabled { get; set; } = false;
-		public DateTime CreationDate { get; set; } = DateTime.Now;
-		public DateTime ModifiedDate { get; set; } = DateTime.Now;
+        [NonSerialized] private readonly int _localId;
 
-		[JsonIgnore]
-		public int UniqueID => this.CreationDate.GetHashCode();
+        [NonSerialized] public Armature.Armature? Armature;
 
-		[NonSerialized]
-		public string? OriginalFilePath = null;
-		[NonSerialized]
-		public Armature.Armature? Armature = null;
+        [NonSerialized] public string? OriginalFilePath;
 
-		public Dictionary<string, BoneTransform> Bones { get; init; } = new();
+        public CharacterProfile()
+        {
+            _localId = _nextGlobalId++;
+        }
 
-		public CharacterProfile()
-		{
-			this.LocalID = NextGlobalID++;
-		}
+        /// <summary>
+        ///     Initializes a new instance of the <see cref="CharacterProfile" /> class by
+        ///     creating a deep copy of the one provided.
+        /// </summary>
+        public CharacterProfile(CharacterProfile original) : this()
+        {
+            CharacterName = original.CharacterName;
+            ProfileName = original.ProfileName;
+            Enabled = original.Enabled;
+            CreationDate = original.CreationDate;
+            ModifiedDate = DateTime.Now;
+            OriginalFilePath = original.OriginalFilePath;
+            Armature = null;
 
-		/// <summary>
-		/// Initializes a new instance of the <see cref="CharacterProfile"/> class by
-		/// creating a deep copy of the one provided.
-		/// </summary>
-		public CharacterProfile(CharacterProfile original) : this()
-		{
-			this.CharName = original.CharName;
-			this.ProfName = original.ProfName;
-			this.Enabled = original.Enabled;
-			this.CreationDate = original.CreationDate;
-			this.ModifiedDate = DateTime.Now;
-			this.OriginalFilePath = original.OriginalFilePath;
-			this.Armature = null;
+            foreach (var kvp in original.Bones)
+            {
+                Bones[kvp.Key] = new BoneTransform();
+                Bones[kvp.Key].UpdateToMatch(kvp.Value);
+            }
+        }
 
-			foreach(var kvp in original.Bones)
-			{
-				this.Bones[kvp.Key] = new BoneTransform();
-				this.Bones[kvp.Key].UpdateToMatch(kvp.Value);
-			}
-		}
+        public string CharacterName { get; set; } = "Default";
+        public string ProfileName { get; set; } = "Profile";
+        public bool Enabled { get; set; }
+        public DateTime CreationDate { get; set; } = DateTime.Now;
+        public DateTime ModifiedDate { get; set; } = DateTime.Now;
 
-		public override string ToString()
-		{
-			return $"Profile ({this.LocalID}) '{this.ProfName}' on {this.CharName}";
-		}
+        [JsonIgnore] public int UniqueId => CreationDate.GetHashCode();
 
-		public override bool Equals(object? obj)
-		{
-			if (obj is CharacterProfile other && other != null)
-			{
-				return this.UniqueID == other.UniqueID
-					&& this.CharName == other.CharName
-					&& this.ProfName == other.ProfName;
-			}
-			else
-			{
-				return base.Equals(obj);
-			}
-		}
+        public Dictionary<string, BoneTransform> Bones { get; init; } = new();
 
-		public override int GetHashCode()
-		{
-			return this.UniqueID;
-		}
-	}
+        public override string ToString()
+        {
+            return $"Profile ({_localId}) '{ProfileName}' on {CharacterName}";
+        }
+
+        public override bool Equals(object? obj)
+        {
+            if (obj is CharacterProfile other)
+            {
+                return UniqueId == other.UniqueId
+                       && CharacterName == other.CharacterName
+                       && ProfileName == other.ProfileName;
+            }
+
+            return base.Equals(obj);
+        }
+
+        public override int GetHashCode()
+        {
+            return UniqueId;
+        }
+    }
 }
