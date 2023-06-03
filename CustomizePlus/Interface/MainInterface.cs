@@ -324,7 +324,10 @@ namespace CustomizePlus.Interface
 					// ---
 
 					ImGui.TableNextColumn();
-					ImGuiComponents.IconButton(FontAwesomeIcon.InfoCircle);
+					if(ImGuiComponents.IconButton(FontAwesomeIcon.InfoCircle))
+					{
+						BoneMonitor.Show(prof);
+					}
 					CtrlHelper.AddHoverText(String.Join('\n',
 						$"Profile '{prof.ProfName}'",
 						$"for {prof.CharName}",

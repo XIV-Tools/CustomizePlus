@@ -318,8 +318,7 @@ namespace CustomizePlus
 
 			try
 			{
-				//TODO this should really be handled in a top-down way starting with the profiles
-				//we know are enabled
+				ProfileManager.CheckForNewProfiles();
 
 				var activeProfiles = ProfileManager.GetEnabledProfiles();
 				ArmatureManager.RenderCharacterProfiles(activeProfiles);
