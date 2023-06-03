@@ -62,7 +62,7 @@ namespace CustomizePlus.Data.Profile
 			this.OriginalFilePath = original.OriginalFilePath;
 			this.Armature = null;
 
-			foreach(var kvp in original.Bones)
+			foreach (var kvp in original.Bones)
 			{
 				this.Bones[kvp.Key] = new BoneTransform();
 				this.Bones[kvp.Key].UpdateToMatch(kvp.Value);

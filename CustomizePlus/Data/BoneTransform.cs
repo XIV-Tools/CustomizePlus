@@ -1,17 +1,9 @@
 ﻿// © Customize+.
 // Licensed under the MIT license.
 
-using CustomizePlus.Interface;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
 using CustomizePlus.Extensions;
-using System.Transactions;
-using Newtonsoft.Json;
-using CustomizePlus.Memory;
+using System;
+using System.Numerics;
 
 namespace CustomizePlus.Data
 {
@@ -32,16 +24,26 @@ namespace CustomizePlus.Data
 		//that way the cost of translating back and forth to vector3s would be frontloaded
 		//	to when the user is updating things instead of during the render loop
 
-		public Vector3 Translation { get; set; }
+		private Vector3 _translation;
+		public Vector3 Translation
+		{
+			get => _translation;
+			set => _translation = ClampVector(value);
+		}
 
-		[JsonIgnore]
-		private Vector3 eulerRotation;
+		private Vector3 _rotation;
 		public Vector3 Rotation
 		{
-			get => this.eulerRotation;
-			set => this.eulerRotation = ClampRotation(value);
+			get => _rotation;
+			set => _rotation = ClampRotation(value);
 		}
-		public Vector3 Scaling { get; set; }
+
+		private Vector3 _scaling;
+		public Vector3 Scaling
+		{
+			get => _scaling;
+			set => _scaling = ClampVector(value);
+		}
 
 		public BoneTransform()
 		{
@@ -95,23 +97,6 @@ namespace CustomizePlus.Data
 			this.Scaling = newValues.Scaling;
 		}
 
-		private static Vector3 ClampRotation(Vector3 rotVec)
-		{
-			static float Clamp(float angle)
-			{
-				if (angle > 180) angle -= 360;
-				else if (angle < -180) angle += 360;
-
-				return angle;
-			}
-
-			rotVec.X = Clamp(rotVec.X);
-			rotVec.Y = Clamp(rotVec.Y);
-			rotVec.Z = Clamp(rotVec.Z);
-
-			return rotVec;
-		}
-
 		/// <summary>
 		/// Flip a bone's transforms from left to right, so you can use it to update its sibling.
 		/// IVCS bones need to use the special reflection instead.
@@ -138,6 +123,46 @@ namespace CustomizePlus.Data
 				Rotation = new Vector3(this.Rotation.X, -1 * this.Rotation.Y, -1 * this.Rotation.Z),
 				Scaling = this.Scaling
 			};
+		}
+
+		/// <summary>
+		/// Sanitize all vectors inside of this container.
+		/// </summary>
+		private void Sanitize()
+		{
+			_translation = ClampVector(_translation);
+			_rotation = ClampRotation(_rotation);
+			_scaling = ClampVector(_scaling);
+		}
+
+		/// <summary>
+		/// Clamp all vector values to be within allowed limits.
+		/// </summary>
+		private Vector3 ClampVector(Vector3 vector)
+		{
+			return new Vector3()
+			{
+				X = Math.Clamp(vector.X, Constants.MinVectorValueLimit, Constants.MaxVectorValueLimit),
+				Y = Math.Clamp(vector.Y, Constants.MinVectorValueLimit, Constants.MaxVectorValueLimit),
+				Z = Math.Clamp(vector.Z, Constants.MinVectorValueLimit, Constants.MaxVectorValueLimit)
+			};
+		}
+
+		private static Vector3 ClampRotation(Vector3 rotVec)
+		{
+			static float Clamp(float angle)
+			{
+				if (angle > 180) angle -= 360;
+				else if (angle < -180) angle += 360;
+
+				return angle;
+			}
+
+			rotVec.X = Clamp(rotVec.X);
+			rotVec.Y = Clamp(rotVec.Y);
+			rotVec.Z = Clamp(rotVec.Z);
+
+			return rotVec;
 		}
 
 		/// <summary>

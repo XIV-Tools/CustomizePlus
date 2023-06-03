@@ -270,7 +270,7 @@ namespace CustomizePlus.Interface
 
 					if (ImGui.IsItemHovered())
 						ImGui.SetTooltip($"Enable and disable profile.\nOnly one profile can be active per character.");
-					
+
 					// ---
 
 					// Character Name
@@ -324,7 +324,7 @@ namespace CustomizePlus.Interface
 					// ---
 
 					ImGui.TableNextColumn();
-					if(ImGuiComponents.IconButton(FontAwesomeIcon.InfoCircle))
+					if (ImGuiComponents.IconButton(FontAwesomeIcon.InfoCircle))
 					{
 						BoneMonitor.Show(prof);
 					}
