@@ -1,6 +1,7 @@
 ﻿// © Customize+.
 // Licensed under the MIT license.
 
+using CustomizePlus.Data.Profile;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -161,8 +162,13 @@ namespace CustomizePlus.Api
 
 		private string? GetBodyScale(string characterName)
 		{
-			BodyScale? bodyScale = Plugin.GetPlayerBodyScale(characterName);
-			return bodyScale != null ? JsonConvert.SerializeObject(bodyScale) : null;
+			CharacterProfile? prof = Plugin.ProfileManager.GetProfileByCharacterName(characterName);
+			if (prof != null)
+			{
+				return JsonConvert.SerializeObject(prof);
+			}
+
+			return null;
 		}
 
 		private unsafe string? GetBodyScaleFromCharacter(Character? character)
@@ -175,10 +181,11 @@ namespace CustomizePlus.Api
 
 		private void SetBodyScale(string bodyScaleString, string characterName)
 		{
-			//Character? character = FindCharacterByName(characterName);
-			BodyScale? bodyScale = JsonConvert.DeserializeObject<BodyScale?>(bodyScaleString);
-			if (bodyScale != null)
-				Plugin.SetTemporaryCharacterScale(characterName, bodyScale);
+			CharacterProfile? prof = JsonConvert.DeserializeObject<CharacterProfile>(bodyScaleString);
+			if (prof != null)
+			{
+				Plugin.ProfileManager.AddTemporaryProfile(characterName, prof);
+			}
 		}
 
 		private void SetBodyScaleToCharacter(string bodyScaleString, Character? character)
@@ -194,7 +201,7 @@ namespace CustomizePlus.Api
 			if (string.IsNullOrEmpty(characterName))
 				return;
 
-			Plugin.RemoveTemporaryCharacterScale(characterName);
+			Plugin.ProfileManager.RemoveTemporaryProfile(characterName);
 		}
 
 		private void RevertCharacter(Character? character)

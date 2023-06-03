@@ -14,17 +14,27 @@ namespace CustomizePlus.Data.Configuration
 		public const int CurrentVersion = Constants.ConfigurationVersion;
 
 		public int Version { get; set; } = CurrentVersion;
-		public HashSet<BodyScale> BodyScales { get; set; } = new();
-		public bool Enable { get; set; } = true;
-		public bool AutomaticEditMode { get; set; } = false;
-		public bool MirrorMode { get; set; } = false;
-		public EditMode EditingAttribute { get; set; } = EditMode.Scale;
 
-		public bool ApplyToNpcs { get; set; } = true;
-		// public bool	ApplyToNpcsInBusyAreas { get; set; } = false;
-		public bool ApplyToNpcsInCutscenes { get; set; } = true;
+		//public HashSet<Data.Profile.CharacterProfile> Profiles { get; set; } = new(); //replace with new profile data structure
+		public bool PluginEnabled { get; set; } = true;
+
+		public bool ApplytoNPCs { get; set; } = false;
+		public bool ApplytoNPCsInCutscenes { get; set; } = false;
+
+		//public RenderRulesManager DefaultRules { get; set; } = new();
+		public bool ApplyProfilesInCutscenes { get; set; } = true; //global override? maybe remove
+		public int CapSkeletonsRendered { get; set; } = -1; //TODO rename this, please
+
+
+		//public bool AutomaticEditMode { get; set; } = false; //should belong to editor session
+		//public bool MirrorMode { get; set; } = false; //should belong to editor session
+		//public bool ParentingMode { get; set; } = false; //should belong to editor session
+		//public EditMode EditingAttribute { get; set; } = EditMode.Scale; //should be local to the editor window
+
 
 		public bool DebuggingMode { get; set; } = false;
+
+
 		public HashSet<string> ViewedMessageWindows = new();
 
 		// Upcoming feature

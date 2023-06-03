@@ -1,7 +1,7 @@
 ﻿// © Customize+.
 // Licensed under the MIT license.
 
-namespace Anamnesis.Posing
+namespace CustomizePlus.Data
 {
 	using CustomizePlus;
 	using Dalamud.Logging;
@@ -50,8 +50,10 @@ namespace Anamnesis.Posing
 			{ BoneFamily.Unknown, "These bones weren't immediately identifiable.\nIf you can figure out what they're for, let us know and we'll add them to the table." }
 		};
 
-		public struct BoneDatum
+		public struct BoneDatum : IComparable<BoneDatum>
 		{
+			public int RowIndex;
+
 			public string Codename;
 			public string DisplayName;
 			public BoneFamily Family;
@@ -64,8 +66,10 @@ namespace Anamnesis.Posing
 
 			public string[] Children;
 
-			public BoneDatum(string[] fields)
+			public BoneDatum(int row, string[] fields)
 			{
+				RowIndex = row;
+
 				int i = 0;
 
 				Codename = fields[i++];
@@ -81,13 +85,25 @@ namespace Anamnesis.Posing
 
 				Children = Array.Empty<string>();
 			}
+
+			public int CompareTo(BoneDatum other)
+			{
+				if (RowIndex != other.RowIndex)
+				{
+					return RowIndex.CompareTo(other.RowIndex);
+				}
+				else
+				{
+					return DisplayName.CompareTo(other.DisplayName);
+				}
+			}
 		}
 
 		public static void LogNewBones(params string[] boneNames)
 		{
 			string[] probablyHairstyleBones = boneNames.Where(IsProbablyHairstyle).ToArray();
 
-			foreach(BoneDatum hairBone in ParseHairstyle(probablyHairstyleBones))
+			foreach (BoneDatum hairBone in ParseHairstyle(probablyHairstyleBones))
 			{
 				BoneTable[hairBone.Codename] = hairBone;
 			}
@@ -96,10 +112,12 @@ namespace Anamnesis.Posing
 			{
 				BoneDatum newBone = new BoneDatum()
 				{
+					RowIndex = -1,
 					Codename = boneName,
 					DisplayName = $"Unknown ({boneName})",
 					Family = BoneFamily.Unknown,
 					Parent = "j_kosi",
+					Children = Array.Empty<string>(),
 					MirroredCodename = null
 				};
 			}
@@ -123,7 +141,7 @@ namespace Anamnesis.Posing
 					//and we can then presume that the second subs are directional
 					//or vice versa. the naming conventions aren't really consistent about whether the sequence is first or second
 
-					foreach(var boneInfo in parsedBones)
+					foreach (var boneInfo in parsedBones)
 					{
 						StringBuilder dispName = new();
 						dispName.Append($"Hair #{boneInfo.id}");
@@ -139,12 +157,14 @@ namespace Anamnesis.Posing
 
 						BoneDatum result = new BoneDatum()
 						{
+							RowIndex = -1,
 							Codename = boneInfo.name,
 							DisplayName = dispName.ToString(),
 							Family = BoneFamily.Hair,
 							Default = false,
 							IVCS = false,
 							Parent = "j_kao",
+							Children = Array.Empty<string>(),
 							MirroredCodename = null
 						};
 
@@ -217,7 +237,7 @@ namespace Anamnesis.Posing
 			//apparently static constructors are only guaranteed to START before the class is called
 			//which can apparently lead to race conditions, as I've found out
 			//this lock is to make sure the table is fully initialized before anything else can try to look at it
-			lock(BoneTable)
+			lock (BoneTable)
 			{
 
 				int rowIndex = 0;
@@ -229,7 +249,7 @@ namespace Anamnesis.Posing
 						string codename = cells[0];
 						string dispName = cells[1];
 
-						BoneTable[codename] = new BoneDatum(cells);
+						BoneTable[codename] = new BoneDatum(rowIndex, cells);
 						BoneLookupByDispName[dispName] = codename;
 
 						if (BoneTable[codename].Family == BoneFamily.Unknown)
@@ -291,6 +311,11 @@ namespace Anamnesis.Posing
 			return BoneTable.TryGetValue(codename, out BoneDatum row) ? row.Default : false;
 		}
 
+		public static int GetBoneIndex(string codename)
+		{
+			return BoneTable.TryGetValue(codename, out BoneDatum row) ? row.RowIndex : 0;
+		}
+
 		public static bool IsIVCSBone(string codename)
 		{
 			return BoneTable.TryGetValue(codename, out BoneDatum row) ? row.IVCS : false;
@@ -301,19 +326,24 @@ namespace Anamnesis.Posing
 			return BoneTable.TryGetValue(codename, out BoneDatum row) ? row.MirroredCodename : null;
 		}
 
+		public static string[] GetChildren(string codename)
+		{
+			return BoneTable.TryGetValue(codename, out BoneDatum row) ? row.Children : Array.Empty<string>();
+		}
+
 		public static bool IsProbablyHairstyle(string codename)
 		{
 			return Regex.IsMatch(codename, @"j_ex_h\d\d\d\d_ke_[abcdeflrsu](_[abcdeflrsu])?");
 		}
 
-		public static bool NewBone(string codename)
+		public static bool IsNewBone(string codename)
 		{
 			return !BoneTable.ContainsKey(codename);
 		}
 
 		private static BoneFamily ParseFamilyName(string n)
 		{
-			string simplified = n.Split(' ').FirstOrDefault()?.ToLower() ?? String.Empty;
+			string simplified = n.Split(' ').FirstOrDefault()?.ToLower() ?? string.Empty;
 
 			BoneFamily fam = simplified switch
 			{

@@ -3,11 +3,7 @@
 
 using CustomizePlus.Memory;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace CustomizePlus.Data.Configuration.Version0
 {

@@ -10,14 +10,16 @@ using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
 
-namespace CustomizePlus.Data.Configuration.Version0
+namespace CustomizePlus.Data.Configuration.Version2
 {
-	internal class Version0Configuration : IPluginConfiguration, ILegacyConfiguration
+	internal class Version2Configuration : IPluginConfiguration, ILegacyConfiguration
 	{
-		public int Version { get; set; } = 0;
-		public List<Version0BodyScale> BodyScales { get; set; } = new();
+		public int Version { get; set; } = 2;
+		public List<Version2BodyScale> BodyScales { get; set; } = new();
 		public bool Enable { get; set; } = true;
 		public bool AutomaticEditMode { get; set; } = false;
+		public bool MirrorMode { get; set; } = false;
+		public Data.BoneAttribute EditingAttribute { get; set; } = 0;
 
 		public bool ApplyToNpcs { get; set; } = true;
 		public bool ApplyToNpcsInCutscenes { get; set; } = true;
@@ -28,7 +30,7 @@ namespace CustomizePlus.Data.Configuration.Version0
 			if (!Path.Exists(path))
 				throw new ArgumentException("Specified config path is invalid");
 
-			return JsonConvert.DeserializeObject<Version0Configuration>(File.ReadAllText(path));
+			return JsonConvert.DeserializeObject<Version2Configuration>(File.ReadAllText(path));
 		}
 
 		public PluginConfiguration ConvertToLatestVersion()
@@ -44,9 +46,9 @@ namespace CustomizePlus.Data.Configuration.Version0
 
 			foreach (var bodyScale in BodyScales)
 			{
-				var newProfile = ProfileConverter.ConvertFromConfigV0(bodyScale);
+				var newProf = ProfileConverter.ConvertFromConfigV2(bodyScale);
 
-				ProfileManager.ConvertedProfiles.Add(newProfile);
+				ProfileManager.ConvertedProfiles.Add(newProf);
 			}
 
 			return config;

@@ -3,35 +3,28 @@
 
 namespace CustomizePlus.Interface
 {
-	using System;
-	using System.Collections.Generic;
-	using System.IO;
-	using System.Numerics;
-	using System.Windows.Forms;
-	using Anamnesis.Files;
-	using Anamnesis.Posing;
-	using CustomizePlus.Memory;
+	using CustomizePlus.Data;
+	using CustomizePlus.Data.Profile;
 	using Dalamud.Interface;
 	using Dalamud.Interface.Components;
 	using Dalamud.Logging;
 	using Dalamud.Plugin;
+	using Dalamud.Plugin.Ipc;
 	using ImGuiNET;
 	using Newtonsoft.Json;
-	using static CustomizePlus.BodyScale;
-	using Dalamud.Plugin.Ipc;
-	using CustomizePlus.Helpers;
-	using CustomizePlus.Data;
-	using CustomizePlus.Data.Configuration;
+	using System;
+	using System.Collections.Generic;
+	using System.Numerics;
 
 	public class IPCTestInterface : WindowBase
 	{
 		//private DalamudPluginInterface localPlugin;
 		private bool subscribed = true;
 
-		private ICallGateSubscriber<string, string>? getBodyScale;
-		//private readonly ICallGateSubscriber<Character?, string?>? ProviderGetBodyScaleFromCharacter;
-		private ICallGateSubscriber<string, string, object>? setBodyScale;
-		//private readonly ICallGateSubscriber<string, Character?, object>? ProviderSetBodyScaleToCharacter;
+		private ICallGateSubscriber<string, string>? getCharacterProfile;
+		//private readonly ICallGateSubscriber<Character?, string?>? ProviderGetCharacterProfileFromCharacter;
+		private ICallGateSubscriber<string, string, object>? setCharacterProfile;
+		//private readonly ICallGateSubscriber<string, Character?, object>? ProviderSetCharacterProfileToCharacter;
 		private ICallGateSubscriber<string, object>? revert;
 		//private readonly ICallGateSubscriber<Character?, object>? ProviderRevertCharacter;
 		//private readonly ICallGateSubscriber<string>? _getApiVersion;
@@ -63,19 +56,19 @@ namespace CustomizePlus.Interface
 			subscribed = false;
 		}
 
-		protected BodyScale? Scale { get; private set; }
+		protected CharacterProfile? Scale { get; private set; }
 
 		protected override string Title => $"(WIP) IPC Test: {this.newScaleCharacter}";
-		protected BodyScale? ScaleUpdated { get; private set; }
+		protected CharacterProfile? ScaleUpdated { get; private set; }
 
 		private string newScaleName = string.Empty;
 		private string newScaleCharacter = string.Empty;
 		private string originalScaleName = string.Empty;
 		private string originalScaleCharacter = string.Empty;
-		private BoneEditsContainer rootEditsContainer = new BoneEditsContainer();
+		private BoneTransform rootEditsContainer = new BoneTransform();
 
-		private Dictionary<string, BoneEditsContainer> boneValuesOriginal = new Dictionary<string, BoneEditsContainer>();
-		private Dictionary<string, BoneEditsContainer> boneValuesNew = new Dictionary<string, BoneEditsContainer>();
+		private Dictionary<string, BoneTransform> boneValuesOriginal = new Dictionary<string, BoneTransform>();
+		private Dictionary<string, BoneTransform> boneValuesNew = new Dictionary<string, BoneTransform>();
 		private readonly List<string> boneCodenames = BoneData.GetBoneCodenames();
 		private readonly List<string> boneDispNames = BoneData.GetBoneDisplayNames();
 		private List<string> boneDispNamesUsed = new List<string>();
@@ -83,18 +76,18 @@ namespace CustomizePlus.Interface
 		private bool scaleEnabled = false;
 		private bool reset = false;
 
-		private bool automaticEditMode = false;
+		private bool automaticBoneAttribute = false;
 
-		private EditMode editMode;
+		private BoneAttribute BoneAttribute;
 
 		public static void Show(DalamudPluginInterface pi)
 		{
 			DalamudPluginInterface localPlugin = pi;
 			IPCTestInterface editWnd = Plugin.InterfaceManager.Show<IPCTestInterface>();
-			editWnd.getBodyScale = localPlugin.GetIpcSubscriber<string, string>("CustomizePlus.GetBodyScale");
-			//localPlugin.GetIpcSubscriber<Character?, string?> ProviderGetBodyScaleFromCharacter;
-			editWnd.setBodyScale = localPlugin.GetIpcSubscriber<string, string, object>("CustomizePlus.SetBodyScale");
-			//localPlugin.GetIpcSubscriber<string, Character?, object> ProviderSetBodyScaleToCharacter;
+			editWnd.getCharacterProfile = localPlugin.GetIpcSubscriber<string, string>("CustomizePlus.GetCharacterProfile");
+			//localPlugin.GetIpcSubscriber<Character?, string?> ProviderGetCharacterProfileFromCharacter;
+			editWnd.setCharacterProfile = localPlugin.GetIpcSubscriber<string, string, object>("CustomizePlus.SetCharacterProfile");
+			//localPlugin.GetIpcSubscriber<string, Character?, object> ProviderSetCharacterProfileToCharacter;
 			editWnd.revert = localPlugin.GetIpcSubscriber<string, object>("CustomizePlus.Revert");
 			//localPlugin.GetIpcSubscriber<Character?, object>? ProviderRevertCharacter;
 			//_getApiVersion = localPlugin.GetIpcSubscriber<string>("CustomizePlus.GetApiVersion");
@@ -102,25 +95,25 @@ namespace CustomizePlus.Interface
 			//UnsubscribeEvents();
 
 
-			var scale = BodyScale.BuildDefault();
-			editWnd.Scale = scale;
-			editWnd.ScaleUpdated = scale;
-			if (scale == null)
+			var prof = new CharacterProfile();
+			editWnd.Scale = prof;
+			editWnd.ScaleUpdated = prof;
+			if (prof == null)
 			{
-				
+
 			}
 
-			editWnd.ScaleUpdated = scale;
-			editWnd.originalScaleName = scale.ScaleName;
-			editWnd.originalScaleCharacter = scale.CharacterName;
-			editWnd.newScaleCharacter = scale.CharacterName;
+			editWnd.ScaleUpdated = prof;
+			editWnd.originalScaleName = prof.ProfName;
+			editWnd.originalScaleCharacter = prof.CharName;
+			editWnd.newScaleCharacter = prof.CharName;
 
-			editWnd.scaleEnabled = scale.BodyScaleEnabled;
+			editWnd.scaleEnabled = prof.Enabled;
 
 			for (int i = 0; i < editWnd.boneCodenames.Count && i < editWnd.boneDispNames.Count; i++)
 			{
-				BoneEditsContainer tempContainer = new BoneEditsContainer { Scale = Constants.OneVector };
-				if (scale.Bones.TryGetValue(editWnd.boneCodenames[i], out tempContainer))
+				BoneTransform tempContainer = new BoneTransform { Scaling = Vector3.One };
+				if (prof.Bones.TryGetValue(editWnd.boneCodenames[i], out tempContainer))
 				{
 					editWnd.boneValuesOriginal.Add(editWnd.boneCodenames[i], tempContainer);
 					editWnd.boneValuesNew.Add(editWnd.boneCodenames[i], tempContainer);
@@ -129,12 +122,12 @@ namespace CustomizePlus.Interface
 				}
 			}
 
-			editWnd.originalScaleName = scale.ScaleName;
-			editWnd.originalScaleCharacter = scale.CharacterName;
+			editWnd.originalScaleName = prof.ProfName;
+			editWnd.originalScaleCharacter = prof.CharName;
 			editWnd.newScaleName = editWnd.originalScaleName;
 			editWnd.newScaleCharacter = editWnd.originalScaleCharacter;
 
-			
+
 			//DrawContents();
 		}
 
@@ -143,7 +136,7 @@ namespace CustomizePlus.Interface
 			try
 			{
 				SubscribeEvents();
-				DrawScaleEdit(new BodyScale(), DalamudServices.PluginInterface);
+				DrawScaleEdit(new CharacterProfile(), DalamudServices.PluginInterface);
 			}
 			catch (Exception e)
 			{
@@ -151,7 +144,7 @@ namespace CustomizePlus.Interface
 			}
 		}
 
-		public void DrawScaleEdit(BodyScale scale, DalamudPluginInterface pi)
+		public void DrawScaleEdit(CharacterProfile scale, DalamudPluginInterface pi)
 		{
 			string newScaleNameTemp = this.newScaleName;
 			string newScaleCharacterTemp = this.newScaleCharacter;
@@ -161,7 +154,7 @@ namespace CustomizePlus.Interface
 			if (ImGui.Checkbox("Enable", ref enabledTemp))
 			{
 				this.scaleEnabled = enabledTemp;
-				if (automaticEditMode)
+				if (automaticBoneAttribute)
 				{
 
 				}
@@ -186,32 +179,32 @@ namespace CustomizePlus.Interface
 
 			ImGui.SameLine();
 
-			bool autoModeEnable = automaticEditMode;
+			bool autoModeEnable = automaticBoneAttribute;
 			if (ImGui.Checkbox("Automatic Mode", ref autoModeEnable))
 			{
-				automaticEditMode = autoModeEnable;
+				automaticBoneAttribute = autoModeEnable;
 			}
 
 			if (ImGui.IsItemHovered())
 				ImGui.SetTooltip($"Applies changes automatically without saving.");
 
-			if (ImGui.RadioButton("Position", editMode == EditMode.Position))
-				editMode = EditMode.Position;
+			if (ImGui.RadioButton("Position", BoneAttribute == BoneAttribute.Position))
+				BoneAttribute = BoneAttribute.Position;
 
 			ImGui.SameLine();
-			if (ImGui.RadioButton("Rotation", editMode == EditMode.Rotation))
-				editMode = EditMode.Rotation;
+			if (ImGui.RadioButton("Rotation", BoneAttribute == BoneAttribute.Rotation))
+				BoneAttribute = BoneAttribute.Rotation;
 
 			ImGui.SameLine();
-			if (ImGui.RadioButton("Scale", editMode == EditMode.Scale))
-				editMode = EditMode.Scale;
+			if (ImGui.RadioButton("Scale", BoneAttribute == BoneAttribute.Scale))
+				BoneAttribute = BoneAttribute.Scale;
 
 			ImGui.Separator();
 
 			if (ImGuiComponents.IconButton(-1, FontAwesomeIcon.Recycle))
 			{
-				this.rootEditsContainer = new BoneEditsContainer();
-				if (automaticEditMode)
+				this.rootEditsContainer = new BoneTransform();
+				if (automaticBoneAttribute)
 				{
 					this.UpdateCurrent("n_root", this.rootEditsContainer);
 				}
@@ -223,19 +216,19 @@ namespace CustomizePlus.Interface
 
 			ImGui.SameLine();
 
-			Vector3 rootLocalTemp = Constants.OneVector;
+			Vector3 rootLocalTemp = Vector3.One;
 			bool isRootControlDisabled = false;
-			switch (editMode)
+			switch (BoneAttribute)
 			{
-				case EditMode.Position:
-					rootLocalTemp = rootEditsContainer.Position;
+				case BoneAttribute.Position:
+					rootLocalTemp = rootEditsContainer.Translation;
 					break;
-				case EditMode.Rotation:
-					rootLocalTemp = Constants.ZeroVector;
+				case BoneAttribute.Rotation:
+					rootLocalTemp = Vector3.Zero;
 					isRootControlDisabled = true;
 					break;
-				case EditMode.Scale:
-					rootLocalTemp = rootEditsContainer.Scale;
+				case BoneAttribute.Scale:
+					rootLocalTemp = rootEditsContainer.Scaling;
 					break;
 			}
 
@@ -259,20 +252,20 @@ namespace CustomizePlus.Interface
 					rootLocalTemp.Z = rootLocalTemp.W;
 				}*/
 
-				switch (editMode)
+				switch (BoneAttribute)
 				{
-					case EditMode.Position:
-						rootEditsContainer.Position = new Vector3(rootLocalTemp.X, rootLocalTemp.Y, rootLocalTemp.Z);
+					case BoneAttribute.Position:
+						rootEditsContainer.Translation = new Vector3(rootLocalTemp.X, rootLocalTemp.Y, rootLocalTemp.Z);
 						break;
-					case EditMode.Rotation:
+					case BoneAttribute.Rotation:
 						rootEditsContainer.Rotation = new Vector3(rootLocalTemp.X, rootLocalTemp.Y, rootLocalTemp.Z);
 						break;
-					case EditMode.Scale:
-						rootEditsContainer.Scale = new Vector3(rootLocalTemp.X, rootLocalTemp.Y, rootLocalTemp.Z);
+					case BoneAttribute.Scale:
+						rootEditsContainer.Scaling = new Vector3(rootLocalTemp.X, rootLocalTemp.Y, rootLocalTemp.Z);
 						break;
 				}
 
-				if (automaticEditMode)
+				if (automaticBoneAttribute)
 				{
 					this.UpdateCurrent("n_root", this.rootEditsContainer);
 				}
@@ -285,12 +278,12 @@ namespace CustomizePlus.Interface
 			string col3Label = "Z";
 			string col4Label = "All";
 
-			switch (editMode)
+			switch (BoneAttribute)
 			{
-				case EditMode.Position:
+				case BoneAttribute.Position:
 					col4Label = "Unused";
 					break;
-				case EditMode.Rotation:
+				case BoneAttribute.Rotation:
 					col1Label = "Roll";
 					col2Label = "Yaw";
 					col3Label = "Pitch";
@@ -332,7 +325,7 @@ namespace CustomizePlus.Interface
 				}
 				*/
 
-				BoneEditsContainer currentEditsContainer = new BoneEditsContainer { Position = Constants.ZeroVector, Rotation = Constants.ZeroVector, Scale = Constants.OneVector };
+				BoneTransform currentEditsContainer = new BoneTransform { Translation = Vector3.Zero, Rotation = Vector3.Zero, Scaling = Vector3.One };
 				string label = "Not Found";
 
 				try
@@ -342,24 +335,24 @@ namespace CustomizePlus.Interface
 					else if (this.boneValuesNew.TryGetValue(dispNameLocal, out currentEditsContainer))
 						label = dispNameLocal;
 					else
-						currentEditsContainer = new BoneEditsContainer { Position = Constants.ZeroVector, Rotation = Constants.ZeroVector, Scale = Constants.OneVector };
+						currentEditsContainer = new BoneTransform { Translation = Vector3.Zero, Rotation = Vector3.Zero, Scaling = Vector3.One };
 				}
 				catch (Exception ex)
 				{
 
 				}
 
-				Vector3 currentVector = Constants.OneVector;
-				switch (editMode)
+				Vector3 currentVector = Vector3.One;
+				switch (BoneAttribute)
 				{
-					case EditMode.Position:
-						currentVector = currentEditsContainer.Position;
+					case BoneAttribute.Position:
+						currentVector = currentEditsContainer.Translation;
 						break;
-					case EditMode.Rotation:
+					case BoneAttribute.Rotation:
 						currentVector = currentEditsContainer.Rotation;
 						break;
-					case EditMode.Scale:
-						currentVector = currentEditsContainer.Scale;
+					case BoneAttribute.Scale:
+						currentVector = currentEditsContainer.Scaling;
 						break;
 				}
 
@@ -373,18 +366,18 @@ namespace CustomizePlus.Interface
 
 				if (this.reset)
 				{
-					BoneEditsContainer editsContainer = null;
+					BoneTransform editsContainer = null;
 
-					switch (editMode)
+					switch (BoneAttribute)
 					{
-						case EditMode.Position:
-						case EditMode.Rotation:
+						case BoneAttribute.Position:
+						case BoneAttribute.Rotation:
 							//currentVector.W = 0F;
 							currentVector.X = 0F;
 							currentVector.Y = 0F;
 							currentVector.Z = 0F;
 							break;
-						case EditMode.Scale:
+						case BoneAttribute.Scale:
 							//currentVector.W = 1F;
 							currentVector.X = 1F;
 							currentVector.Y = 1F;
@@ -396,7 +389,7 @@ namespace CustomizePlus.Interface
 					{
 						if (this.boneValuesNew.ContainsKey(dispNameLocal))
 							editsContainer = this.boneValuesNew[dispNameLocal];
-						else if (this.boneValuesNew.Remove(codenameLocal, out BoneEditsContainer removedContainer))
+						else if (this.boneValuesNew.Remove(codenameLocal, out BoneTransform removedContainer))
 						{
 							editsContainer = removedContainer;
 							this.boneValuesNew[codenameLocal] = editsContainer;
@@ -404,16 +397,16 @@ namespace CustomizePlus.Interface
 						else
 							throw new Exception();
 
-						switch (editMode)
+						switch (BoneAttribute)
 						{
-							case EditMode.Position:
-								editsContainer.Position = new Vector3(currentVector.X, currentVector.Y, currentVector.Z);
+							case BoneAttribute.Position:
+								editsContainer.Translation = new Vector3(currentVector.X, currentVector.Y, currentVector.Z);
 								break;
-							case EditMode.Rotation:
+							case BoneAttribute.Rotation:
 								editsContainer.Rotation = new Vector3(currentVector.X, currentVector.Y, currentVector.Z);
 								break;
-							case EditMode.Scale:
-								editsContainer.Scale = new Vector3(currentVector.X, currentVector.Y, currentVector.Z);
+							case BoneAttribute.Scale:
+								editsContainer.Scaling = new Vector3(currentVector.X, currentVector.Y, currentVector.Z);
 								break;
 						}
 					}
@@ -421,7 +414,7 @@ namespace CustomizePlus.Interface
 					{
 						//throw new Exception();
 					}
-					if (automaticEditMode)
+					if (automaticBoneAttribute)
 					{
 						this.UpdateCurrent(codenameLocal, editsContainer);
 					}
@@ -443,9 +436,9 @@ namespace CustomizePlus.Interface
 				float maxLimit = 10f;
 				float increment = 0.001f;
 
-				switch (editMode)
+				switch (BoneAttribute)
 				{
-					case EditMode.Rotation:
+					case BoneAttribute.Rotation:
 						minLimit = -360f;
 						maxLimit = 360f;
 						increment = 1f;
@@ -454,21 +447,21 @@ namespace CustomizePlus.Interface
 
 				if (ImGui.DragFloat3(label, ref currentVector, increment, minLimit, maxLimit))
 				{
-					BoneEditsContainer editsContainer = null;
+					BoneTransform editsContainer = null;
 					try
 					{
 						if (this.reset)
 						{
-							switch (editMode)
+							switch (BoneAttribute)
 							{
-								case EditMode.Position:
-								case EditMode.Rotation:
+								case BoneAttribute.Position:
+								case BoneAttribute.Rotation:
 									//currentVector.W = 0F;
 									currentVector.X = 0F;
 									currentVector.Y = 0F;
 									currentVector.Z = 0F;
 									break;
-								case EditMode.Scale:
+								case BoneAttribute.Scale:
 									//currentVector.W = 1F;
 									currentVector.X = 1F;
 									currentVector.Y = 1F;
@@ -496,7 +489,7 @@ namespace CustomizePlus.Interface
 					{
 						if (this.boneValuesNew.ContainsKey(dispNameLocal))
 							editsContainer = this.boneValuesNew[dispNameLocal];
-						else if (this.boneValuesNew.Remove(codenameLocal, out BoneEditsContainer removedContainer))
+						else if (this.boneValuesNew.Remove(codenameLocal, out BoneTransform removedContainer))
 						{
 							editsContainer = removedContainer;
 							this.boneValuesNew[codenameLocal] = editsContainer;
@@ -504,16 +497,16 @@ namespace CustomizePlus.Interface
 						else
 							throw new Exception();
 
-						switch (editMode)
+						switch (BoneAttribute)
 						{
-							case EditMode.Position:
-								editsContainer.Position = new Vector3(currentVector.X, currentVector.Y, currentVector.Z);
+							case BoneAttribute.Position:
+								editsContainer.Translation = new Vector3(currentVector.X, currentVector.Y, currentVector.Z);
 								break;
-							case EditMode.Rotation:
+							case BoneAttribute.Rotation:
 								editsContainer.Rotation = new Vector3(currentVector.X, currentVector.Y, currentVector.Z);
 								break;
-							case EditMode.Scale:
-								editsContainer.Scale = new Vector3(currentVector.X, currentVector.Y, currentVector.Z);
+							case BoneAttribute.Scale:
+								editsContainer.Scaling = new Vector3(currentVector.X, currentVector.Y, currentVector.Z);
 								break;
 						}
 					}
@@ -521,7 +514,7 @@ namespace CustomizePlus.Interface
 					{
 						//throw new Exception();
 					}
-					if (automaticEditMode)
+					if (automaticBoneAttribute)
 					{
 						this.UpdateCurrent(codenameLocal, editsContainer);
 					}
@@ -540,7 +533,7 @@ namespace CustomizePlus.Interface
 				ApplyViaIPC(this.newScaleName, this.newScaleCharacter, pi);
 			}
 
-			
+
 			ImGui.SameLine();
 			if (ImGui.Button("Reset"))
 			{
@@ -553,13 +546,13 @@ namespace CustomizePlus.Interface
 				GetFromIPC(this.newScaleCharacter, pi);
 			}
 
-			
+
 		}
 
 		private void ApplyViaIPC(string scaleName, string characterName, DalamudPluginInterface pi)
 		{
-			//BodyScale newBody = new BodyScale();
-			BodyScale newBody = new BodyScale();
+			//CharacterProfile newBody = new CharacterProfile();
+			CharacterProfile newBody = new CharacterProfile();
 
 			for (int i = 0; i < this.boneCodenames.Count && i < this.boneValuesNew.Count; i++)
 			{
@@ -570,40 +563,40 @@ namespace CustomizePlus.Interface
 
 			newBody.Bones["n_root"] = this.rootEditsContainer;
 
-			newBody.BodyScaleEnabled = true;
-			newBody.ScaleName = "IPC";
-			newBody.CharacterName = newScaleCharacter;
+			newBody.Enabled = true;
+			newBody.ProfName = "IPC";
+			newBody.CharName = newScaleCharacter;
 
 			//newBody.RootScale = new HkVector4(this.newRootScale.X, this.newRootScale.Y, this.newRootScale.Z, 0);
 
 			var bodyString = JsonConvert.SerializeObject(newBody);
 			//PluginLog.Information($"{pi.PluginNames}");
-			setBodyScale = pi.GetIpcSubscriber<string, string, object>("CustomizePlus.SetBodyScale");
-			//PluginLog.Information($"{_setBodyScale}: -- {bodyString} -- {newBody.CharacterName}");
-			setBodyScale.InvokeAction(bodyString, newBody.CharacterName);
+			setCharacterProfile = pi.GetIpcSubscriber<string, string, object>("CustomizePlus.SetCharacterProfile");
+			//PluginLog.Information($"{_setCharacterProfile}: -- {bodyString} -- {newBody.CharacterName}");
+			setCharacterProfile.InvokeAction(bodyString, newBody.CharName);
 		}
 
 		private void GetFromIPC(string characterName, DalamudPluginInterface pi)
 		{
-			getBodyScale = pi.GetIpcSubscriber<string, string>("CustomizePlus.GetBodyScale");
-			//PluginLog.Information($"{_setBodyScale}: -- {bodyString} -- {newBody.CharacterName}");
-			var bodyScaleString = getBodyScale.InvokeFunc(newScaleCharacter);
+			getCharacterProfile = pi.GetIpcSubscriber<string, string>("CustomizePlus.GetCharacterProfile");
+			//PluginLog.Information($"{_setCharacterProfile}: -- {bodyString} -- {newBody.CharacterName}");
+			var CharacterProfileString = getCharacterProfile.InvokeFunc(newScaleCharacter);
 
-			//PluginLog.Information(bodyScaleString);
-			if (bodyScaleString != null)
+			//PluginLog.Information(CharacterProfileString);
+			if (CharacterProfileString != null)
 			{
-				BodyScale? bodyScale = JsonConvert.DeserializeObject<BodyScale?>(bodyScaleString);
-				PluginLog.Information($"IPC request for {characterName} found scale named: {bodyScale.ScaleName}");
+				CharacterProfile? CharacterProfile = JsonConvert.DeserializeObject<CharacterProfile?>(CharacterProfileString);
+				PluginLog.Information($"IPC request for {characterName} found scale named: {CharacterProfile.ProfName}");
 			}
 			else
 			{
 				PluginLog.Information($"No scale found on IPC request for {characterName}");
 			}
-			
-			//if (bodyScale != null)
-			//	this.ScaleUpdated = bodyScale;
 
-			
+			//if (CharacterProfile != null)
+			//	this.ScaleUpdated = CharacterProfile;
+
+
 		}
 
 		private void RevertToOriginal(string characterName, DalamudPluginInterface pi) // Use to unassign override scale in IPC testing mode
@@ -612,9 +605,9 @@ namespace CustomizePlus.Interface
 			revert.InvokeAction(newScaleCharacter);
 		}
 
-		private void UpdateCurrent(string boneName, BoneEditsContainer boneValue)
+		private void UpdateCurrent(string boneName, BoneTransform boneValue)
 		{
-			BodyScale newBody = this.ScaleUpdated;
+			CharacterProfile newBody = this.ScaleUpdated;
 
 			newBody.Bones[boneName] = boneValue;
 		}

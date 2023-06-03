@@ -34,7 +34,7 @@ namespace CustomizePlus.Interface
 		/// <param name="windowId">Window id, if set will only show this window once and never again</param>
 		public static void Show(string text, Vector2? windowSize = null, Action? onButtonPressed = null, string windowId = null)
 		{
-			if (windowId != null && Plugin.ConfigurationManager.Configuration.ViewedMessageWindows.Contains(windowId.ToLowerInvariant()))
+			if (windowId != null && Plugin.Config.ViewedMessageWindows.Contains(windowId.ToLowerInvariant()))
 			{
 				if (onButtonPressed != null)
 					onButtonPressed();
@@ -57,7 +57,7 @@ namespace CustomizePlus.Interface
 				ImGui.SetCursorPosX(((Vector2)ForcedSize).X / 2 - 130);
 				if (ImGui.Button("I understand, do not show this to me again"))
 				{
-					Plugin.ConfigurationManager.Configuration.ViewedMessageWindows.Add(WindowId.ToLowerInvariant());
+					Plugin.Config.ViewedMessageWindows.Add(WindowId.ToLowerInvariant());
 					Plugin.ConfigurationManager.SaveConfiguration();
 					if(OnButtonPressed != null)
 						OnButtonPressed();

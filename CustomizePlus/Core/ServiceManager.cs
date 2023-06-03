@@ -1,6 +1,7 @@
 ﻿// © Customize+.
 // Licensed under the MIT license.
 
+using CustomizePlus.Services;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -12,21 +13,30 @@ using System.Windows.Forms.Design;
 namespace CustomizePlus.Core
 {
 	//Borrowed from Brio
-	internal class ServiceManager
+	public class ServiceManager
 	{
 		public bool IsStarted { get; private set; } = false;
 
-		private readonly List<IService> _services = new();
-		private Stopwatch _tickTimer = new Stopwatch();
+		private readonly List<IService> Services = new();
+		private readonly Stopwatch TickTimer = new Stopwatch();
 
-		public void Add<T>() where T : ServiceBase<T>, IService
+		public ServiceManager()
+		{
+			Add<GPoseService>();
+			Add<GPoseAmnesisKtisisWarningService>();
+			Add<PosingModeDetectService>();
+		}
+
+		//--------
+
+		private void Add<T>() where T : ServiceBase<T>, IService
 		{
 			var newType = typeof(T);
 
 			var service = (T?)Activator.CreateInstance(newType);
 			if (service != null)
 			{
-				_services.Add(service);
+				Services.Add(service);
 				service.AssignInstance();
 			}
 		}
@@ -36,33 +46,33 @@ namespace CustomizePlus.Core
 			if (IsStarted)
 				throw new Exception("Services already running");
 
-			foreach (var service in _services)
+			foreach (var service in Services)
 				service.Start();
 
 			IsStarted = true;
 
-			_tickTimer.Reset();
-			_tickTimer.Start();
+			TickTimer.Reset();
+			TickTimer.Start();
 		}
 
 		public void Tick()
 		{
-			if (!IsStarted)
+			if (!this.IsStarted)
 				return;
 
-			var delta = (float)_tickTimer.Elapsed.TotalSeconds;
-			_tickTimer.Restart();
+			var delta = (float)TickTimer.Elapsed.TotalSeconds;
+			TickTimer.Restart();
 
-			foreach (var service in _services)
+			foreach (var service in Services)
 				service.Tick(delta);
 		}
 
 		public void Dispose()
 		{
-			_tickTimer.Stop();
-			_tickTimer.Reset();
+			TickTimer.Stop();
+			TickTimer.Reset();
 
-			var reversed = _services.ToList();
+			var reversed = Services.ToList();
 			reversed.Reverse();
 
 			if (IsStarted)
@@ -77,7 +87,7 @@ namespace CustomizePlus.Core
 				service.ClearInstance();
 			}
 
-			_services.Clear();
+			Services.Clear();
 
 		}
 	}
