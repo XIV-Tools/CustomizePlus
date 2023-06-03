@@ -4,6 +4,7 @@
 using CustomizePlus.Extensions;
 using System;
 using System.Numerics;
+using System.Runtime.Serialization;
 
 namespace CustomizePlus.Data
 {
@@ -55,6 +56,15 @@ namespace CustomizePlus.Data
 		public BoneTransform(BoneTransform original)
 		{
 			this.UpdateToMatch(original);
+		}
+
+		[OnDeserialized]
+		internal void OnDeserialized(StreamingContext context)
+		{
+			//Sanitize all values on deserialization
+			_translation = ClampToDefaultLimits(_translation);
+			_rotation = ClampRotation(_rotation);
+			_scaling = ClampToDefaultLimits(_scaling);
 		}
 
 		public bool IsEdited()
@@ -230,6 +240,19 @@ namespace CustomizePlus.Data
 			tr.Translation.W += adjustedTranslation.W;
 
 			return tr;
+		}
+
+		/// <summary>
+		/// Clamp all vector values to be within allowed limits
+		/// </summary>
+		/// <param name="vector"></param>
+		private static Vector3 ClampToDefaultLimits(Vector3 vector)
+		{
+			vector.X = Math.Clamp(vector.X, Constants.MinVectorValueLimit, Constants.MaxVectorValueLimit);
+			vector.Y = Math.Clamp(vector.Y, Constants.MinVectorValueLimit, Constants.MaxVectorValueLimit);
+			vector.Z = Math.Clamp(vector.Z, Constants.MinVectorValueLimit, Constants.MaxVectorValueLimit);
+
+			return vector;
 		}
 	}
 }

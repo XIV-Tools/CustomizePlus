@@ -1,7 +1,7 @@
 ﻿// © Customize+.
 // Licensed under the MIT license.
 
-using CustomizePlus.Memory;
+using FFXIVClientStructs.Havok;
 using System;
 using System.Collections.Generic;
 
@@ -13,7 +13,7 @@ namespace CustomizePlus.Data.Configuration.Version0
 		public string CharacterName { get; set; } = string.Empty;
 		public string ScaleName { get; set; } = string.Empty;
 		public bool BodyScaleEnabled { get; set; } = true;
-		public Dictionary<string, HkVector4> Bones { get; } = new();
-		public HkVector4 RootScale { get; set; } = HkVector4.Zero;
+		public Dictionary<string, hkVector4f> Bones { get; } = new();
+		public hkVector4f RootScale { get; set; } = new() { X = 0, Y = 0, Z = 0, W = 0 };
 	}
 }
