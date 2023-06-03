@@ -18,6 +18,8 @@ using FFXIVClientCharacter = FFXIVClientStructs.FFXIV.Client.Game.Character.Char
 using FFXIVClientObject = FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject;
 using DalamudObjectKind = Dalamud.Game.ClientState.Objects.Enums.ObjectKind;
 using DalamudObject = Dalamud.Game.ClientState.Objects.Types.GameObject;
+using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
+using Lumina.Excel.GeneratedSheets;
 
 namespace CustomizePlus.Helpers
 {
@@ -34,6 +36,21 @@ namespace CustomizePlus.Helpers
 			//}
 
 			//return null;
+		}
+
+		public static unsafe bool TryLookupCharacterBase(string name, out CharacterBase* cBase)
+		{
+			if (FindModelByName(name) is DalamudObject obj
+				&& obj.Address != IntPtr.Zero
+				&& Marshal.ReadIntPtr(obj.Address, 0x0100) is IntPtr drawObj
+				&& drawObj != IntPtr.Zero)
+			{
+				cBase = (CharacterBase*)drawObj;
+				return true;
+			}
+
+			cBase = null;
+			return false;
 		}
 
 		//public unsafe static FFXIVClientStructs.FFXIV.Client.Graphics.Scene.CharacterBase* FindRenderBaseByName(string name)

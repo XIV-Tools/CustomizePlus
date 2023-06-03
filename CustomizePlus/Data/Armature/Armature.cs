@@ -69,13 +69,12 @@ namespace CustomizePlus.Data.Armature
 
 		public bool TryLinkSkeleton()
 		{
-			if (Helpers.GameDataHelper.FindModelByName(this.Profile.CharName) is Dalamud.Game.ClientState.Objects.Types.GameObject obj)
+			if (Helpers.GameDataHelper.TryLookupCharacterBase(this.Profile.CharName, out CharacterBase* cBase)
+				&& cBase != null)
 			{
-				Memory.RenderObject* ro = Memory.RenderObject.FromActor(obj);
-
-				if (ro != this.CharacterBase)
+				if (cBase != this.CharacterBase)
 				{
-					this.CharacterBase = (CharacterBase*)ro;
+					this.CharacterBase = cBase;
 					this.RebuildSkeleton();
 				}
 
@@ -88,14 +87,12 @@ namespace CustomizePlus.Data.Armature
 			}
 		}
 
-		public void RebuildSkeleton()
+		public void RebuildSkeleton(/*CharacterBase* cbase*/)
 		{
-			//if (cbase == null)
-			//{
-			//	return;
-			//}
-
-			//this.CharacterBase = cbase;
+			if (this.CharacterBase == null)
+			{
+				return;
+			}
 
 			this.Bones.Clear();
 

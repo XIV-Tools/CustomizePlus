@@ -14,6 +14,7 @@ using Dalamud.Game.ClientState.Objects.Types;
 
 using FFXIVClientStructs.FFXIV.Client.Graphics.Render;
 using FFXIVClientStructs.Havok;
+//using CustomizePlus.Memory;
 
 namespace CustomizePlus.Data.Armature
 {
@@ -49,8 +50,15 @@ namespace CustomizePlus.Data.Armature
 
 		public string GetDisplayName()
 		{
-			Tuple<int, int, int> triplex = this.TripleIndices.FirstOrDefault();
-			return $"{this.BoneName,-16} @ <{triplex.Item1,3}, {triplex.Item2,3}, {triplex.Item3,3}>";
+			var partials = this.TripleIndices.Select(x => x.Item1).Distinct();
+			var poses = this.TripleIndices.Select(x => x.Item2).Distinct();
+			var bones = this.TripleIndices.Select(x => x.Item3).Distinct();
+
+			string t1 = partials.Count() > 1 ? $"[{partials.Count()}]" : (partials.FirstOrDefault().ToString() ?? "?");
+			string t2 = poses.Count() > 1 ? $"[{poses.Count()}]" : (poses.FirstOrDefault().ToString() ?? "?");
+			string t3 = bones.Count() > 1 ? $"[{bones.Count()}]" : (bones.FirstOrDefault().ToString() ?? "?");
+
+			return $"{this.BoneName} @ <{t1}, {t2}, {t3}>";
 		}
 
 		public ModelBone(Armature arm, string name, string parentName, int skeleIndex, int poseIndex, int boneIndex)
@@ -172,38 +180,39 @@ namespace CustomizePlus.Data.Armature
 			return output.ToArray();
 		}
 
-		public void SetGameTransforms(hkQsTransformf t)
-		{
-			foreach (var triplex in this.TripleIndices)
-			{
-				hkaPose* currentPose = triplex.Item2 switch
-				{
-					0 => this.Armature.Skeleton->PartialSkeletons[triplex.Item1].GetHavokPose(0),
-					1 => this.Armature.Skeleton->PartialSkeletons[triplex.Item1].GetHavokPose(1),
-					2 => this.Armature.Skeleton->PartialSkeletons[triplex.Item1].GetHavokPose(2),
-					3 => this.Armature.Skeleton->PartialSkeletons[triplex.Item1].GetHavokPose(3),
-					_ => null
-				};
-
-				if (currentPose != null)
-				{
-					currentPose->LocalPose[triplex.Item3] = t;
-				}
-			}
-		}
-
 		/// <summary>
 		/// Updates the ingame transformation values associated with this model bone.
 		/// </summary>
 		public void ApplyModelTransform()
 		{
-			hkQsTransformf[] deforms = this.GetGameTransforms();
-
-			for (int i = 0; i < deforms.Length; ++i)
+			foreach (var triplex in this.TripleIndices)
 			{
-				hkQsTransformf tNew = this.PluginTransform.ModifyExistingTransformation(deforms[i]);
-				this.SetGameTransforms(tNew);
+				//if (triplex.Item1 == 1 && triplex.Item2 == 3 && triplex.Item3 == 0)
+				//{
+				//	Dalamud.Logging.PluginLog.LogDebug("Something's fishy");
+				//	//what's going on here?
+				//}
+
+				hkaPose* currentPose = this.Armature.Skeleton->PartialSkeletons[triplex.Item1].GetHavokPose(triplex.Item2);
+
+				if (currentPose == null)
+				{
+					return;
+				}
+
+				hkQsTransformf t = currentPose->ModelPose.Data[triplex.Item3];
+				hkQsTransformf tNew = this.PluginTransform.ModifyExistingTransformation(t);
+				currentPose->ModelPose.Data[triplex.Item3] = tNew;
 			}
+
+
+			//hkQsTransformf[] deforms = this.GetGameTransforms();
+
+			//for (int i = 0; i < deforms.Length; ++i)
+			//{
+			//	hkQsTransformf tNew = this.PluginTransform.ModifyExistingTransformation(deforms[i]);
+			//	this.SetGameTransforms(tNew);
+			//}
 		}
 
 		public string ToTreeString()
