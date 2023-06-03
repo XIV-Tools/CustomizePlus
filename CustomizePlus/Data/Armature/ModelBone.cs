@@ -1,158 +1,173 @@
 ﻿// © Customize+.
 // Licensed under the MIT license.
 
-using CustomizePlus.Memory;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Text;
-using System.Collections.Generic;
 
 namespace CustomizePlus.Data.Armature
 {
-	/// <summary>
-	/// Represents a single bone of an ingame character's skeleton.
-	/// </summary>
-	public unsafe class ModelBone
-	{
-		public readonly Armature Armature;
+    /// <summary>
+    ///     Represents a single bone of an ingame character's skeleton.
+    /// </summary>
+    public unsafe class ModelBone
+    {
+        public readonly Armature Armature;
 
-		//public readonly int SkeletonIndex;
-		//public readonly int PoseIndex;
-		//public readonly int BoneIndex;
+        public readonly string BoneName;
+        public readonly string? ParentBoneName;
 
-		public readonly List<Tuple<int, int, int>> TripleIndices = new();
+        //public readonly int SkeletonIndex;
+        //public readonly int PoseIndex;
+        //public readonly int BoneIndex;
 
-		public readonly string BoneName;
-		public readonly string? ParentBoneName;
+        public readonly List<Tuple<int, int, int>> TripleIndices = new();
+        public List<ModelBone> Children = new();
 
-		public BoneTransform PluginTransform;
+        public ModelBone? Parent;
 
-		public ModelBone? Parent;
-		public ModelBone? Sibling;
-		public List<ModelBone> Children = new();
+        public BoneTransform PluginTransform;
+        public ModelBone? Sibling;
 
-		public override string ToString()
-		{
-			StringBuilder sb = new StringBuilder();
-			if (this.Parent != null) sb.Append($"[{this.Parent.BoneName}]-> ");
-			sb.Append(this.BoneName);
-			if (this.Sibling != null) sb.Append($" <->[{this.Sibling.BoneName}]");
-			if (this.Children.Any()) sb.Append($" ({this.Children.Count} children)");
-			else sb.Append($" (no children)");
+        public ModelBone(Armature arm, string name, string? parentName, int skeleIndex, int poseIndex, int boneIndex)
+        {
+            Armature = arm;
 
-			return sb.ToString();
-		}
+            //this.SkeletonIndex = skeleIndex;
+            //this.PoseIndex = poseIndex;
+            //this.BoneIndex = boneIndex;
 
-		public ModelBone(Armature arm, string name, string? parentName, int skeleIndex, int poseIndex, int boneIndex)
-		{
-			this.Armature = arm;
+            TripleIndices.Add(new Tuple<int, int, int>(skeleIndex, poseIndex, boneIndex));
 
-			//this.SkeletonIndex = skeleIndex;
-			//this.PoseIndex = poseIndex;
-			//this.BoneIndex = boneIndex;
+            BoneName = name;
+            ParentBoneName = parentName;
 
-			this.TripleIndices.Add(new Tuple<int, int, int>(skeleIndex, poseIndex, boneIndex));
+            if (arm.Profile.Bones.TryGetValue(name, out var bec) && bec != null)
+            {
+                PluginTransform = bec;
+            }
+            else
+            {
+                PluginTransform = new BoneTransform();
+            }
 
-			this.BoneName = name;
-			this.ParentBoneName = parentName;
+            Parent = null;
+            Sibling = null;
+            Children = new List<ModelBone>();
+        }
 
-			if (arm.Profile.Bones.TryGetValue(name, out var bec) && bec != null)
-			{
-				this.PluginTransform = bec;
-			}
-			else
-			{
-				this.PluginTransform = new BoneTransform();
-			}
+        public override string ToString()
+        {
+            var sb = new StringBuilder();
+            if (Parent != null)
+            {
+                sb.Append($"[{Parent.BoneName}]-> ");
+            }
 
-			this.Parent = null;
-			this.Sibling = null;
-			this.Children = new();
-		}
+            sb.Append(BoneName);
+            if (Sibling != null)
+            {
+                sb.Append($" <->[{Sibling.BoneName}]");
+            }
 
-		public void UpdateModel(BoneTransform newTransform, bool mirror = false, bool propagate = false)
-		{
-			this.UpdateTransformation(newTransform);
+            if (Children.Any())
+            {
+                sb.Append($" ({Children.Count} children)");
+            }
+            else
+            {
+                sb.Append(" (no children)");
+            }
 
-			if (mirror && this.Sibling != null)
-			{
-				this.Sibling.UpdateModel(newTransform, false, propagate);
-			}
+            return sb.ToString();
+        }
 
-			if (propagate)
-			{
-				foreach (var child in this.Children)
-				{
-					CascadeTransformation(newTransform,
-						this.PluginTransform.Translation,
-						this.PluginTransform.Rotation,
-						Vector3.One);
-				}
-			}
-		}
+        public void UpdateModel(BoneTransform newTransform, bool mirror = false, bool propagate = false)
+        {
+            UpdateTransformation(newTransform);
 
-		private void UpdateTransformation(BoneTransform newTransform)
-		{
-			//update the transform locally
-			this.PluginTransform.UpdateToMatch(newTransform);
+            if (mirror && Sibling != null)
+            {
+                Sibling.UpdateModel(newTransform, false, propagate);
+            }
 
-			//these should be connected by reference already, I think?
-			//but I suppose it doesn't hurt...?
-			if (newTransform.IsEdited())
-			{
-				this.Armature.Profile.Bones[this.BoneName] = this.PluginTransform;
-			}
-			else
-			{
-				this.Armature.Profile.Bones.Remove(this.BoneName);
-			}
-		}
+            if (propagate)
+            {
+                foreach (var child in Children)
+                {
+                    CascadeTransformation(newTransform,
+                        PluginTransform.Translation,
+                        PluginTransform.Rotation,
+                        Vector3.One);
+                }
+            }
+        }
 
-		private void CascadeTransformation(BoneTransform aggregateTransform, Vector3 pointPos, Vector3 pointRot, Vector3 priorScaling)
-		{
-			BoneTransform newAggregate = this.PluginTransform.ReorientKinematically(aggregateTransform, pointPos, pointRot, priorScaling);
+        private void UpdateTransformation(BoneTransform newTransform)
+        {
+            //update the transform locally
+            PluginTransform.UpdateToMatch(newTransform);
 
-			foreach (var child in this.Children)
-			{
-				child.CascadeTransformation(newAggregate,
-					pointPos,
-					pointRot,
-					this.PluginTransform.Scaling);
-			}
-		}
+            //these should be connected by reference already, I think?
+            //but I suppose it doesn't hurt...?
+            if (newTransform.IsEdited())
+            {
+                Armature.Profile.Bones[BoneName] = PluginTransform;
+            }
+            else
+            {
+                Armature.Profile.Bones.Remove(BoneName);
+            }
+        }
 
-		/// <summary>
-		/// Updates the ingame transformation values associated with this model bone.
-		/// </summary>
-		public void ApplyModelTransform()
-		{
-			foreach(var triplex in this.TripleIndices)
-			{
-				HkaPose* currentPose = triplex.Item2 switch
-				{
-					0 => this.Armature.InGameSkeleton->PartialSkeletons[triplex.Item1].Pose1,
-					1 => this.Armature.InGameSkeleton->PartialSkeletons[triplex.Item1].Pose2,
-					2 => this.Armature.InGameSkeleton->PartialSkeletons[triplex.Item1].Pose3,
-					3 => this.Armature.InGameSkeleton->PartialSkeletons[triplex.Item1].Pose4,
-					_ => null
-				};
+        private void CascadeTransformation(BoneTransform aggregateTransform, Vector3 pointPos, Vector3 pointRot,
+            Vector3 priorScaling)
+        {
+            var newAggregate =
+                PluginTransform.ReorientKinematically(aggregateTransform, pointPos, pointRot, priorScaling);
 
-				if (currentPose == null)
-				{
-					return;
-				}
+            foreach (var child in Children)
+            {
+                child.CascadeTransformation(newAggregate,
+                    pointPos,
+                    pointRot,
+                    PluginTransform.Scaling);
+            }
+        }
 
-				Transform t = currentPose->Transforms[triplex.Item3];
-				Transform tNew = this.PluginTransform.ModifyExistingTransformation(t);
-				currentPose->Transforms[triplex.Item3] = tNew;
-			}
+        /// <summary>
+        ///     Updates the ingame transformation values associated with this model bone.
+        /// </summary>
+        public void ApplyModelTransform()
+        {
+            foreach (var triplex in TripleIndices)
+            {
+                var currentPose = triplex.Item2 switch
+                {
+                    0 => Armature.InGameSkeleton->PartialSkeletons[triplex.Item1].Pose1,
+                    1 => Armature.InGameSkeleton->PartialSkeletons[triplex.Item1].Pose2,
+                    2 => Armature.InGameSkeleton->PartialSkeletons[triplex.Item1].Pose3,
+                    3 => Armature.InGameSkeleton->PartialSkeletons[triplex.Item1].Pose4,
+                    _ => null
+                };
+
+                if (currentPose == null)
+                {
+                    return;
+                }
+
+                var t = currentPose->Transforms[triplex.Item3];
+                var tNew = PluginTransform.ModifyExistingTransformation(t);
+                currentPose->Transforms[triplex.Item3] = tNew;
+            }
 
 
-			//if (this.GameTransform != null)
-			//{
-			//	this.GameTransform = this.PluginTransform.ModifyExistingTransformation((Transform)this.GameTransform);
-			//}
-		}
-	}
+            //if (this.GameTransform != null)
+            //{
+            //	this.GameTransform = this.PluginTransform.ModifyExistingTransformation((Transform)this.GameTransform);
+            //}
+        }
+    }
 }

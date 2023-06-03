@@ -1,125 +1,120 @@
 ﻿// © Customize+.
 // Licensed under the MIT license.
 
+using System;
+using System.IO;
+using CustomizePlus.Helpers;
 using Dalamud.Logging;
 using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.IO;
-using System.Numerics;
 
 namespace CustomizePlus.Data.Profile
 {
-	/// <summary>
-	/// Contains utilities for saving and loading <see cref="CharacterProfile"/>s to disk,
-	/// as well as parsing profiles from previous plugin versions.
-	/// </summary>
-	public static class ProfileReaderWriter
-	{
-		#region Save/Load
+    /// <summary>
+    ///     Contains utilities for saving and loading <see cref="CharacterProfile" />s to disk,
+    ///     as well as parsing profiles from previous plugin versions.
+    /// </summary>
+    public static class ProfileReaderWriter
+    {
+        #region Save/Load
 
-		private static string CreateFileName(CharacterProfile prof)
-		{
-			var invalidCharacters = Path.GetInvalidFileNameChars();
-			string fileName = $"{prof.CharName}-{prof.ProfName}-{prof.UniqueID}.profile";
-			fileName = String.Join(String.Empty, fileName.Split(invalidCharacters, StringSplitOptions.RemoveEmptyEntries));
-			return fileName;
-		}
+        private static string CreateFileName(CharacterProfile prof)
+        {
+            var invalidCharacters = Path.GetInvalidFileNameChars();
+            var fileName = $"{prof.CharName}-{prof.ProfName}-{prof.UniqueID}.profile";
+            fileName = string.Join(string.Empty,
+                fileName.Split(invalidCharacters, StringSplitOptions.RemoveEmptyEntries));
+            return fileName;
+        }
 
-		private static string CreatePath(string fileName)
-		{
-			string dir = DalamudServices.PluginInterface.GetPluginConfigDirectory();
+        private static string CreatePath(string fileName)
+        {
+            var dir = DalamudServices.PluginInterface.GetPluginConfigDirectory();
 
-			Directory.CreateDirectory(dir);
+            Directory.CreateDirectory(dir);
 
-			return Path.GetFullPath($"{dir}\\{fileName}");
-		}
+            return Path.GetFullPath($"{dir}\\{fileName}");
+        }
 
-		public static void SaveProfile(CharacterProfile prof, bool archival = false)
-		{
-			try
-			{
-				string oldFilePath = prof.OriginalFilePath ?? string.Empty;
-				string newFilePath = CreatePath(CreateFileName(prof));
+        public static void SaveProfile(CharacterProfile prof, bool archival = false)
+        {
+            try
+            {
+                var oldFilePath = prof.OriginalFilePath ?? string.Empty;
+                var newFilePath = CreatePath(CreateFileName(prof));
 
-				if (!archival)
-				{
-					string json = JsonConvert.SerializeObject(prof, Formatting.Indented);
+                if (!archival)
+                {
+                    var json = JsonConvert.SerializeObject(prof, Formatting.Indented);
 
-					File.WriteAllText(newFilePath, json);
-				}
-				else
-				{
-					newFilePath += "_arch";
-					string text = Helpers.Base64Helper.ExportToBase64(prof, Constants.ConfigurationVersion);
+                    File.WriteAllText(newFilePath, json);
+                }
+                else
+                {
+                    newFilePath += "_arch";
+                    var text = Base64Helper.ExportToBase64(prof, Constants.ConfigurationVersion);
 
-					File.WriteAllText(newFilePath, text);
-				}
+                    File.WriteAllText(newFilePath, text);
+                }
 
-				if (newFilePath != oldFilePath && oldFilePath != String.Empty)
-				{
-					File.Delete(oldFilePath);
-				}
-				
-				prof.OriginalFilePath = newFilePath;
-			}
-			catch (Exception ex)
-			{
-				PluginLog.LogError($"Error saving {prof}: {ex}");
-			}
-		}
+                if (newFilePath != oldFilePath && oldFilePath != string.Empty)
+                {
+                    File.Delete(oldFilePath);
+                }
 
-		public static void DeleteProfile(CharacterProfile prof)
-		{
-			//SaveProfile(prof, true);
-			if (CreatePath(CreateFileName(prof)) is string path && File.Exists(path))
-			{
-				File.Delete(path);
-			}
-		}
+                prof.OriginalFilePath = newFilePath;
+            }
+            catch (Exception ex)
+            {
+                PluginLog.LogError($"Error saving {prof}: {ex}");
+            }
+        }
 
-		public static string[] GetProfilePaths()
-		{
-			string dir = DalamudServices.PluginInterface.GetPluginConfigDirectory();
-			if (Directory.Exists(dir))
-			{
-				return Directory.GetFiles(dir, "*.profile");
-			}
-			else
-			{
-				Directory.CreateDirectory(dir);
-				return Array.Empty<string>();
-			}
-		}
+        public static void DeleteProfile(CharacterProfile prof)
+        {
+            //SaveProfile(prof, true);
+            if (CreatePath(CreateFileName(prof)) is string path && File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
 
-		public static bool TryLoadProfile(string path, out CharacterProfile? prof)
-		{
-			try
-			{
-				if (Path.Exists(path))
-				{
-					var file = JsonConvert.DeserializeObject<CharacterProfile>(File.ReadAllText(path));
+        public static string[] GetProfilePaths()
+        {
+            var dir = DalamudServices.PluginInterface.GetPluginConfigDirectory();
+            if (Directory.Exists(dir))
+            {
+                return Directory.GetFiles(dir, "*.profile");
+            }
 
-					if (file != null)
-					{
-						prof = file;
-						prof.OriginalFilePath = path;
-						return true;
-					}
-				}
-			}
-			catch (Exception ex)
-			{
-				PluginLog.LogError($"Error loading character profile (from '{path}'): {ex}");
-			}
+            Directory.CreateDirectory(dir);
+            return Array.Empty<string>();
+        }
 
-			prof = null;
-			return false;
-		}
+        public static bool TryLoadProfile(string path, out CharacterProfile? prof)
+        {
+            try
+            {
+                if (Path.Exists(path))
+                {
+                    var file = JsonConvert.DeserializeObject<CharacterProfile>(File.ReadAllText(path));
 
-		#endregion
-	}
+                    if (file != null)
+                    {
+                        prof = file;
+                        prof.OriginalFilePath = path;
+                        return true;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                PluginLog.LogError($"Error loading character profile (from '{path}'): {ex}");
+            }
+
+            prof = null;
+            return false;
+        }
+
+        #endregion
+    }
 }

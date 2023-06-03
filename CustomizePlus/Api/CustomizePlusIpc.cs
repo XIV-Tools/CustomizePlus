@@ -1,13 +1,9 @@
 ﻿// © Customize+.
 // Licensed under the MIT license.
 
-using CustomizePlus.Data.Profile;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Dalamud.Game.ClientState;
+using CustomizePlus.Data.Profile;
 using Dalamud.Game.ClientState.Objects;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Logging;
@@ -17,207 +13,224 @@ using Newtonsoft.Json;
 
 namespace CustomizePlus.Api
 {
-	public class CustomizePlusIpc : IDisposable
-	{
-		public static readonly string ApiVersion = "2.0";
-		public const string LabelProviderApiVersion				= $"CustomizePlus.{nameof(GetApiVersion)}";
-		public const string LabelGetBodyScale					= $"CustomizePlus.{nameof(GetBodyScale)}";
-		public const string LabelGetBodyScaleFromCharacter		= $"CustomizePlus.{nameof(GetBodyScaleFromCharacter)}";
-		public const string LabelSetBodyScale					= $"CustomizePlus.{nameof(SetBodyScale)}";
-		public const string LabelSetBodyScaleToCharacter		= $"CustomizePlus.{nameof(SetBodyScaleToCharacter)}";
-		public const string LabelRevert							= $"CustomizePlus.{nameof(Revert)}";
-		public const string LabelRevertCharacter				= $"CustomizePlus.{nameof(RevertCharacter)}";
-		public const string LabelOnScaleUpdate					= $"CustomizePlus.{nameof(OnScaleUpdate)}";
-		private readonly ObjectTable objectTable;
-		private readonly DalamudPluginInterface pluginInterface;
+    public class CustomizePlusIpc : IDisposable
+    {
+        public const string LabelProviderApiVersion = $"CustomizePlus.{nameof(GetApiVersion)}";
+        public const string LabelGetBodyScale = $"CustomizePlus.{nameof(GetBodyScale)}";
+        public const string LabelGetBodyScaleFromCharacter = $"CustomizePlus.{nameof(GetBodyScaleFromCharacter)}";
+        public const string LabelSetBodyScale = $"CustomizePlus.{nameof(SetBodyScale)}";
+        public const string LabelSetBodyScaleToCharacter = $"CustomizePlus.{nameof(SetBodyScaleToCharacter)}";
+        public const string LabelRevert = $"CustomizePlus.{nameof(Revert)}";
+        public const string LabelRevertCharacter = $"CustomizePlus.{nameof(RevertCharacter)}";
+        public const string LabelOnScaleUpdate = $"CustomizePlus.{nameof(OnScaleUpdate)}";
+        public static readonly string ApiVersion = "2.0";
+        private readonly ObjectTable objectTable;
+        private readonly DalamudPluginInterface pluginInterface;
+        internal ICallGateProvider<string>? ProviderGetApiVersion;
 
 
-		internal ICallGateProvider<string, string?>?			ProviderGetBodyScale;
-		internal ICallGateProvider<Character?, string?>?		ProviderGetBodyScaleFromCharacter;
-		internal ICallGateProvider<string, string, object>?		ProviderSetBodyScale;
-		internal ICallGateProvider<string, Character?, object>?	ProviderSetBodyScaleToCharacter;
-		internal ICallGateProvider<string, object>?				ProviderRevert;
-		internal ICallGateProvider<Character?, object>?			ProviderRevertCharacter;
-		internal ICallGateProvider<string>?						ProviderGetApiVersion;
-		internal ICallGateProvider<string?, object?>?			ProviderOnScaleUpdate; //Sends either bodyscale string or null at startup and when scales are saved in the ui
+        internal ICallGateProvider<string, string?>? ProviderGetBodyScale;
+        internal ICallGateProvider<Character?, string?>? ProviderGetBodyScaleFromCharacter;
 
-		public CustomizePlusIpc(ObjectTable objectTable, DalamudPluginInterface pluginInterface)
-		{
-			this.objectTable = objectTable;
-			this.pluginInterface = pluginInterface;
+        internal ICallGateProvider<string?, object?>?
+            ProviderOnScaleUpdate; //Sends either bodyscale string or null at startup and when scales are saved in the ui
 
-			InitializeProviders();
-		}
+        internal ICallGateProvider<string, object>? ProviderRevert;
+        internal ICallGateProvider<Character?, object>? ProviderRevertCharacter;
+        internal ICallGateProvider<string, string, object>? ProviderSetBodyScale;
+        internal ICallGateProvider<string, Character?, object>? ProviderSetBodyScaleToCharacter;
 
-		public void Dispose()
-			=> DisposeProviders();
+        public CustomizePlusIpc(ObjectTable objectTable, DalamudPluginInterface pluginInterface)
+        {
+            this.objectTable = objectTable;
+            this.pluginInterface = pluginInterface;
 
-		private void DisposeProviders()
-		{
-			ProviderGetBodyScale?.UnregisterFunc();
-			ProviderGetBodyScaleFromCharacter?.UnregisterFunc();
-			ProviderSetBodyScale?.UnregisterAction();
-			ProviderSetBodyScaleToCharacter?.UnregisterAction();
-			ProviderRevert?.UnregisterAction();
-			ProviderRevertCharacter?.UnregisterAction();
-			ProviderGetApiVersion?.UnregisterFunc();
+            InitializeProviders();
+        }
 
-		}
+        public void Dispose()
+        {
+            DisposeProviders();
+        }
 
-		private void InitializeProviders()
-		{
-			PluginLog.Debug("Initializing c+ ipc providers.");
-			try
-			{
-				ProviderGetApiVersion = pluginInterface.GetIpcProvider<string>(LabelProviderApiVersion);
-				ProviderGetApiVersion.RegisterFunc(GetApiVersion);
-			}
-			catch (Exception ex)
-			{
-				PluginLog.Error(ex, $"Error registering IPC provider for {LabelProviderApiVersion}.");
-			}
+        private void DisposeProviders()
+        {
+            ProviderGetBodyScale?.UnregisterFunc();
+            ProviderGetBodyScaleFromCharacter?.UnregisterFunc();
+            ProviderSetBodyScale?.UnregisterAction();
+            ProviderSetBodyScaleToCharacter?.UnregisterAction();
+            ProviderRevert?.UnregisterAction();
+            ProviderRevertCharacter?.UnregisterAction();
+            ProviderGetApiVersion?.UnregisterFunc();
+        }
 
-			try
-			{
-				ProviderGetBodyScale = pluginInterface.GetIpcProvider<string, string?>(LabelGetBodyScale);
-				ProviderGetBodyScale.RegisterFunc(GetBodyScale);
-			}
-			catch (Exception ex)
-			{
-				PluginLog.Error(ex, $"Error registering IPC provider for {LabelGetBodyScale}.");
-			}
+        private void InitializeProviders()
+        {
+            PluginLog.Debug("Initializing c+ ipc providers.");
+            try
+            {
+                ProviderGetApiVersion = pluginInterface.GetIpcProvider<string>(LabelProviderApiVersion);
+                ProviderGetApiVersion.RegisterFunc(GetApiVersion);
+            }
+            catch (Exception ex)
+            {
+                PluginLog.Error(ex, $"Error registering IPC provider for {LabelProviderApiVersion}.");
+            }
 
-			try
-			{
-				ProviderGetBodyScaleFromCharacter = pluginInterface.GetIpcProvider<Character?, string?>(LabelGetBodyScaleFromCharacter);
-				ProviderGetBodyScaleFromCharacter.RegisterFunc(GetBodyScaleFromCharacter);
-			}
-			catch (Exception ex)
-			{
-				PluginLog.Error(ex, $"Error registering IPC provider for {LabelGetBodyScaleFromCharacter}.");
-			}
+            try
+            {
+                ProviderGetBodyScale = pluginInterface.GetIpcProvider<string, string?>(LabelGetBodyScale);
+                ProviderGetBodyScale.RegisterFunc(GetBodyScale);
+            }
+            catch (Exception ex)
+            {
+                PluginLog.Error(ex, $"Error registering IPC provider for {LabelGetBodyScale}.");
+            }
 
-			try
-			{
-				ProviderSetBodyScale =
-					pluginInterface.GetIpcProvider<string, string, object>(LabelSetBodyScale);
-				ProviderSetBodyScale.RegisterAction(SetBodyScale);
-			}
-			catch (Exception ex)
-			{
-				PluginLog.Error(ex, $"Error registering IPC provider for {LabelSetBodyScale}.");
-			}
+            try
+            {
+                ProviderGetBodyScaleFromCharacter =
+                    pluginInterface.GetIpcProvider<Character?, string?>(LabelGetBodyScaleFromCharacter);
+                ProviderGetBodyScaleFromCharacter.RegisterFunc(GetBodyScaleFromCharacter);
+            }
+            catch (Exception ex)
+            {
+                PluginLog.Error(ex, $"Error registering IPC provider for {LabelGetBodyScaleFromCharacter}.");
+            }
 
-			try
-			{
-				ProviderSetBodyScaleToCharacter =
-					pluginInterface.GetIpcProvider<string, Character?, object>(LabelSetBodyScaleToCharacter);
-				ProviderSetBodyScaleToCharacter.RegisterAction(SetBodyScaleToCharacter);
-			}
-			catch (Exception ex)
-			{
-				PluginLog.Error(ex, $"Error registering IPC provider for {LabelSetBodyScaleToCharacter}.");
-			}
+            try
+            {
+                ProviderSetBodyScale =
+                    pluginInterface.GetIpcProvider<string, string, object>(LabelSetBodyScale);
+                ProviderSetBodyScale.RegisterAction(SetBodyScale);
+            }
+            catch (Exception ex)
+            {
+                PluginLog.Error(ex, $"Error registering IPC provider for {LabelSetBodyScale}.");
+            }
 
-			try
-			{
-				ProviderRevert =
-					pluginInterface.GetIpcProvider<string, object>(LabelRevert);
-				ProviderRevert.RegisterAction(Revert);
-			}
-			catch (Exception ex)
-			{
-				PluginLog.Error(ex, $"Error registering IPC provider for {LabelRevert}.");
-			}
+            try
+            {
+                ProviderSetBodyScaleToCharacter =
+                    pluginInterface.GetIpcProvider<string, Character?, object>(LabelSetBodyScaleToCharacter);
+                ProviderSetBodyScaleToCharacter.RegisterAction(SetBodyScaleToCharacter);
+            }
+            catch (Exception ex)
+            {
+                PluginLog.Error(ex, $"Error registering IPC provider for {LabelSetBodyScaleToCharacter}.");
+            }
 
-			try
-			{
-				ProviderRevertCharacter =
-					pluginInterface.GetIpcProvider<Character?, object>(LabelRevertCharacter);
-				ProviderRevertCharacter.RegisterAction(RevertCharacter);
-			}
-			catch (Exception ex)
-			{
-				PluginLog.Error(ex, $"Error registering IPC provider for {LabelRevertCharacter}.");
-			}
-			try
-			{
-				ProviderOnScaleUpdate = pluginInterface.GetIpcProvider<string?, object?>(LabelOnScaleUpdate);
-			} 
-			catch (Exception ex)
-			{
-				PluginLog.Error(ex, $"Error registering IPC provider for {LabelOnScaleUpdate}.");
-			}
+            try
+            {
+                ProviderRevert =
+                    pluginInterface.GetIpcProvider<string, object>(LabelRevert);
+                ProviderRevert.RegisterAction(Revert);
+            }
+            catch (Exception ex)
+            {
+                PluginLog.Error(ex, $"Error registering IPC provider for {LabelRevert}.");
+            }
 
-		}
+            try
+            {
+                ProviderRevertCharacter =
+                    pluginInterface.GetIpcProvider<Character?, object>(LabelRevertCharacter);
+                ProviderRevertCharacter.RegisterAction(RevertCharacter);
+            }
+            catch (Exception ex)
+            {
+                PluginLog.Error(ex, $"Error registering IPC provider for {LabelRevertCharacter}.");
+            }
 
-		public void OnScaleUpdate(string bodyScaleString)
-		{
-			PluginLog.Debug("Sending c+ ipc scale message.");
-			ProviderOnScaleUpdate?.SendMessage(bodyScaleString);
-		}
+            try
+            {
+                ProviderOnScaleUpdate = pluginInterface.GetIpcProvider<string?, object?>(LabelOnScaleUpdate);
+            }
+            catch (Exception ex)
+            {
+                PluginLog.Error(ex, $"Error registering IPC provider for {LabelOnScaleUpdate}.");
+            }
+        }
 
-		private static string GetApiVersion()
-			=> ApiVersion;
+        public void OnScaleUpdate(string bodyScaleString)
+        {
+            PluginLog.Debug("Sending c+ ipc scale message.");
+            ProviderOnScaleUpdate?.SendMessage(bodyScaleString);
+        }
 
-		private string? GetBodyScale(string characterName)
-		{
-			CharacterProfile? prof = Plugin.ProfileManager.GetProfileByCharacterName(characterName);
-			if (prof != null)
-			{
-				return JsonConvert.SerializeObject(prof);
-			}
+        private static string GetApiVersion()
+        {
+            return ApiVersion;
+        }
 
-			return null;
-		}
+        private string? GetBodyScale(string characterName)
+        {
+            var prof = Plugin.ProfileManager.GetProfileByCharacterName(characterName);
+            if (prof != null)
+            {
+                return JsonConvert.SerializeObject(prof);
+            }
 
-		private unsafe string? GetBodyScaleFromCharacter(Character? character)
-		{
-			if (character == null)
-				return null;
+            return null;
+        }
 
-			return GetBodyScale(character.Name.ToString());
-		}
+        private string? GetBodyScaleFromCharacter(Character? character)
+        {
+            if (character == null)
+            {
+                return null;
+            }
 
-		private void SetBodyScale(string bodyScaleString, string characterName)
-		{
-			CharacterProfile? prof = JsonConvert.DeserializeObject<CharacterProfile>(bodyScaleString);
-			if (prof != null)
-			{
-				Plugin.ProfileManager.AddTemporaryProfile(characterName, prof);
-			}
-		}
+            return GetBodyScale(character.Name.ToString());
+        }
 
-		private void SetBodyScaleToCharacter(string bodyScaleString, Character? character)
-		{
-			if (character == null)
-				return;
+        private void SetBodyScale(string bodyScaleString, string characterName)
+        {
+            var prof = JsonConvert.DeserializeObject<CharacterProfile>(bodyScaleString);
+            if (prof != null)
+            {
+                Plugin.ProfileManager.AddTemporaryProfile(characterName, prof);
+            }
+        }
 
-			SetBodyScale(bodyScaleString, character.Name.ToString());
-		}
+        private void SetBodyScaleToCharacter(string bodyScaleString, Character? character)
+        {
+            if (character == null)
+            {
+                return;
+            }
 
-		private void Revert(string characterName)
-		{
-			if (string.IsNullOrEmpty(characterName))
-				return;
+            SetBodyScale(bodyScaleString, character.Name.ToString());
+        }
 
-			Plugin.ProfileManager.RemoveTemporaryProfile(characterName);
-		}
+        private void Revert(string characterName)
+        {
+            if (string.IsNullOrEmpty(characterName))
+            {
+                return;
+            }
 
-		private void RevertCharacter(Character? character)
-		{
-			if (character == null)
-				return;
+            Plugin.ProfileManager.RemoveTemporaryProfile(characterName);
+        }
 
-			Revert(character.Name.ToString());
-		}
+        private void RevertCharacter(Character? character)
+        {
+            if (character == null)
+            {
+                return;
+            }
 
-		private Character? FindCharacterByName(string? characterName)
-		{
-			if (characterName == null)
-				return null;
+            Revert(character.Name.ToString());
+        }
 
-			return objectTable.FirstOrDefault(gameObject => gameObject.Name.ToString() == characterName) as Character;
-		}
-	}
+        private Character? FindCharacterByName(string? characterName)
+        {
+            if (characterName == null)
+            {
+                return null;
+            }
+
+            return objectTable.FirstOrDefault(gameObject => gameObject.Name.ToString() == characterName) as Character;
+        }
+    }
 }
