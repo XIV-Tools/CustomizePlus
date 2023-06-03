@@ -31,6 +31,8 @@ namespace CustomizePlus.Data.Armature
 		public CharacterBase* CharacterBase;
 		public Skeleton* Skeleton => this.CharacterBase->Skeleton;
 
+		private bool _snapToReference = false;
+
 
 		public readonly Dictionary<string, ModelBone> Bones;
 
@@ -65,6 +67,24 @@ namespace CustomizePlus.Data.Armature
 		public IEnumerable<string> GetExtantBoneNames()
 		{
 			return this.Bones.Keys;
+		}
+
+		public bool GetReferenceSnap()
+		{
+			if (Profile != Plugin.ProfileManager.ProfileOpenInEditor)
+			{
+				_snapToReference = false;
+			}
+			return _snapToReference;
+		}
+
+		public void SetReferenceSnap(bool value)
+		{
+			if (value && Profile == Plugin.ProfileManager.ProfileOpenInEditor)
+			{
+				_snapToReference = false;
+			}
+			_snapToReference = value;
 		}
 
 		public bool TryLinkSkeleton()
@@ -197,6 +217,21 @@ namespace CustomizePlus.Data.Armature
 			}
 		}
 
+		public void OverrideWithReferencePose()
+		{
+			for (int pSkeleIndex = 0; pSkeleIndex < this.Skeleton->PartialSkeletonCount; ++pSkeleIndex)
+			{
+				for (int poseIndex = 0; poseIndex < 4; ++poseIndex)
+				{
+					hkaPose* snapPose = this.Skeleton->PartialSkeletons[pSkeleIndex].GetHavokPose(poseIndex);
+
+					if (snapPose != null)
+					{
+						snapPose->SetToReferencePose();
+					}
+				}
+			}
+		}
 
 		private void DiscoverParentage()
 		{

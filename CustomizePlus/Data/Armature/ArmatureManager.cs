@@ -4,9 +4,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using CustomizePlus.Memory;
+
+using CustomizePlus.Helpers;
+
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Logging;
 
@@ -25,7 +25,7 @@ namespace CustomizePlus.Data.Armature
 
 		public unsafe void RenderArmatureByObject(GameObject obj)
 		{
-			if (this.armatures.FirstOrDefault(x => x.CharacterBase == RenderObject.FromActor(obj)) is Armature arm && arm != null)
+			if (this.armatures.FirstOrDefault(x => x.CharacterBase == obj.ToCharacterBase()) is Armature arm && arm != null)
 			{
 				if (arm.Visible)
 				{
@@ -36,7 +36,7 @@ namespace CustomizePlus.Data.Armature
 
 		private void RefreshActiveArmatures(params Profile.CharacterProfile[] profiles)
 		{
-			foreach(var prof in profiles)
+			foreach (var prof in profiles)
 			{
 				if (!this.armatures.Any(x => x.Profile == prof))
 				{
@@ -58,7 +58,7 @@ namespace CustomizePlus.Data.Armature
 
 		private void RefreshArmatureVisibility()
 		{
-			foreach(var arm in this.armatures)
+			foreach (var arm in this.armatures)
 			{
 				//TODO this is yucky
 				arm.Visible = Plugin.ProfileManager.GetEnabledProfiles().Contains(arm.Profile) && arm.TryLinkSkeleton();
@@ -67,8 +67,13 @@ namespace CustomizePlus.Data.Armature
 
 		private void ApplyArmatureTransforms()
 		{
-			foreach(Armature arm in this.armatures.Where(x => x.Visible))
+			foreach (Armature arm in this.armatures.Where(x => x.Visible))
 			{
+				if (arm.GetReferenceSnap())
+				{
+					arm.OverrideWithReferencePose();
+				}
+
 				arm.ApplyTransformation();
 			}
 		}

@@ -200,9 +200,19 @@ namespace CustomizePlus.Data.Armature
 					return;
 				}
 
-				hkQsTransformf t = currentPose->ModelPose.Data[triplex.Item3];
-				hkQsTransformf tNew = this.PluginTransform.ModifyExistingTransformation(t);
-				currentPose->ModelPose.Data[triplex.Item3] = tNew;
+				if (Armature.GetReferenceSnap())
+				{
+					//hkQsTransformf t = currentPose->Skeleton->ReferencePose.Data[triplex.Item3];
+					hkQsTransformf t = currentPose->ModelPose.Data[triplex.Item3];
+					hkQsTransformf tNew = this.PluginTransform.ModifyExistingTransformation(t);
+					currentPose->ModelPose.Data[triplex.Item3] = tNew;
+				}
+				else
+				{
+					hkQsTransformf t = currentPose->ModelPose.Data[triplex.Item3];
+					hkQsTransformf tNew = this.PluginTransform.ModifyExistingTransformation(t);
+					currentPose->ModelPose.Data[triplex.Item3] = tNew;
+				}
 			}
 
 
