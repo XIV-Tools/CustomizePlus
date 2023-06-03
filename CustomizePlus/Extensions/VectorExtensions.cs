@@ -3,7 +3,7 @@
 
 using System;
 using System.Numerics;
-using Anamnesis.Files;
+using CustomizePlus.Anamnesis;
 using CustomizePlus.Memory;
 
 namespace CustomizePlus.Extensions

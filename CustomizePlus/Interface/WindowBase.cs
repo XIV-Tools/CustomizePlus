@@ -8,8 +8,8 @@ namespace CustomizePlus.Interface
 {
     public abstract class WindowBase : InterfaceBase
     {
-        private bool alwaysVisibleDummy = true; //dummy variable for LockCloseButton = true
-        private bool visible;
+        private bool _isAlwaysVisibleDummy = true; //dummy variable for LockCloseButton = true
+        private bool _isVisible;
 
         protected abstract string Title { get; }
 
@@ -28,7 +28,7 @@ namespace CustomizePlus.Interface
         public override void Open()
         {
             base.Open();
-            visible = true;
+            _isVisible = true;
         }
 
         public override void Focus()
@@ -46,14 +46,14 @@ namespace CustomizePlus.Interface
                 ImGui.SetNextWindowSize((Vector2)ForcedSize);
             }
 
-            if (ImGui.Begin(DrawTitle, ref LockCloseButton ? ref alwaysVisibleDummy : ref visible, WindowFlags))
+            if (ImGui.Begin(DrawTitle, ref LockCloseButton ? ref _isAlwaysVisibleDummy : ref _isVisible, WindowFlags))
             {
                 DrawContents();
             }
 
             ImGui.End();
 
-            if (!visible)
+            if (!_isVisible)
             {
                 Close();
             }

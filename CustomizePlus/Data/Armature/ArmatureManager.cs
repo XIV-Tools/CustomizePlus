@@ -12,7 +12,7 @@ namespace CustomizePlus.Data.Armature
 {
     public sealed class ArmatureManager
     {
-        private readonly HashSet<Armature> armatures = new();
+        private readonly HashSet<Armature> _armatures = new();
 
         public void RenderCharacterProfiles(params CharacterProfile[] profiles)
         {
@@ -23,7 +23,7 @@ namespace CustomizePlus.Data.Armature
 
         public unsafe void RenderArmatureByObject(GameObject obj)
         {
-            if (armatures.FirstOrDefault(x => x.ObjectRef == RenderObject.FromActor(obj)) is Armature arm &&
+            if (_armatures.FirstOrDefault(x => x.ObjectRef == RenderObject.FromActor(obj)) is Armature arm &&
                 arm != null)
             {
                 if (arm.Visible)
@@ -37,19 +37,19 @@ namespace CustomizePlus.Data.Armature
         {
             foreach (var prof in profiles)
             {
-                if (!armatures.Any(x => x.Profile == prof))
+                if (!_armatures.Any(x => x.Profile == prof))
                 {
                     var newArm = new Armature(prof);
-                    armatures.Add(newArm);
+                    _armatures.Add(newArm);
                     PluginLog.LogDebug($"Added '{newArm}' to cache");
                 }
             }
 
-            foreach (var arm in armatures.Except(profiles.Select(x => x.Armature)))
+            foreach (var arm in _armatures.Except(profiles.Select(x => x.Armature)))
             {
                 if (arm != null)
                 {
-                    armatures.Remove(arm);
+                    _armatures.Remove(arm);
                     PluginLog.LogDebug($"Removed '{arm}' from cache");
                 }
             }
@@ -57,7 +57,7 @@ namespace CustomizePlus.Data.Armature
 
         private void RefreshArmatureVisibility()
         {
-            foreach (var arm in armatures)
+            foreach (var arm in _armatures)
             {
                 //TODO this is yucky
                 arm.Visible = Plugin.ProfileManager.GetEnabledProfiles().Contains(arm.Profile) && arm.TryLinkSkeleton();
@@ -66,7 +66,7 @@ namespace CustomizePlus.Data.Armature
 
         private void ApplyArmatureTransforms()
         {
-            foreach (var arm in armatures.Where(x => x.Visible))
+            foreach (var arm in _armatures.Where(x => x.Visible))
             {
                 arm.ApplyTransformation();
             }

@@ -13,8 +13,10 @@ namespace CustomizePlus.Extensions
         public static void AddCommand(this CommandManager self, CommandInfo.HandlerDelegate handler, string command,
             string help)
         {
-            var info = new CommandInfo(handler);
-            info.HelpMessage = help;
+            var info = new CommandInfo(handler)
+            {
+                HelpMessage = help
+            };
 
             if (!command.StartsWith('/'))
             {

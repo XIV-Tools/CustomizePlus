@@ -20,8 +20,8 @@ namespace CustomizePlus.Interface
 {
     public class MainInterface : WindowBase
     {
-        private static string newCharName = GameDataHelper.GetPlayerName() ?? string.Empty;
-        private static string newProfName = "Default";
+        private static string _newCharacterName = GameDataHelper.GetPlayerName() ?? string.Empty;
+        private static string _newProfileName = "Default";
         private readonly FileDialogManager _importFilePicker = new();
         private static string? PlayerCharacterName => GameDataHelper.GetPlayerName();
 
@@ -56,10 +56,10 @@ namespace CustomizePlus.Interface
             // Draw the File Picker
             _importFilePicker.Draw();
 
-            var enable = Plugin.Config.PluginEnabled;
+            var enable = Plugin.Config.IsPluginEnabled;
             if (ImGui.Checkbox("Enable", ref enable))
             {
-                Plugin.Config.PluginEnabled = enable;
+                Plugin.Config.IsPluginEnabled = enable;
                 Plugin.ReloadHooks();
             }
 
@@ -70,10 +70,10 @@ namespace CustomizePlus.Interface
 
             ImGui.SameLine();
 
-            var applyToNpcs = Plugin.Config.ApplytoNPCs;
+            var applyToNpcs = Plugin.Config.IsApplyToNPCs;
             if (ImGui.Checkbox("Apply to NPCS", ref applyToNpcs))
             {
-                Plugin.Config.ApplytoNPCs = applyToNpcs;
+                Plugin.Config.IsApplyToNPCs = applyToNpcs;
                 Plugin.RefreshPlugin(true);
             }
 
@@ -97,10 +97,10 @@ namespace CustomizePlus.Interface
 
             ImGui.SameLine();
             */
-            var applyToNpcsInCutscenes = Plugin.Config.ApplytoNPCsInCutscenes;
+            var applyToNpcsInCutscenes = Plugin.Config.IsApplyToNPCsInCutscenes;
             if (ImGui.Checkbox("Apply to NPCs in Cutscenes", ref applyToNpcsInCutscenes))
             {
-                Plugin.Config.ApplytoNPCsInCutscenes = applyToNpcsInCutscenes;
+                Plugin.Config.IsApplyToNPCsInCutscenes = applyToNpcsInCutscenes;
             }
 
             if (ImGui.IsItemHovered())
@@ -120,16 +120,16 @@ namespace CustomizePlus.Interface
             if (ImGui.BeginPopup("Add"))
             {
                 ImGui.Text("Character Name:");
-                ImGui.InputText("##newProfCharName", ref newCharName, 1024);
+                ImGui.InputText("##newProfCharName", ref _newCharacterName, 1024);
                 ImGui.Text("Profile Name:");
-                ImGui.InputText("##newProfName", ref newProfName, 1024);
+                ImGui.InputText("##newProfName", ref _newProfileName, 1024);
 
-                if (ImGui.Button("OK") && newCharName != string.Empty)
+                if (ImGui.Button("OK") && _newCharacterName != string.Empty)
                 {
                     CharacterProfile newProf = new()
                     {
-                        CharName = newCharName,
-                        ProfName = newProfName,
+                        CharacterName = _newCharacterName,
+                        ProfileName = _newProfileName,
                         Enabled = false
                     };
 
@@ -137,8 +137,8 @@ namespace CustomizePlus.Interface
                     Plugin.RefreshPlugin(true);
 
                     ImGui.CloseCurrentPopup();
-                    newCharName = GameDataHelper.GetPlayerName() ?? string.Empty;
-                    newProfName = "Default";
+                    _newCharacterName = GameDataHelper.GetPlayerName() ?? string.Empty;
+                    _newProfileName = "Default";
                 }
 
                 ImGui.SameLine();
@@ -148,8 +148,8 @@ namespace CustomizePlus.Interface
                 if (ImGui.Button("Cancel"))
                 {
                     ImGui.CloseCurrentPopup();
-                    newCharName = GameDataHelper.GetPlayerName() ?? string.Empty;
-                    newProfName = "Default";
+                    _newCharacterName = GameDataHelper.GetPlayerName() ?? string.Empty;
+                    _newProfileName = "Default";
                 }
 
                 ImGui.EndPopup();
@@ -170,13 +170,11 @@ namespace CustomizePlus.Interface
             ImGui.SameLine();
             if (ImGui.Button("Add from Clipboard"))
             {
-                byte importVer = 0;
                 CharacterProfile importedProfile = null;
-                string json = null;
 
                 try
                 {
-                    importVer = Base64Helper.ImportFromBase64(Clipboard.GetText(), out json);
+                    var importVer = Base64Helper.ImportFromBase64(Clipboard.GetText(), out var json);
 
                     importedProfile = Convert.ToInt32(importVer) switch
                     {
@@ -200,7 +198,7 @@ namespace CustomizePlus.Interface
                     else if (Plugin.ProfileManager.Profiles.Contains(importedProfile))
                     {
                         ConfirmationDialog.Show(
-                            $"Customize+ already contains profile '{importedProfile.ProfName}' for {importedProfile.CharName}.\nDo you want to replace it?",
+                            $"Customize+ already contains profile '{importedProfile.ProfileName}' for {importedProfile.CharacterName}.\nDo you want to replace it?",
                             () => AddNewProfile(importedProfile),
                             "Overwrite Profile?");
                     }
@@ -233,7 +231,7 @@ namespace CustomizePlus.Interface
 
 
             // IPC Testing Window - Hidden unless enabled in json.
-            if (Plugin.Config.DebuggingMode)
+            if (Plugin.Config.IsDebuggingMode)
             {
                 ImGui.SameLine();
                 if (ImGuiComponents.IconButton(FontAwesomeIcon.Pen))
@@ -262,7 +260,7 @@ namespace CustomizePlus.Interface
                 ImGui.TableSetupColumn("Options", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize);
                 ImGui.TableHeadersRow();
 
-                foreach (var prof in Plugin.ProfileManager.Profiles.OrderBy(x => x.CharName).ThenBy(x => x.ProfName))
+                foreach (var prof in Plugin.ProfileManager.Profiles.OrderBy(x => x.CharacterName).ThenBy(x => x.ProfileName))
                 {
                     ImGui.PushID(prof.GetHashCode());
 
@@ -292,13 +290,13 @@ namespace CustomizePlus.Interface
 
                     // Character Name
                     ImGui.TableNextColumn();
-                    var characterName = prof.CharName ?? string.Empty;
+                    var characterName = prof.CharacterName ?? string.Empty;
                     ImGui.PushItemWidth(-1);
                     if (ImGui.InputText("##Character", ref characterName, 64, ImGuiInputTextFlags.NoHorizontalScroll))
                     {
                         if (ImGui.IsItemDeactivatedAfterEdit())
                         {
-                            prof.CharName = characterName;
+                            prof.CharacterName = characterName;
                         }
                     }
 
@@ -312,7 +310,7 @@ namespace CustomizePlus.Interface
                     // Profile Name
                     ImGui.TableNextColumn();
                     ImGui.PushItemWidth(-1);
-                    var inputProfName = prof.ProfName ?? string.Empty;
+                    var inputProfName = prof.ProfileName ?? string.Empty;
                     if (ImGui.InputText("##Profile Name", ref inputProfName, 64,
                             ImGuiInputTextFlags.NoHorizontalScroll))
                     {
@@ -322,8 +320,8 @@ namespace CustomizePlus.Interface
                             var newProfileName = inputProfName;
 
                             while (Plugin.ProfileManager.Profiles
-                                   .Where(x => x.CharName == prof.CharName)
-                                   .Any(x => x.ProfName == newProfileName))
+                                   .Where(x => x.CharacterName == prof.CharacterName)
+                                   .Any(x => x.ProfileName == newProfileName))
                             {
                                 newProfileName = $"{inputProfName}-{tryIndex}";
                                 tryIndex++;
@@ -332,10 +330,10 @@ namespace CustomizePlus.Interface
                             if (newProfileName != inputProfName)
                             {
                                 MessageWindow.Show(
-                                    $"Profile '{inputProfName}' already exists for {prof.CharName}. Renamed to '{newProfileName}'.");
+                                    $"Profile '{inputProfName}' already exists for {prof.CharacterName}. Renamed to '{newProfileName}'.");
                             }
 
-                            prof.ProfName = newProfileName;
+                            prof.ProfileName = newProfileName;
                         }
                     }
 
@@ -349,8 +347,8 @@ namespace CustomizePlus.Interface
                     ImGui.TableNextColumn();
                     ImGuiComponents.IconButton(FontAwesomeIcon.InfoCircle);
                     CtrlHelper.AddHoverText(string.Join('\n',
-                        $"Profile '{prof.ProfName}'",
-                        $"for {prof.CharName}",
+                        $"Profile '{prof.ProfileName}'",
+                        $"for {prof.CharacterName}",
                         $"with {prof.Bones.Count} modified bones",
                         $"Created: {prof.CreationDate:yyyy MMM dd, HH:mm}",
                         $"Updated: {prof.CreationDate:yyyy MMM dd, HH:mm}"));
@@ -400,7 +398,7 @@ namespace CustomizePlus.Interface
                     if (ImGuiComponents.IconButton(FontAwesomeIcon.Trash))
                     {
                         var msg =
-                            $"Are you sure you want to permanently delete profile '{prof.ProfName}' for {prof.CharName}?";
+                            $"Are you sure you want to permanently delete profile '{prof.ProfileName}' for {prof.CharacterName}?";
                         ConfirmationDialog.Show(msg, () => Plugin.ProfileManager.DeleteProfile(prof),
                             "Delete Scaling?");
                     }

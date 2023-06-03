@@ -13,14 +13,14 @@ namespace CustomizePlus.Interface
     /// </summary>
     public class ConfirmationDialog : WindowBase
     {
-        private string affirmativeResponse = "OK";
+        private string _affirmativeResponse = "OK";
 
-        private string confirmationPrompt = "Confirm choice?";
+        private string _confirmationPrompt = "Confirm choice?";
 
-        private Action doAfterConfirmed = () => { };
-        private string negativeResponse = "Cancel";
-        private string titleBar = "Confirmation";
-        protected override string Title => titleBar;
+        private Action _doAfterConfirmed = () => { };
+        private string _negativeResponse = "Cancel";
+        private string _titleBar = "Confirmation";
+        protected override string Title => _titleBar;
 
         protected override ImGuiWindowFlags WindowFlags =>
             ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoCollapse;
@@ -39,43 +39,43 @@ namespace CustomizePlus.Interface
             string cancel = "")
         {
             var window = Plugin.InterfaceManager.Show<ConfirmationDialog>();
-            window.confirmationPrompt = msg;
-            window.doAfterConfirmed = performUponConfirmation;
+            window._confirmationPrompt = msg;
+            window._doAfterConfirmed = performUponConfirmation;
 
             if (!title.IsNullOrWhitespace())
             {
-                window.titleBar = title;
+                window._titleBar = title;
             }
 
             if (!confirm.IsNullOrWhitespace())
             {
-                window.affirmativeResponse = confirm;
+                window._affirmativeResponse = confirm;
             }
 
             if (!cancel.IsNullOrWhitespace())
             {
-                window.negativeResponse = cancel;
+                window._negativeResponse = cancel;
             }
         }
 
         protected override void DrawContents()
         {
-            RenderTextCentered(confirmationPrompt);
+            RenderTextCentered(_confirmationPrompt);
 
             RenderTextCentered("---");
 
             var buttonSize = new Vector2(100, 0);
             ImGui.SetCursorPosX(CenterMultiple(buttonSize.X, 2));
 
-            if (ImGui.Button(affirmativeResponse))
+            if (ImGui.Button(_affirmativeResponse))
             {
-                doAfterConfirmed();
+                _doAfterConfirmed();
                 Close();
             }
 
             ImGui.SameLine();
 
-            if (ImGui.Button(negativeResponse))
+            if (ImGui.Button(_negativeResponse))
             {
                 Close();
             }

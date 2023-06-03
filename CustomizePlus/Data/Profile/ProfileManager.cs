@@ -20,7 +20,7 @@ namespace CustomizePlus.Data.Profile
         /// </summary>
         public static readonly HashSet<CharacterProfile> ConvertedProfiles = new();
 
-        private readonly Dictionary<ObjectKind, CharacterProfile> defaultProfiles = new();
+        private readonly Dictionary<ObjectKind, CharacterProfile> _defaultProfiles = new();
 
         public readonly HashSet<CharacterProfile> Profiles = new(new ProfileEquality());
 
@@ -102,7 +102,7 @@ namespace CustomizePlus.Data.Profile
             activeProfile.Enabled = true;
 
             foreach (var profile in Profiles
-                         .Where(x => x.CharName == activeProfile.CharName && x != activeProfile))
+                         .Where(x => x.CharacterName == activeProfile.CharacterName && x != activeProfile))
             {
                 profile.Enabled = false;
             }
@@ -142,7 +142,7 @@ namespace CustomizePlus.Data.Profile
 
         public void RevertWorkingCopy(CharacterProfile prof)
         {
-            var original = GetProfileByUniqueID(prof.UniqueID);
+            var original = GetProfileByUniqueId(prof.UniqueId);
 
             if (original != null
                 && Profiles.Contains(prof)
@@ -205,7 +205,7 @@ namespace CustomizePlus.Data.Profile
         public CharacterProfile[] GetEnabledProfiles()
         {
             //if a profile is being edited it's defacto considered disabled
-            var enabledProfiles = Profiles.Where(x => x.Enabled && x.UniqueID != (ProfileOpenInEditor?.UniqueID ?? 0));
+            var enabledProfiles = Profiles.Where(x => x.Enabled && x.UniqueId != (ProfileOpenInEditor?.UniqueId ?? 0));
 
             //add any temp profiles from mare
             enabledProfiles = enabledProfiles.Concat(TempLocalProfiles.Values);
@@ -221,12 +221,12 @@ namespace CustomizePlus.Data.Profile
 
         public CharacterProfile? GetProfileByCharacterName(string name)
         {
-            return Profiles.FirstOrDefault(x => x.CharName == name);
+            return Profiles.FirstOrDefault(x => x.CharacterName == name);
         }
 
-        public CharacterProfile? GetProfileByUniqueID(int id)
+        public CharacterProfile? GetProfileByUniqueId(int id)
         {
-            return Profiles.FirstOrDefault(x => x.UniqueID == id);
+            return Profiles.FirstOrDefault(x => x.UniqueId == id);
         }
 
         //public void UpdateDefaults(ObjectKind kind, CharacterProfile prof)

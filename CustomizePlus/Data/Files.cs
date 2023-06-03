@@ -28,10 +28,8 @@ namespace CustomizePlus.Data
 
         private static TextureWrap LoadImage(string file)
         {
-            if (TextureCache.ContainsKey(file))
-            {
-                return TextureCache[file];
-            }
+            if (TextureCache.TryGetValue(file, out var image))
+                return image;
 
             var tex = DalamudServices.PluginInterface.UiBuilder.LoadImage(file);
             LoadedResources.Add(tex);

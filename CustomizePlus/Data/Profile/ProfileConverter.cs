@@ -5,7 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using Anamnesis.Files;
+using CustomizePlus.Anamnesis;
 using CustomizePlus.Data.Configuration.Version0;
 using CustomizePlus.Data.Configuration.Version2;
 using CustomizePlus.Extensions;
@@ -39,8 +39,8 @@ namespace CustomizePlus.Data.Profile
 
             if (profileName != null)
             {
-                output.CharName = string.Empty;
-                output.ProfName = profileName;
+                output.CharacterName = string.Empty;
+                output.ProfileName = profileName;
             }
 
             //load up all the valid bones, but skip root
@@ -54,7 +54,7 @@ namespace CustomizePlus.Data.Profile
             {
                 var bt = new BoneTransform
                 {
-                    Scaling = kvp.Value.Scale.GetAsNumericsVector()
+                    Scaling = kvp.Value.Scale!.GetAsNumericsVector()
                 };
 
                 output.Bones[kvp.Key] = bt;
@@ -72,7 +72,7 @@ namespace CustomizePlus.Data.Profile
             {
                 output.Bones[Constants.RootBoneName] = new BoneTransform
                 {
-                    Scaling = root.Scale.GetAsNumericsVector()
+                    Scaling = root.Scale!.GetAsNumericsVector()
                 };
             }
 
@@ -94,8 +94,8 @@ namespace CustomizePlus.Data.Profile
         {
             CharacterProfile newProfile = new()
             {
-                CharName = oldVer.CharacterName,
-                ProfName = oldVer.ScaleName,
+                CharacterName = oldVer.CharacterName,
+                ProfileName = oldVer.ScaleName,
                 Enabled = oldVer.BodyScaleEnabled
             };
 
@@ -134,8 +134,8 @@ namespace CustomizePlus.Data.Profile
         {
             var newProfile = new CharacterProfile
             {
-                CharName = oldVer.CharacterName,
-                ProfName = oldVer.ScaleName,
+                CharacterName = oldVer.CharacterName,
+                ProfileName = oldVer.ScaleName,
                 Enabled = oldVer.BodyScaleEnabled
             };
 

@@ -105,9 +105,9 @@ namespace CustomizePlus.Interface
             }
 
             editWnd.ScaleUpdated = prof;
-            editWnd.originalScaleName = prof.ProfName;
-            editWnd.originalScaleCharacter = prof.CharName;
-            editWnd.newScaleCharacter = prof.CharName;
+            editWnd.originalScaleName = prof.ProfileName;
+            editWnd.originalScaleCharacter = prof.CharacterName;
+            editWnd.newScaleCharacter = prof.CharacterName;
 
             editWnd.scaleEnabled = prof.Enabled;
 
@@ -123,8 +123,8 @@ namespace CustomizePlus.Interface
                 }
             }
 
-            editWnd.originalScaleName = prof.ProfName;
-            editWnd.originalScaleCharacter = prof.CharName;
+            editWnd.originalScaleName = prof.ProfileName;
+            editWnd.originalScaleCharacter = prof.CharacterName;
             editWnd.newScaleName = editWnd.originalScaleName;
             editWnd.newScaleCharacter = editWnd.originalScaleCharacter;
 
@@ -414,10 +414,8 @@ namespace CustomizePlus.Interface
                     reset = false;
                     try
                     {
-                        if (boneValuesNew.ContainsKey(dispNameLocal))
-                        {
-                            editsContainer = boneValuesNew[dispNameLocal];
-                        }
+                        if (boneValuesNew.TryGetValue(dispNameLocal, out var value))
+                            editsContainer = value;
                         else if (boneValuesNew.Remove(codenameLocal, out var removedContainer))
                         {
                             editsContainer = removedContainer;
@@ -522,10 +520,8 @@ namespace CustomizePlus.Interface
 
                     try
                     {
-                        if (boneValuesNew.ContainsKey(dispNameLocal))
-                        {
-                            editsContainer = boneValuesNew[dispNameLocal];
-                        }
+                        if (boneValuesNew.TryGetValue(dispNameLocal, out var value))
+                            editsContainer = value;
                         else if (boneValuesNew.Remove(codenameLocal, out var removedContainer))
                         {
                             editsContainer = removedContainer;
@@ -604,8 +600,8 @@ namespace CustomizePlus.Interface
             newBody.Bones["n_root"] = rootEditsContainer;
 
             newBody.Enabled = true;
-            newBody.ProfName = "IPC";
-            newBody.CharName = newScaleCharacter;
+            newBody.ProfileName = "IPC";
+            newBody.CharacterName = newScaleCharacter;
 
             //newBody.RootScale = new HkVector4(this.newRootScale.X, this.newRootScale.Y, this.newRootScale.Z, 0);
 
@@ -613,7 +609,7 @@ namespace CustomizePlus.Interface
             //PluginLog.Information($"{pi.PluginNames}");
             setCharacterProfile = pi.GetIpcSubscriber<string, string, object>("CustomizePlus.SetCharacterProfile");
             //PluginLog.Information($"{_setCharacterProfile}: -- {bodyString} -- {newBody.CharacterName}");
-            setCharacterProfile.InvokeAction(bodyString, newBody.CharName);
+            setCharacterProfile.InvokeAction(bodyString, newBody.CharacterName);
         }
 
         private void GetFromIPC(string characterName, DalamudPluginInterface pi)
@@ -627,7 +623,7 @@ namespace CustomizePlus.Interface
             {
                 var CharacterProfile = JsonConvert.DeserializeObject<CharacterProfile?>(CharacterProfileString);
                 PluginLog.Information(
-                    $"IPC request for {characterName} found scale named: {CharacterProfile.ProfName}");
+                    $"IPC request for {characterName} found scale named: {CharacterProfile.ProfileName}");
             }
             else
             {

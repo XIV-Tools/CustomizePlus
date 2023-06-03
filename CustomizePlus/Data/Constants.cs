@@ -60,16 +60,16 @@ namespace CustomizePlus.Data
         ///     Predicate function for determining if the given object table index represents a
         ///     cutscene NPC object, with a small buffer in case the prior entries overflow past index 200.
         /// </summary>
-        public static bool InObjectTableCutsceneNPCRange(int index)
+        public static bool IsInObjectTableCutsceneNPCRange(int index)
         {
-            return index > 202 && index < 240;
+            return index is > 202 and < 240;
         }
 
         /// <summary>
         ///     Predicate function for determining if the given object table index represents an
         ///     NPC in a busy area (i.e. there are ~245 other objects already).
         /// </summary>
-        public static bool InObjectTableBusyNPCRange(int index)
+        public static bool IsInObjectTableBusyNPCRange(int index)
         {
             return index > 245;
         }

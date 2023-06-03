@@ -18,7 +18,7 @@ namespace CustomizePlus.Data.Armature
     /// </summary>
     public unsafe class Armature
     {
-        private static int NextGlobalID;
+        private static int _nextGlobalId;
         //public ObjectKind DalamudObjectKind
         //{
         //	get => ObjectRef == null
@@ -27,7 +27,7 @@ namespace CustomizePlus.Data.Armature
         //}
 
         public readonly Dictionary<string, ModelBone> Bones;
-        private readonly int LocalID;
+        private readonly int _localId;
 
         //public GameObject? ObjectRef;
         public RenderObject* ObjectRef;
@@ -36,7 +36,7 @@ namespace CustomizePlus.Data.Armature
 
         public Armature(CharacterProfile prof)
         {
-            LocalID = NextGlobalID++;
+            _localId = _nextGlobalId++;
 
             Profile = prof;
             Visible = false;
@@ -61,10 +61,10 @@ namespace CustomizePlus.Data.Armature
         {
             if (ObjectRef == null)
             {
-                return $"Armature ({LocalID}) on {Profile.CharName} with no skeleton reference";
+                return $"Armature ({_localId}) on {Profile.CharacterName} with no skeleton reference";
             }
 
-            return $"Armature ({LocalID}) on {Profile.CharName} with {Bones.Count} bones";
+            return $"Armature ({_localId}) on {Profile.CharacterName} with {Bones.Count} bones";
         }
 
         public IEnumerable<string> GetExtantBoneNames()
@@ -93,7 +93,7 @@ namespace CustomizePlus.Data.Armature
                         for (var boneIndex = 0; boneIndex < currentPose->Skeleton->Bones.Count; ++boneIndex)
                         {
                             if (currentPose->Skeleton->Bones[boneIndex].GetName() is string boneName &&
-                                boneName != null)
+                                !string.IsNullOrWhiteSpace(boneName))
                             {
                                 output.Add(boneName);
                             }
@@ -107,7 +107,7 @@ namespace CustomizePlus.Data.Armature
 
         public bool TryLinkSkeleton()
         {
-            if (GameDataHelper.FindModelByName(Profile.CharName) is GameObject obj && obj != null)
+            if (GameDataHelper.FindModelByName(Profile.CharacterName) is GameObject obj && obj != null)
             {
                 var ro = RenderObject.FromActor(obj);
 
@@ -159,7 +159,7 @@ namespace CustomizePlus.Data.Armature
                             for (var boneIndex = 0; boneIndex < currentPose->Skeleton->Bones.Count; ++boneIndex)
                             {
                                 if (currentPose->Skeleton->Bones[boneIndex].GetName() is string boneName &&
-                                    boneName != null)
+                                    !string.IsNullOrWhiteSpace(boneName))
                                 {
                                     if (Bones.TryGetValue(boneName, out var dummy) && dummy != null)
                                     {
@@ -175,7 +175,7 @@ namespace CustomizePlus.Data.Armature
                                             && pIndex >= 0
                                             && currentPose->Skeleton->Bones.Count > pIndex
                                             && currentPose->Skeleton->Bones[pIndex].GetName() is string outParentBone
-                                            && outParentBone != null)
+                                            && !string.IsNullOrWhiteSpace(outParentBone))
                                         {
                                             parentBone = outParentBone;
                                         }

@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using Newtonsoft.Json;
 
-namespace Anamnesis.Files
+namespace CustomizePlus.Anamnesis
 {
     [Serializable]
     public class PoseFile
@@ -37,10 +37,12 @@ namespace Anamnesis.Files
                     throw new FormatException();
                 }
 
-                Vector v = new();
-                v.X = float.Parse(parts[0], CultureInfo.InvariantCulture);
-                v.Y = float.Parse(parts[1], CultureInfo.InvariantCulture);
-                v.Z = float.Parse(parts[2], CultureInfo.InvariantCulture);
+                Vector v = new()
+                {
+                    X = float.Parse(parts[0], CultureInfo.InvariantCulture),
+                    Y = float.Parse(parts[1], CultureInfo.InvariantCulture),
+                    Z = float.Parse(parts[2], CultureInfo.InvariantCulture)
+                };
                 return v;
             }
 

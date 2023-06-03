@@ -20,7 +20,7 @@ namespace CustomizePlus.Data.Profile
         private static string CreateFileName(CharacterProfile prof)
         {
             var invalidCharacters = Path.GetInvalidFileNameChars();
-            var fileName = $"{prof.CharName}-{prof.ProfName}-{prof.UniqueID}.profile";
+            var fileName = $"{prof.CharacterName}-{prof.ProfileName}-{prof.UniqueId}.profile";
             fileName = string.Join(string.Empty,
                 fileName.Split(invalidCharacters, StringSplitOptions.RemoveEmptyEntries));
             return fileName;

@@ -15,14 +15,14 @@ namespace CustomizePlus.Data.Configuration
         public int Version { get; set; } = CurrentVersion;
 
         //public HashSet<Data.Profile.CharacterProfile> Profiles { get; set; } = new(); //replace with new profile data structure
-        public bool PluginEnabled { get; set; } = true;
+        public bool IsPluginEnabled { get; set; } = true;
 
-        public bool ApplytoNPCs { get; set; } = false;
-        public bool ApplytoNPCsInCutscenes { get; set; } = false;
+        public bool IsApplyToNPCs { get; set; } = false;
+        public bool IsApplyToNPCsInCutscenes { get; set; } = false;
 
         //public RenderRulesManager DefaultRules { get; set; } = new();
-        public bool ApplyProfilesInCutscenes { get; set; } = true; //global override? maybe remove
-        public int CapSkeletonsRendered { get; set; } = -1; //TODO rename this, please
+        public bool IsApplyProfilesInCutscenes { get; set; } = true; //global override? maybe remove
+        public int IsCapSkeletonsRendered { get; set; } = -1; //TODO rename this, please
 
 
         //public bool AutomaticEditMode { get; set; } = false; //should belong to editor session
@@ -31,7 +31,7 @@ namespace CustomizePlus.Data.Configuration
         //public EditMode EditingAttribute { get; set; } = EditMode.Scale; //should be local to the editor window
 
 
-        public bool DebuggingMode { get; set; } = false;
+        public bool IsDebuggingMode { get; set; } = false;
 
 
         public HashSet<string> ViewedMessageWindows = new();

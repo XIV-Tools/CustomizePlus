@@ -8,34 +8,34 @@ namespace CustomizePlus.Interface
 {
     public class InterfaceManager : IDisposable
     {
-        private readonly List<InterfaceBase> interfaces = new();
+        private readonly List<InterfaceBase> _interfaces = new();
 
         public void Dispose()
         {
-            foreach (var iface in interfaces)
+            foreach (var iface in _interfaces)
             {
                 iface.Close();
                 iface.Dispose();
             }
 
-            interfaces.Clear();
+            _interfaces.Clear();
         }
 
         public void Draw()
         {
-            if (interfaces.Count <= 0)
+            if (_interfaces.Count <= 0)
             {
                 return;
             }
 
-            for (var i = interfaces.Count - 1; i >= 0; i--)
+            for (var i = _interfaces.Count - 1; i >= 0; i--)
             {
-                interfaces[i].DoDraw(i);
+                _interfaces[i].DoDraw(i);
 
-                if (!interfaces[i].IsOpen)
+                if (!_interfaces[i].IsOpen)
                 {
-                    interfaces[i].Dispose();
-                    interfaces.RemoveAt(i);
+                    _interfaces[i].Dispose();
+                    _interfaces.RemoveAt(i);
                 }
             }
         }
@@ -49,7 +49,7 @@ namespace CustomizePlus.Interface
 
             if (ui.IsOpen)
             {
-                interfaces.Add(ui);
+                _interfaces.Add(ui);
             }
 
             return ui;
@@ -59,7 +59,7 @@ namespace CustomizePlus.Interface
         public void Toggle<T>()
             where T : InterfaceBase, new()
         {
-            if (interfaces.Count <= 0)
+            if (_interfaces.Count <= 0)
             {
                 new InvalidOperationException("Interfaces is empty.");
             }
@@ -76,7 +76,7 @@ namespace CustomizePlus.Interface
         public bool CloseAllInterfaces()
         {
             var interfaceWasClosed = false;
-            foreach (var currentInterface in interfaces)
+            foreach (var currentInterface in _interfaces)
             {
                 if (currentInterface.IsOpen)
                 {
@@ -90,7 +90,7 @@ namespace CustomizePlus.Interface
 
         public InterfaceBase? GetInterface(Type type)
         {
-            foreach (var ui in interfaces)
+            foreach (var ui in _interfaces)
             {
                 if (ui.GetType().IsAssignableTo(type))
                 {

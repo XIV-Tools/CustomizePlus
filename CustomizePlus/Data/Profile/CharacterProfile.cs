@@ -14,9 +14,9 @@ namespace CustomizePlus.Data.Profile
     [Serializable]
     public sealed class CharacterProfile
     {
-        [NonSerialized] private static int NextGlobalID;
+        [NonSerialized] private static int _nextGlobalId;
 
-        [NonSerialized] private readonly int LocalID;
+        [NonSerialized] private readonly int _localId;
 
         [NonSerialized] public Armature.Armature? Armature;
 
@@ -24,7 +24,7 @@ namespace CustomizePlus.Data.Profile
 
         public CharacterProfile()
         {
-            LocalID = NextGlobalID++;
+            _localId = _nextGlobalId++;
         }
 
         /// <summary>
@@ -33,8 +33,8 @@ namespace CustomizePlus.Data.Profile
         /// </summary>
         public CharacterProfile(CharacterProfile original) : this()
         {
-            CharName = original.CharName;
-            ProfName = original.ProfName;
+            CharacterName = original.CharacterName;
+            ProfileName = original.ProfileName;
             Enabled = original.Enabled;
             CreationDate = original.CreationDate;
             ModifiedDate = DateTime.Now;
@@ -48,28 +48,28 @@ namespace CustomizePlus.Data.Profile
             }
         }
 
-        public string CharName { get; set; } = "Default";
-        public string ProfName { get; set; } = "Profile";
+        public string CharacterName { get; set; } = "Default";
+        public string ProfileName { get; set; } = "Profile";
         public bool Enabled { get; set; }
         public DateTime CreationDate { get; set; } = DateTime.Now;
         public DateTime ModifiedDate { get; set; } = DateTime.Now;
 
-        [JsonIgnore] public int UniqueID => CreationDate.GetHashCode();
+        [JsonIgnore] public int UniqueId => CreationDate.GetHashCode();
 
         public Dictionary<string, BoneTransform> Bones { get; init; } = new();
 
         public override string ToString()
         {
-            return $"Profile ({LocalID}) '{ProfName}' on {CharName}";
+            return $"Profile ({_localId}) '{ProfileName}' on {CharacterName}";
         }
 
         public override bool Equals(object? obj)
         {
-            if (obj is CharacterProfile other && other != null)
+            if (obj is CharacterProfile other)
             {
-                return UniqueID == other.UniqueID
-                       && CharName == other.CharName
-                       && ProfName == other.ProfName;
+                return UniqueId == other.UniqueId
+                       && CharacterName == other.CharacterName
+                       && ProfileName == other.ProfileName;
             }
 
             return base.Equals(obj);
@@ -77,7 +77,7 @@ namespace CustomizePlus.Data.Profile
 
         public override int GetHashCode()
         {
-            return UniqueID;
+            return UniqueId;
         }
     }
 }

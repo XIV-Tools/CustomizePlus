@@ -368,7 +368,7 @@ namespace CustomizePlus.Data
 
         public static bool IsDefaultBone(string codename)
         {
-            return BoneTable.TryGetValue(codename, out var row) ? row.Default : false;
+            return BoneTable.TryGetValue(codename, out var row) ? row.IsDefault : false;
         }
 
         public static int GetBoneIndex(string codename)
@@ -378,7 +378,7 @@ namespace CustomizePlus.Data
 
         public static bool IsIVCSBone(string codename)
         {
-            return BoneTable.TryGetValue(codename, out var row) ? row.IVCS : false;
+            return BoneTable.TryGetValue(codename, out var row) ? row.IsIVCS : false;
         }
 
         public static string? GetBoneMirror(string codename)
@@ -439,8 +439,8 @@ namespace CustomizePlus.Data
             public string DisplayName;
             public BoneFamily Family;
 
-            public bool Default;
-            public bool IVCS;
+            public bool IsDefault;
+            public bool IsIVCS;
 
             public string? Parent;
             public string? MirroredCodename;
@@ -458,8 +458,8 @@ namespace CustomizePlus.Data
 
                 Family = ParseFamilyName(fields[i++]);
 
-                Default = bool.Parse(fields[i++]);
-                IVCS = bool.Parse(fields[i++]);
+                IsDefault = bool.Parse(fields[i++]);
+                IsIVCS = bool.Parse(fields[i++]);
 
                 Parent = fields[i].IsNullOrEmpty() ? null : fields[i];
                 i++;
@@ -476,7 +476,7 @@ namespace CustomizePlus.Data
                     return RowIndex.CompareTo(other.RowIndex);
                 }
 
-                return DisplayName.CompareTo(other.DisplayName);
+                return String.Compare(DisplayName, other.DisplayName, StringComparison.Ordinal);
             }
         }
 
@@ -491,7 +491,7 @@ namespace CustomizePlus.Data
             {
                 try
                 {
-                    var parsedBones = style.Select(x => ParseHairBone(x)).ToArray();
+                    var parsedBones = style.Select(ParseHairBone).ToArray();
 
                     // if any of the first subs is nonstandard letter, we can presume that any bcd... are part of a rising sequence
                     var firstAsc =
@@ -504,8 +504,8 @@ namespace CustomizePlus.Data
                         StringBuilder dispName = new();
                         dispName.Append($"Hair #{boneInfo.id}");
 
-                        var sub1 = LabelHairBoneSub(boneInfo.sub1, firstAsc);
-                        var sub2 = boneInfo.sub2 == null ? null : LabelHairBoneSub(boneInfo.sub2, !firstAsc);
+                        var sub1 = GetHairBoneSubLabel(boneInfo.sub1, firstAsc);
+                        var sub2 = boneInfo.sub2 == null ? null : GetHairBoneSubLabel(boneInfo.sub2, !firstAsc);
 
                         dispName.Append($" {sub1}");
                         if (sub2 != null)
@@ -519,8 +519,8 @@ namespace CustomizePlus.Data
                             Codename = boneInfo.name,
                             DisplayName = dispName.ToString(),
                             Family = BoneFamily.Hair,
-                            Default = false,
-                            IVCS = false,
+                            IsDefault = false,
+                            IsIVCS = false,
                             Parent = "j_kao",
                             Children = Array.Empty<string>(),
                             MirroredCodename = null
@@ -552,7 +552,7 @@ namespace CustomizePlus.Data
             return (boneName, idNo, subFirst, subSecond);
         }
 
-        private static string LabelHairBoneSub(string sub, bool ascending)
+        private static string GetHairBoneSubLabel(string sub, bool ascending)
         {
             return (sub.ToLower(), ascending) switch
             {

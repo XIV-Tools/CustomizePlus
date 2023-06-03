@@ -39,8 +39,8 @@ namespace CustomizePlus
         //private static ConcurrentDictionary<string, BodyScale> scaleOverride = new();
 
 
-        private static Hook<RenderDelegate>? renderManagerHook;
-        private static Hook<GameObjectMovementDelegate>? gameObjectMovementHook;
+        private static Hook<RenderDelegate>? _renderManagerHook;
+        private static Hook<GameObjectMovementDelegate>? _gameObjectMovementHook;
 
 
         //private static BodyScale? defaultScale;
@@ -48,7 +48,7 @@ namespace CustomizePlus
         //private static BodyScale? defaultCutsceneScale;
 
 
-        private static CustomizePlusIpc ipcManager = null!;
+        private static CustomizePlusIpc _ipcManager = null!;
 
         public Plugin(DalamudPluginInterface pluginInterface)
         {
@@ -68,7 +68,7 @@ namespace CustomizePlus
                 ProfileManager.ProcessConvertedProfiles();
                 ProfileManager.LoadProfiles();
 
-                ipcManager = new CustomizePlusIpc(DalamudServices.ObjectTable, DalamudServices.PluginInterface);
+                _ipcManager = new CustomizePlusIpc(DalamudServices.ObjectTable, DalamudServices.PluginInterface);
 
                 DalamudServices.CommandManager.AddCommand((s, t) => MainInterface.Toggle(), "/customize",
                     "Toggles the Customize+ configuration window.");
@@ -114,13 +114,13 @@ namespace CustomizePlus
 
             DalamudServices.Framework.Update -= Framework_Update;
 
-            ipcManager?.Dispose();
+            _ipcManager?.Dispose();
 
-            gameObjectMovementHook?.Disable();
-            gameObjectMovementHook?.Dispose();
+            _gameObjectMovementHook?.Disable();
+            _gameObjectMovementHook?.Dispose();
 
-            renderManagerHook?.Disable();
-            renderManagerHook?.Dispose();
+            _renderManagerHook?.Disable();
+            _renderManagerHook?.Dispose();
 
             Files.Dispose();
             CommandManagerExtensions.Dispose();
@@ -187,35 +187,35 @@ namespace CustomizePlus
         {
             try
             {
-                if (Config.PluginEnabled)
+                if (Config.IsPluginEnabled)
                 {
-                    if (renderManagerHook == null)
+                    if (_renderManagerHook == null)
                     {
                         // "Render::Manager::Render"
                         var renderAddress =
                             DalamudServices.SigScanner.ScanText(
                                 "E8 ?? ?? ?? ?? 48 81 C3 ?? ?? ?? ?? BF ?? ?? ?? ?? 33 ED");
-                        renderManagerHook = Hook<RenderDelegate>.FromAddress(renderAddress, OnRender);
+                        _renderManagerHook = Hook<RenderDelegate>.FromAddress(renderAddress, OnRender);
                         PluginLog.Debug("Render hook established");
                     }
 
-                    if (gameObjectMovementHook == null)
+                    if (_gameObjectMovementHook == null)
                     {
                         var movementAddress = DalamudServices.SigScanner.ScanText("E8 ?? ?? ?? ?? EB 29 48 8B 5F 08");
-                        gameObjectMovementHook =
+                        _gameObjectMovementHook =
                             Hook<GameObjectMovementDelegate>.FromAddress(movementAddress, OnGameObjectMove);
                         PluginLog.Debug("Movement hook established");
                     }
 
                     PluginLog.Debug("Hooking render & movement functions");
-                    renderManagerHook.Enable();
-                    gameObjectMovementHook.Enable();
+                    _renderManagerHook.Enable();
+                    _gameObjectMovementHook.Enable();
                 }
                 else
                 {
                     PluginLog.Debug("Unhooking render & movement functions");
-                    renderManagerHook?.Disable();
-                    gameObjectMovementHook?.Disable();
+                    _renderManagerHook?.Disable();
+                    _gameObjectMovementHook?.Disable();
                 }
             }
             catch (Exception e)
@@ -225,14 +225,14 @@ namespace CustomizePlus
             }
         }
 
-        private void UpdatePlayerIPC()
+        private void UpdatePlayerIpc()
         {
             //Get player's body scale string and send IPC message
             if (GameDataHelper.GetPlayerName() is string name && name != null)
             {
                 if (ProfileManager.GetProfileByCharacterName(name) is CharacterProfile prof && prof != null)
                 {
-                    ipcManager.OnScaleUpdate(JsonConvert.SerializeObject(prof));
+                    _ipcManager.OnScaleUpdate(JsonConvert.SerializeObject(prof));
                 }
             }
         }
@@ -264,14 +264,14 @@ namespace CustomizePlus
                     return;
                 }
 
-                if (ProfileManager.Profiles.Count(x => x.ProfName == profName && x.CharName == charaName) > 1)
+                if (ProfileManager.Profiles.Count(x => x.ProfileName == profName && x.CharacterName == charaName) > 1)
                 {
                     PluginLog.Information(
                         $"Found more than one profile matching Profile \"{profName}\" and Character \"{charaName}\". Applying first match.");
                 }
 
                 var outProf =
-                    ProfileManager.Profiles.FirstOrDefault(x => x.ProfName == profName && x.CharName == charaName);
+                    ProfileManager.Profiles.FirstOrDefault(x => x.ProfileName == profName && x.CharacterName == charaName);
 
                 if (outProf == null)
                 {
@@ -289,7 +289,7 @@ namespace CustomizePlus
                 RefreshPlugin(true);
 
                 PluginLog.Debug(
-                    $"Scale \"{outProf.ProfName}\" were successfully applied to Character \"{outProf.CharName}\" by command");
+                    $"Scale \"{outProf.ProfileName}\" were successfully applied to Character \"{outProf.CharacterName}\" by command");
             }
             catch (Exception e)
             {
@@ -302,13 +302,13 @@ namespace CustomizePlus
 
         private static IntPtr OnRender(IntPtr a1, long a2, int a3, int a4)
         {
-            if (renderManagerHook == null)
+            if (_renderManagerHook == null)
             {
                 throw new Exception();
             }
 
             // if this gets disposed while running we crash calling Original's getter, so get it at start
-            var original = renderManagerHook.Original;
+            var original = _renderManagerHook.Original;
 
             try
             {
@@ -359,7 +359,7 @@ namespace CustomizePlus
             catch (Exception e)
             {
                 PluginLog.Error($"Error in CustomizePlus render hook {e}");
-                renderManagerHook?.Disable();
+                _renderManagerHook?.Disable();
             }
 
             return original(a1, a2, a3, a4);
@@ -369,7 +369,7 @@ namespace CustomizePlus
         private static void OnGameObjectMove(IntPtr gameObjectPtr)
         {
             // Call the original function.
-            gameObjectMovementHook.Original(gameObjectPtr);
+            _gameObjectMovementHook.Original(gameObjectPtr);
 
             //If GPose and a 3rd-party posing service are active simultneously, abort
             if (GPoseService.Instance.GPoseState == GPoseState.Inside
@@ -382,14 +382,14 @@ namespace CustomizePlus
             {
                 var objIndex = obj.ObjectIndex;
 
-                var forbiddenFiller = objIndex == Constants.ObjectTableFillerIndex;
-                var forbiddenCutsceneNPC = Constants.InObjectTableCutsceneNPCRange(objIndex)
-                                           && !Config.ApplytoNPCsInCutscenes;
+                bool isForbiddenFiller = objIndex == Constants.ObjectTableFillerIndex;
+                bool isForbiddenCutsceneNPC = Constants.IsInObjectTableCutsceneNPCRange(objIndex)
+                                           && !Config.IsApplyToNPCsInCutscenes;
 
                 //TODO none of this should really be necessary? the armature should already be
                 //keeping track of its own visibility wrt rules and such
 
-                if (!forbiddenFiller && !forbiddenCutsceneNPC)
+                if (!isForbiddenFiller && !isForbiddenCutsceneNPC)
                 {
                     ArmatureManager.RenderArmatureByObject(obj);
                 }

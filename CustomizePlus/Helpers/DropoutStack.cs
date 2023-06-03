@@ -12,10 +12,10 @@ namespace CustomizePlus.Helpers
     /// </summary>
     public sealed class DropoutStack<T> : IEnumerable<T>
     {
-        private readonly int capacity;
-        private readonly T[] memory;
-        private int bottom;
-        private int head;
+        private readonly int _capacity;
+        private readonly T[] _memory;
+        private int _bottom;
+        private int _head;
 
         /// <summary>
         ///     Initializes a new instance of the <see cref="DropoutStack{T}" /> class.
@@ -23,15 +23,15 @@ namespace CustomizePlus.Helpers
         /// <param name="maxCapacity">The maximum capacity of the stack.</param>
         public DropoutStack(int maxCapacity)
         {
-            memory = new T[maxCapacity];
-            capacity = maxCapacity;
-            head = 0;
-            bottom = 0;
+            _memory = new T[maxCapacity];
+            _capacity = maxCapacity;
+            _head = 0;
+            _bottom = 0;
         }
 
         public IEnumerator<T> GetEnumerator()
         {
-            return IterateValuesLIFO().GetEnumerator();
+            return IterateValuesLifo().GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()
@@ -41,16 +41,16 @@ namespace CustomizePlus.Helpers
 
         /// <summary>
         ///     Push an element to the stack. If this causes the stack's size to exceed
-        ///     <see cref="capacity" />, the stack's oldest item is deleted to make room.
+        ///     <see cref="_capacity" />, the stack's oldest item is deleted to make room.
         /// </summary>
         public void Push(T element)
         {
-            memory[head] = element;
-            head = IncrementIndex(head);
+            _memory[_head] = element;
+            _head = IncrementIndex(_head);
 
-            if (head == bottom)
+            if (_head == _bottom)
             {
-                bottom = IncrementIndex(bottom);
+                _bottom = IncrementIndex(_bottom);
             }
         }
 
@@ -60,14 +60,14 @@ namespace CustomizePlus.Helpers
         /// </summary>
         public bool TryPop(out T? value)
         {
-            if (head == bottom)
+            if (_head == _bottom)
             {
                 value = default;
                 return false;
             }
 
-            head = DecrementIndex(head);
-            value = memory[head];
+            _head = DecrementIndex(_head);
+            value = _memory[_head];
             return true;
         }
 
@@ -77,13 +77,13 @@ namespace CustomizePlus.Helpers
         /// </summary>
         public bool TryPeek(out T? value)
         {
-            if (head == bottom)
+            if (_head == _bottom)
             {
                 value = default;
                 return false;
             }
 
-            value = memory[head - 1];
+            value = _memory[_head - 1];
             return true;
         }
 
@@ -92,27 +92,27 @@ namespace CustomizePlus.Helpers
         /// </summary>
         public void Clear()
         {
-            head = 0;
-            bottom = 0;
+            _head = 0;
+            _bottom = 0;
         }
 
         private int IncrementIndex(int index)
         {
-            return (index + 1) % capacity;
+            return (index + 1) % _capacity;
         }
 
         private int DecrementIndex(int index)
         {
             return index == 0
-                ? capacity - 1
+                ? _capacity - 1
                 : index - 1;
         }
 
-        private IEnumerable<T> IterateValuesLIFO()
+        private IEnumerable<T> IterateValuesLifo()
         {
-            for (var iter = head; iter != bottom; iter = DecrementIndex(iter))
+            for (var iter = _head; iter != _bottom; iter = DecrementIndex(iter))
             {
-                yield return memory[iter];
+                yield return _memory[iter];
             }
         }
     }

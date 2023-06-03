@@ -12,8 +12,8 @@ namespace CustomizePlus.Core
     //Borrowed from Brio
     public class ServiceManager
     {
-        private readonly List<IService> Services = new();
-        private readonly Stopwatch TickTimer = new();
+        private readonly List<IService> _services = new();
+        private readonly Stopwatch _tickTimer = new();
 
         public ServiceManager()
         {
@@ -33,7 +33,7 @@ namespace CustomizePlus.Core
             var service = (T?)Activator.CreateInstance(newType);
             if (service != null)
             {
-                Services.Add(service);
+                _services.Add(service);
                 service.AssignInstance();
             }
         }
@@ -45,15 +45,15 @@ namespace CustomizePlus.Core
                 throw new Exception("Services already running");
             }
 
-            foreach (var service in Services)
+            foreach (var service in _services)
             {
                 service.Start();
             }
 
             IsStarted = true;
 
-            TickTimer.Reset();
-            TickTimer.Start();
+            _tickTimer.Reset();
+            _tickTimer.Start();
         }
 
         public void Tick()
@@ -63,10 +63,10 @@ namespace CustomizePlus.Core
                 return;
             }
 
-            var delta = (float)TickTimer.Elapsed.TotalSeconds;
-            TickTimer.Restart();
+            var delta = (float)_tickTimer.Elapsed.TotalSeconds;
+            _tickTimer.Restart();
 
-            foreach (var service in Services)
+            foreach (var service in _services)
             {
                 service.Tick(delta);
             }
@@ -74,10 +74,10 @@ namespace CustomizePlus.Core
 
         public void Dispose()
         {
-            TickTimer.Stop();
-            TickTimer.Reset();
+            _tickTimer.Stop();
+            _tickTimer.Reset();
 
-            var reversed = Services.ToList();
+            var reversed = _services.ToList();
             reversed.Reverse();
 
             if (IsStarted)
@@ -96,7 +96,7 @@ namespace CustomizePlus.Core
                 service.ClearInstance();
             }
 
-            Services.Clear();
+            _services.Clear();
         }
     }
 }

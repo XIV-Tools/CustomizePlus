@@ -15,15 +15,15 @@ namespace CustomizePlus.Data.Profile
                 return false;
             }
 
-            return x.UniqueID == y.UniqueID
+            return x.UniqueId == y.UniqueId
                    && x.CreationDate == y.CreationDate
-                   && x.CharName == y.CharName
-                   && x.ProfName == y.ProfName;
+                   && x.CharacterName == y.CharacterName
+                   && x.ProfileName == y.ProfileName;
         }
 
         public override int GetHashCode([DisallowNull] CharacterProfile obj)
         {
-            return obj.UniqueID;
+            return obj.UniqueId;
         }
     }
 }
