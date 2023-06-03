@@ -2,7 +2,6 @@
 // Licensed under the MIT license.
 
 using CustomizePlus.Interface;
-using CustomizePlus.Memory;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,6 +11,7 @@ using System.Threading.Tasks;
 using CustomizePlus.Extensions;
 using System.Transactions;
 using Newtonsoft.Json;
+using CustomizePlus.Memory;
 
 namespace CustomizePlus.Data
 {
@@ -144,43 +144,41 @@ namespace CustomizePlus.Data
 		/// Adjust the transformation to reorient the bone in space as a result of kinematic movement.
 		/// Returns a new aggregate transform that can be passed on to any of the bone's kinematic descendants.
 		/// </summary>
-		/// <param name="aggregate">The aggregate transformation of every link in the kinematic chain from the origin up to this one.</param>
-		/// <param name="pointPos">The spacial origin of the transformation.</param>
-		/// <param name="pointRot">The spacial orientation of the transformation at the origin.</param>
-		/// <param name="inheritedScale">The scaling values from the previous link in the kinematic chain, which will apply to this link's translation.</param>
-		public BoneTransform ReorientKinematically(BoneTransform aggregate, Vector3 pointPos, Vector3 pointRot, Vector3 inheritedScale)
+		public void ReorientKinematically(BoneTransform delta, Vector3 pointPos)
 		{
-			this.Translation = aggregate.Translation;
-			this.Rotation = aggregate.Rotation;
-			this.Scaling = aggregate.Scaling;
-			return aggregate;
+			var offset = this.Translation - pointPos;
+			offset = Vector3.Transform(offset, delta.Rotation.ToQuaternion());
 
-			////record the initial values for later
-			//Vector3 originalTranslation = this.Translation - pointPos;
-			//Vector3 originalRotation = this.Rotation - pointRot;
-			//Vector3 originalScaling = this.Scaling / inheritedScale;
+			this.Scaling *= delta.Scaling;
+			this.Rotation = Quaternion.Multiply(this.Rotation.ToQuaternion(), delta.Rotation.ToQuaternion()).ToEulerAngles();
+			this.Translation = delta.Translation + pointPos + offset;
 
-			////place the bone back at the origin of the transformation (in effect "undoing" those initial values)
-			//this.Translation = pointPos;
-			//this.Rotation = pointRot;
+			//make a record of what this bone's original transformation values were
+			//Vector3 originalTranslation = this.Translation;
+			//Vector3 originalRotation = this.Rotation;
+			//Vector3 originalScaling = this.Scaling;
 
-			////apply the aggregate transformation to get new SRT values
-			//Vector3 newScaling = Vector3.Multiply(aggregate.Scaling, this.Scaling);
-			//Vector3 newrotation = aggregate.Rotation + this.Rotation;
-			//Vector3 newTranslation = aggregate.Translation + this.Translation;
+			////undo the aggregate transformation to put the bone transform in the origin's local space
+			////this.Scaling /= aggregate.Scaling;
+			//this.Rotation -= aggregate.Rotation;
+			//this.Translation -= aggregate.Translation;
 
-			////re-apply the original transforms
-			////also apply the inherited scale to the translation to represent the changed offset
-			//this.Scaling *= originalScaling;
-			//this.Rotation += originalRotation;
-			//this.Translation += Vector3.Multiply(originalTranslation, inheritedScale);
+			////perform the original transformation
+			//this.Translation += pointPos;
+			//this.Rotation += pointRot;
+			////this.Scaling *= pointScale;
 
-			//record the new aggregated transform
+			////re-apply the aggregate to move the bone back into its original local space
+			////this.Scaling *= aggregate.Scaling;
+			//this.Rotation += aggregate.Rotation;
+			//this.Translation += aggregate.Translation;
+
+			////create a modified aggregate by composing it with this bone's original transformation values
 			//return new BoneTransform()
 			//{
-			//	Translation = this.Translation,
-			//	Rotation = this.Rotation,
-			//	Scaling = this.Scaling
+			//	Translation = aggregate.Translation + originalTranslation,
+			//	Rotation = aggregate.Rotation + originalRotation,
+			//	Scaling = aggregate.Scaling * originalScaling
 			//};
 		}
 
@@ -188,7 +186,7 @@ namespace CustomizePlus.Data
 		/// Given a transformation represented by the given parameters, apply this transform's
 		/// operations to further modify them.
 		/// </summary>
-		public Transform ModifyExistingTransformation(Transform tr)
+		public FFXIVClientStructs.Havok.hkQsTransformf ModifyExistingTransformation(FFXIVClientStructs.Havok.hkQsTransformf tr)
 		{
 			tr.Scale.X *= this.Scaling.X;
 			tr.Scale.Y *= this.Scaling.Y;

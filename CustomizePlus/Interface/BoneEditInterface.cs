@@ -201,13 +201,13 @@ namespace CustomizePlus.Interface
 			//CompleteBoneEditor("n_root");
 
 			string col1Label = Settings.EditingAttribute == BoneAttribute.Rotation
-				? $"{FontAwesomeIcon.ArrowsLeftRight.ToIconString()} Yaw"
+				? $"{FontAwesomeIcon.ArrowsLeftRight.ToIconString()} Roll"
 				: $"{FontAwesomeIcon.ArrowsUpDown.ToIconString()} X";
 			string col2Label = Settings.EditingAttribute == BoneAttribute.Rotation
 				? $"{FontAwesomeIcon.ArrowsUpDown.ToIconString()} Pitch"
 				: $"{FontAwesomeIcon.ArrowsLeftRight.ToIconString()} Y";	
 			string col3Label = Settings.EditingAttribute == BoneAttribute.Rotation
-				? $"{FontAwesomeIcon.GroupArrowsRotate.ToIconString()} Roll"
+				? $"{FontAwesomeIcon.GroupArrowsRotate.ToIconString()} Yaw"
 				: $"{FontAwesomeIcon.ArrowsToEye.ToIconString()} Z";	
 			string col4Label = Settings.EditingAttribute == BoneAttribute.Scale
 				? $"{FontAwesomeIcon.ArrowsUpDownLeftRight.ToIconString()} All"
@@ -597,7 +597,7 @@ namespace CustomizePlus.Interface
 				//as the bone information allows us to propagate them to siblings and children
 				//otherwise access them through the profile directly
 
-				if (this.profileInProgress.Enabled && this.skeletonInProgress.Bones.ContainsKey(codename))
+				if (this.profileInProgress.Enabled && this.skeletonInProgress.Bones.Any(x => x.Value.BoneName == codename))
 				{
 					this.skeletonInProgress.UpdateBoneTransform(codename, transform, Settings.MirrorModeEnabled, Settings.ParentingEnabled);
 				}
@@ -686,7 +686,7 @@ namespace CustomizePlus.Interface
 				//as the bone information allows us to propagate them to siblings and children
 				//otherwise access them through the profile directly
 
-				if (this.profileInProgress.Enabled && this.skeletonInProgress.Bones.ContainsKey(codename))
+				if (this.profileInProgress.Enabled && this.skeletonInProgress.Bones.Any(x => x.Value.BoneName == codename))
 				{
 					this.skeletonInProgress.UpdateBoneTransform(codename, transform, Settings.MirrorModeEnabled, Settings.ParentingEnabled);
 				}

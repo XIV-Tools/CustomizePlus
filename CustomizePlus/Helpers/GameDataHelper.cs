@@ -36,6 +36,11 @@ namespace CustomizePlus.Helpers
 			//return null;
 		}
 
+		//public unsafe static FFXIVClientStructs.FFXIV.Client.Graphics.Scene.CharacterBase* FindRenderBaseByName(string name)
+		//{
+		//	foreach()
+		//}
+
 		//public static unsafe (BodyScale, bool) FindScale(int objectIndex)
 		//{
 		//	//Determine player object for root scale behavior later. Have to catch errors for zone transitions.

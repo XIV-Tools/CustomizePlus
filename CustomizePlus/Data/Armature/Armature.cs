@@ -2,12 +2,15 @@
 // Licensed under the MIT license.
 
 using CustomizePlus.Data.Profile;
-using CustomizePlus.Memory;
-using Dalamud.Game.ClientState.Objects.Types;
-using Dalamud.Game.ClientState.Objects.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+
+using System.Runtime.InteropServices;
+using FFXIVClientStructs.FFXIV.Client.Game.Object;
+using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
+using FFXIVClientStructs.FFXIV.Client.Graphics.Render;
+using FFXIVClientStructs.Havok;
 
 namespace CustomizePlus.Data.Armature
 {
@@ -24,21 +27,10 @@ namespace CustomizePlus.Data.Armature
 
 		public bool Visible { get; set; }
 
-		//public GameObject? ObjectRef;
-		public RenderObject* ObjectRef;
 
-		public RenderSkeleton* InGameSkeleton
-		{
-			get => this.ObjectRef != null
-				? this.ObjectRef->Skeleton
-				: (RenderSkeleton*)IntPtr.Zero;
-		}
-		//public ObjectKind DalamudObjectKind
-		//{
-		//	get => ObjectRef == null
-		//		? ObjectKind.None
-		//		: this.ObjectRef.ObjectKind;
-		//}
+		public CharacterBase* CharacterBase;
+		public Skeleton* Skeleton => this.CharacterBase->Skeleton;
+
 
 		public readonly Dictionary<string, ModelBone> Bones;
 
@@ -48,7 +40,7 @@ namespace CustomizePlus.Data.Armature
 
 			this.Profile = prof;
 			this.Visible = false;
-			this.ObjectRef = null;
+			this.CharacterBase = null;
 			this.Bones = new();
 
 			this.Profile.Armature = this;
@@ -60,7 +52,7 @@ namespace CustomizePlus.Data.Armature
 
 		public override string ToString()
 		{
-			if (this.ObjectRef == null)
+			if (this.CharacterBase == null)
 			{
 				return $"Armature ({this.LocalID}) on {this.Profile.CharName} with no skeleton reference";
 			}
@@ -75,123 +67,80 @@ namespace CustomizePlus.Data.Armature
 			return this.Bones.Keys;
 		}
 
-		private string[] GetHypotheticalBoneNames()
-		{
-			List<string> output = new List<string>();
-
-			for (int pSkeleIndex = 0; pSkeleIndex < this.InGameSkeleton->Length; ++pSkeleIndex)
-			{
-				for (int poseIndex = 0; poseIndex < 4; ++poseIndex)
-				{
-					HkaPose* currentPose = poseIndex switch
-					{
-						0 => this.InGameSkeleton->PartialSkeletons[pSkeleIndex].Pose1,
-						1 => this.InGameSkeleton->PartialSkeletons[pSkeleIndex].Pose1,
-						3 => this.InGameSkeleton->PartialSkeletons[pSkeleIndex].Pose1,
-						_ => null
-					};
-
-					if (currentPose != null)
-					{
-						for (int boneIndex = 0; boneIndex < currentPose->Skeleton->Bones.Count; ++boneIndex)
-						{
-							if (currentPose->Skeleton->Bones[boneIndex].GetName() is string boneName && boneName != null)
-							{
-								output.Add(boneName);
-							}
-						}
-					}
-				}
-			}
-
-			return output.ToArray();
-		}
-
 		public bool TryLinkSkeleton()
 		{
-			if (Helpers.GameDataHelper.FindModelByName(this.Profile.CharName) is GameObject obj && obj != null)
+			if (Helpers.GameDataHelper.FindModelByName(this.Profile.CharName) is Dalamud.Game.ClientState.Objects.Types.GameObject obj)
 			{
-				RenderObject* ro = RenderObject.FromActor(obj);
+				Memory.RenderObject* ro = Memory.RenderObject.FromActor(obj);
 
-				if (ro != this.ObjectRef)
+				if (ro != this.CharacterBase)
 				{
-					this.ObjectRef = ro;
-					this.RebuildSkeleton(obj);
+					this.CharacterBase = (CharacterBase*)ro;
+					this.RebuildSkeleton();
 				}
 
 				return true;
 			}
 			else
 			{
-				this.ObjectRef = null;
+				this.CharacterBase = null;
 				return false;
 			}
 		}
 
-		public void RebuildSkeleton(GameObject? obj = null)
+		public void RebuildSkeleton()
 		{
-			if (obj != null)
-			{
-				this.ObjectRef = RenderObject.FromActor(obj);
-			}
+			//if (cbase == null)
+			//{
+			//	return;
+			//}
 
-			if (this.InGameSkeleton == null)
-			{
-				Dalamud.Logging.PluginLog.LogError($"Error obtaining skeleton from GameObject '{obj}'");
-				return;
-			}
+			//this.CharacterBase = cbase;
 
 			this.Bones.Clear();
 
 			try
 			{
 				//build the skeleton
-				for (int pSkeleIndex = 0; pSkeleIndex < this.InGameSkeleton->Length; ++pSkeleIndex)
+				for (int pSkeleIndex = 0; pSkeleIndex < this.Skeleton->PartialSkeletonCount; ++pSkeleIndex)
 				{
 					for (int poseIndex = 0; poseIndex < 4; ++poseIndex)
 					{
-						HkaPose* currentPose = poseIndex switch
-						{
-							0 => this.InGameSkeleton->PartialSkeletons[pSkeleIndex].Pose1,
-							1 => this.InGameSkeleton->PartialSkeletons[pSkeleIndex].Pose1,
-							3 => this.InGameSkeleton->PartialSkeletons[pSkeleIndex].Pose1,
-							_ => null
-						};
+						hkaPose* currentPose = this.Skeleton->PartialSkeletons[pSkeleIndex].GetHavokPose(poseIndex);
 
-						if (currentPose != null)
+						if (currentPose == null) continue;
+
+						for (int boneIndex = 0; boneIndex < currentPose->Skeleton->Bones.Length; ++boneIndex)
 						{
-							for (int boneIndex = 0; boneIndex < currentPose->Skeleton->Bones.Count; ++boneIndex)
+							if (currentPose->Skeleton->Bones[boneIndex].Name.String is string boneName && boneName != null)
 							{
-								if (currentPose->Skeleton->Bones[boneIndex].GetName() is string boneName && boneName != null)
+								if (this.Bones.TryGetValue(boneName, out var dummy) && dummy != null)
 								{
-									if (this.Bones.TryGetValue(boneName, out var dummy) && dummy != null)
+									this.Bones[boneName].TripleIndices.Add(new Tuple<int, int, int>(pSkeleIndex, poseIndex, boneIndex));
+								}
+								else
+								{
+									string? parentBone = null;
+
+									if (currentPose->Skeleton->ParentIndices.Length > boneIndex
+										&& currentPose->Skeleton->ParentIndices[boneIndex] is short pIndex
+										&& pIndex >= 0
+										&& currentPose->Skeleton->Bones.Length > pIndex
+										&& currentPose->Skeleton->Bones[pIndex].Name.String is string outParentBone
+										&& outParentBone != null)
 									{
-										this.Bones[boneName].TripleIndices.Add(new Tuple<int, int, int>(pSkeleIndex, poseIndex, boneIndex));
+										parentBone = outParentBone;
+									}
+
+									this.Bones[boneName] = new ModelBone(this, boneName, parentBone ?? String.Empty, pSkeleIndex, poseIndex, boneIndex);
+
+									if (this.Profile.Bones.TryGetValue(boneName, out var bt) && bt.IsEdited())
+									{
+										this.Bones[boneName].PluginTransform = bt;
 									}
 									else
 									{
-										string? parentBone = null;
-
-										if (currentPose->Skeleton->ParentIndices.Count > boneIndex
-											&& currentPose->Skeleton->ParentIndices[boneIndex] is short pIndex
-											&& pIndex >= 0
-											&& currentPose->Skeleton->Bones.Count > pIndex
-											&& currentPose->Skeleton->Bones[pIndex].GetName() is string outParentBone
-											&& outParentBone != null)
-										{
-											parentBone = outParentBone;
-										}
-
-										this.Bones[boneName] = new ModelBone(this, boneName, parentBone ?? String.Empty, pSkeleIndex, poseIndex, boneIndex);
-
-										if (this.Profile.Bones.TryGetValue(boneName, out var bt) && bt.IsEdited())
-										{
-											this.Bones[boneName].PluginTransform = bt;
-										}
-										else
-										{
-											this.Bones[boneName].PluginTransform = new BoneTransform();
-										}
+										this.Bones[boneName].PluginTransform = new BoneTransform();
 									}
 								}
 							}
@@ -258,7 +207,7 @@ namespace CustomizePlus.Data.Armature
 			{
 				foreach(var potentialChild in this.Bones)
 				{
-					if (potentialChild.Value.ParentBoneName == potentialParent.Key)
+					if (potentialChild.Value.ParentBoneName == potentialParent.Value.BoneName)
 					{
 						potentialParent.Value.Children.Add(potentialChild.Value);
 						potentialChild.Value.Parent = potentialParent.Value;
@@ -280,18 +229,6 @@ namespace CustomizePlus.Data.Armature
 					}
 				}
 			}
-		}
-
-		private static ModelBone TraceAncestry(ModelBone mb)
-		{
-			ModelBone ancestor = mb;
-
-			while (ancestor.Parent != null)
-			{
-				ancestor = ancestor.Parent;
-			}
-
-			return ancestor;
 		}
 
 		//private bool TryDiscoverDangling(out ModelBone[] dangling)

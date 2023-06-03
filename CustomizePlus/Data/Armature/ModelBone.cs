@@ -1,12 +1,19 @@
 ﻿// © Customize+.
 // Licensed under the MIT license.
 
-using CustomizePlus.Memory;
+using CustomizePlus.Extensions;
 using System;
 using System.Linq;
 using System.Numerics;
 using System.Text;
 using System.Collections.Generic;
+//using CustomizePlus.Memory;
+
+using System.Runtime.InteropServices;
+using Dalamud.Game.ClientState.Objects.Types;
+
+using FFXIVClientStructs.FFXIV.Client.Graphics.Render;
+using FFXIVClientStructs.Havok;
 
 namespace CustomizePlus.Data.Armature
 {
@@ -16,10 +23,6 @@ namespace CustomizePlus.Data.Armature
 	public unsafe class ModelBone
 	{
 		public readonly Armature Armature;
-
-		//public readonly int SkeletonIndex;
-		//public readonly int PoseIndex;
-		//public readonly int BoneIndex;
 
 		public readonly List<Tuple<int, int, int>> TripleIndices = new();
 
@@ -44,7 +47,13 @@ namespace CustomizePlus.Data.Armature
 			return sb.ToString();
 		}
 
-		public ModelBone(Armature arm, string name, string? parentName, int skeleIndex, int poseIndex, int boneIndex)
+		public string GetDisplayName()
+		{
+			Tuple<int, int, int> triplex = this.TripleIndices.FirstOrDefault();
+			return $"{this.BoneName,-16} @ <{triplex.Item1,3}, {triplex.Item2,3}, {triplex.Item3,3}>";
+		}
+
+		public ModelBone(Armature arm, string name, string parentName, int skeleIndex, int poseIndex, int boneIndex)
 		{
 			this.Armature = arm;
 
@@ -73,23 +82,25 @@ namespace CustomizePlus.Data.Armature
 
 		public void UpdateModel(BoneTransform newTransform, bool mirror = false, bool propagate = false)
 		{
-			this.UpdateTransformation(newTransform);
 
 			if (mirror && this.Sibling != null)
 			{
-				this.Sibling.UpdateModel(newTransform, false, propagate);
+				var mirroredTransform = BoneData.IsIVCSBone(this.BoneName)
+					? newTransform.GetSpecialReflection()
+					: newTransform.GetStandardReflection();
+
+				this.Sibling.UpdateModel(mirroredTransform, false, propagate);
 			}
 
 			if (propagate)
 			{
 				foreach (var child in this.Children)
 				{
-					CascadeTransformation(newTransform,
-						this.PluginTransform.Translation,
-						this.PluginTransform.Rotation,
-						Vector3.One);
+					child.CascadeTransformation(newTransform, this.PluginTransform.Translation);
 				}
 			}
+
+			this.UpdateTransformation(newTransform);
 		}
 
 		private void UpdateTransformation(BoneTransform newTransform)
@@ -109,16 +120,75 @@ namespace CustomizePlus.Data.Armature
 			}
 		}
 
-		private void CascadeTransformation(BoneTransform aggregateTransform, Vector3 pointPos, Vector3 pointRot, Vector3 priorScaling)
+		private void CascadeTransformation(BoneTransform delta, Vector3 pointPos)
 		{
-			BoneTransform newAggregate = this.PluginTransform.ReorientKinematically(aggregateTransform, pointPos, pointRot, priorScaling);
+			this.PluginTransform.ReorientKinematically(delta, pointPos);
 
 			foreach (var child in this.Children)
 			{
-				child.CascadeTransformation(newAggregate,
-					pointPos,
-					pointRot,
-					this.PluginTransform.Scaling);
+				child.CascadeTransformation(delta, pointPos);
+			}
+		}
+
+		public bool TryGetGameTransform(int triplexNo, out hkQsTransformf output)
+		{
+			if (this.TripleIndices.ElementAtOrDefault(triplexNo) is var triplex && triplex != null)
+			{
+				PartialSkeleton pSkele = this.Armature.Skeleton->PartialSkeletons[triplex.Item1];
+				hkaPose* currentPose = pSkele.GetHavokPose(triplex.Item2);
+
+				if (currentPose != null && currentPose->LocalPose[triplex.Item3] is hkQsTransformf pose)
+				{
+					output = pose;
+					return true;
+				}
+			}
+
+			output = Constants.NullTransform;
+			return false;
+		}
+
+		public hkQsTransformf[] GetGameTransforms()
+		{
+			List<hkQsTransformf> output = new();
+
+			foreach (var x in this.TripleIndices)
+			{
+				hkaPose* currentPose = x.Item2 switch
+				{
+					0 => this.Armature.Skeleton->PartialSkeletons[x.Item1].GetHavokPose(0),
+					1 => this.Armature.Skeleton->PartialSkeletons[x.Item1].GetHavokPose(1),
+					2 => this.Armature.Skeleton->PartialSkeletons[x.Item1].GetHavokPose(2),
+					3 => this.Armature.Skeleton->PartialSkeletons[x.Item1].GetHavokPose(3),
+					_ => null
+				};
+
+				if (currentPose != null && currentPose->LocalPose[x.Item3] is hkQsTransformf pose)
+				{
+					output.Add(pose);
+				}
+			}
+
+			return output.ToArray();
+		}
+
+		public void SetGameTransforms(hkQsTransformf t)
+		{
+			foreach (var triplex in this.TripleIndices)
+			{
+				hkaPose* currentPose = triplex.Item2 switch
+				{
+					0 => this.Armature.Skeleton->PartialSkeletons[triplex.Item1].GetHavokPose(0),
+					1 => this.Armature.Skeleton->PartialSkeletons[triplex.Item1].GetHavokPose(1),
+					2 => this.Armature.Skeleton->PartialSkeletons[triplex.Item1].GetHavokPose(2),
+					3 => this.Armature.Skeleton->PartialSkeletons[triplex.Item1].GetHavokPose(3),
+					_ => null
+				};
+
+				if (currentPose != null)
+				{
+					currentPose->LocalPose[triplex.Item3] = t;
+				}
 			}
 		}
 
@@ -127,32 +197,64 @@ namespace CustomizePlus.Data.Armature
 		/// </summary>
 		public void ApplyModelTransform()
 		{
-			foreach(var triplex in this.TripleIndices)
+			hkQsTransformf[] deforms = this.GetGameTransforms();
+
+			for (int i = 0; i < deforms.Length; ++i)
 			{
-				HkaPose* currentPose = triplex.Item2 switch
-				{
-					0 => this.Armature.InGameSkeleton->PartialSkeletons[triplex.Item1].Pose1,
-					1 => this.Armature.InGameSkeleton->PartialSkeletons[triplex.Item1].Pose2,
-					2 => this.Armature.InGameSkeleton->PartialSkeletons[triplex.Item1].Pose3,
-					3 => this.Armature.InGameSkeleton->PartialSkeletons[triplex.Item1].Pose4,
-					_ => null
-				};
+				hkQsTransformf tNew = this.PluginTransform.ModifyExistingTransformation(deforms[i]);
+				this.SetGameTransforms(tNew);
+			}
+		}
 
-				if (currentPose == null)
-				{
-					return;
-				}
+		public string ToTreeString()
+		{
+			StringBuilder sb = new StringBuilder();
 
-				Transform t = currentPose->Transforms[triplex.Item3];
-				Transform tNew = this.PluginTransform.ModifyExistingTransformation(t);
-				currentPose->Transforms[triplex.Item3] = tNew;
+			if (this.Parent == null)
+			{
+				sb.AppendLine("*");
+			}
+			else
+			{
+				sb.AppendLine(this.Parent.BoneName);
 			}
 
+			sb.Append($"└{this.BoneName}");
 
-			//if (this.GameTransform != null)
-			//{
-			//	this.GameTransform = this.PluginTransform.ModifyExistingTransformation((Transform)this.GameTransform);
-			//}
+			if (this.Sibling != null)
+			{
+				sb.Append($" ─── {this.Sibling.BoneName}");
+			}
+			sb.AppendLine();
+
+			for (int i = 0; i < this.Children.Count - 1; ++i)
+			{
+				sb.AppendLine($"  ├{this.Children[i].BoneName}");
+			}
+
+			if (this.Children.Any())
+			{
+				sb.Append($"  └{this.Children.Last().BoneName}");
+			}
+
+			return sb.ToString();
+		}
+
+		public IEnumerable<ModelBone> GetLineage(bool includeSelf = true)
+		{
+			if (includeSelf)
+			{
+				yield return this;
+			}
+
+			ModelBone? ancestor = this.Parent;
+
+			while(ancestor != null)
+			{
+				yield return ancestor;
+
+				ancestor = ancestor.Parent;
+			}
 		}
 	}
 }

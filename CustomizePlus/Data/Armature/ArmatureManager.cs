@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using CustomizePlus.Memory;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Logging;
 
@@ -24,7 +25,7 @@ namespace CustomizePlus.Data.Armature
 
 		public unsafe void RenderArmatureByObject(GameObject obj)
 		{
-			if (this.armatures.FirstOrDefault(x => x.ObjectRef == Memory.RenderObject.FromActor(obj)) is Armature arm && arm != null)
+			if (this.armatures.FirstOrDefault(x => x.CharacterBase == RenderObject.FromActor(obj)) is Armature arm && arm != null)
 			{
 				if (arm.Visible)
 				{

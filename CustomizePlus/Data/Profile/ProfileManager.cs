@@ -48,6 +48,21 @@ namespace CustomizePlus.Data.Profile
 			}
 		}
 
+		public void CheckForNewProfiles()
+		{
+			foreach (string path in ProfileReaderWriter.GetProfilePaths())
+			{
+				if (ProfileReaderWriter.TryLoadProfile(path, out var prof)
+					&& prof != null
+					&& !this.Profiles.Contains(prof))
+				{
+					PruneIdempotentTransforms(prof);
+
+					Profiles.Add(prof);
+				}
+			}
+		}
+
 		/// <summary>
 		/// Adds the given profile to the list of those managed, and immediately
 		/// saves it to disk. If the profile already exists (and it is not forced to be new)
