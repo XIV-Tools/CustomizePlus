@@ -1,5 +1,5 @@
 # Customize+
-Customize+ is a plugin for Dalamud that allows you to create and apply [Anamnesis](https://github.com/imchillin/Anamnesis)-style body scaling full time.
+Customize+ is a plugin for Dalamud that allows you to create and apply [Anamnesis](https://github.com/imchillin/Anamnesis)-style body profiles full time.
 
 ### Installing
 Add the following URL to the Dalamud Custom Plugin Repositories list:  
