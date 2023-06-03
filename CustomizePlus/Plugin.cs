@@ -48,7 +48,7 @@ namespace CustomizePlus
 		private static Hook<RenderDelegate>? renderManagerHook;
 		private static Hook<GameObjectMovementDelegate>? gameObjectMovementHook;
 
-		private delegate IntPtr RenderDelegate(IntPtr a1, long a2);
+		private delegate IntPtr RenderDelegate(IntPtr a1, long a2, int a3, int a4);
 		[UnmanagedFunctionPointer(CallingConvention.StdCall)]
 		private unsafe delegate void GameObjectMovementDelegate(IntPtr gameObject);
 
@@ -93,7 +93,6 @@ namespace CustomizePlus
 				ProfileManager.LoadProfiles();
 
 				ipcManager = new(DalamudServices.ObjectTable, DalamudServices.PluginInterface);
-				legacyIpcManager = new(DalamudServices.ObjectTable, DalamudServices.PluginInterface);
 
 
 				DalamudServices.CommandManager.AddCommand((s, t) => MainInterface.Toggle(), "/customize", "Toggles the Customize+ configuration window.");
@@ -200,12 +199,23 @@ namespace CustomizePlus
 					renderManagerHook.Enable();
 					gameObjectMovementHook.Enable();
 
+					renderManagerHook.Enable();
+					PluginLog.Debug("Hooking render function");
+
+					//Get player's body scale string and send IPC message (only when saving manually to spare server)
+					//string? playerName = GetPlayerName();
+					//if (playerName != null && !autoModeUpdate) {
+					//	BodyScale? playerScale = GetBodyScale(playerName);
+					//	ipcManager.OnScaleUpdate(JsonConvert.SerializeObject(playerScale));
+					//	legacyIpcManager.OnScaleUpdate(playerScale);
+					//}
+						
 				}
 				else
 				{
-					PluginLog.Debug("Unhooking render & movement functions");
 					renderManagerHook?.Disable();
 					gameObjectMovementHook?.Disable();
+					PluginLog.Debug("Unhooking render function");
 				}
 			}
 			catch (Exception e)
@@ -236,7 +246,6 @@ namespace CustomizePlus
 			DalamudServices.Framework.Update -= Framework_Update;
 
 			ipcManager?.Dispose();
-			legacyIpcManager?.Dispose();
 
 			gameObjectMovementHook?.Disable();
 			gameObjectMovementHook?.Dispose();
@@ -308,7 +317,7 @@ namespace CustomizePlus
 			}
 		}
 
-		private static IntPtr OnRender(IntPtr a1, long a2)
+		private static IntPtr OnRender(IntPtr a1, long a2, int a3, int a4)
 		{
 			if (renderManagerHook == null)
 				throw new Exception();
@@ -367,7 +376,7 @@ namespace CustomizePlus
 				renderManagerHook?.Disable();
 			}
 
-			return original(a1, a2);
+			return original(a1, a2, a3, a4);
 		}
 
 		//todo: doesn't work in cutscenes, something getting called after this and resets changes
