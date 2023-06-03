@@ -3,23 +3,22 @@
 
 namespace CustomizePlus.Interface
 {
-	using CustomizePlus.Data;
-	using CustomizePlus.Data.Configuration;
-	using CustomizePlus.Data.Profile;
-	using CustomizePlus.Helpers;
-	using CustomizePlus.Memory;
-	using Dalamud.Game.ClientState.Objects.Types;
-	using Dalamud.Interface;
-	using Dalamud.Interface.Components;
-	using Dalamud.Logging;
-	using ImGuiNET;
-	using Newtonsoft.Json;
 	using System;
-	using System.Collections.Generic;
-	using System.IO;
 	using System.Linq;
 	using System.Numerics;
 	using System.Windows.Forms;
+
+	using CustomizePlus.Data;
+	using CustomizePlus.Data.Profile;
+	using CustomizePlus.Helpers;
+
+	using Dalamud.Interface;
+	using Dalamud.Interface.Components;
+	using Dalamud.Logging;
+
+	using ImGuiNET;
+
+	using Newtonsoft.Json;
 
 	public class MainInterface : WindowBase
 	{
@@ -298,20 +297,10 @@ namespace CustomizePlus.Interface
 					{
 						if (ImGui.IsItemDeactivatedAfterEdit())
 						{
-							int tryIndex = 2;
-							string newProfileName = inputProfName;
-
-							while (Plugin.ProfileManager.Profiles
-								.Where(x => x.CharName == prof.CharName)
-								.Any(x => x.ProfName == newProfileName))
-							{
-								newProfileName = $"{inputProfName}-{tryIndex}";
-								tryIndex++;
-							}
-
+							string newProfileName = ValidateProfileName(characterName, inputProfName);
 							if (newProfileName != inputProfName)
 							{
-								MessageWindow.Show($"Profile '{inputProfName}' already exists for {prof.CharName}. Renamed to '{newProfileName}'.");
+								MessageWindow.Show($"Profile '{inputProfName}' already exists for {characterName}. Renamed to '{newProfileName}'.");
 							}
 
 							prof.ProfName = newProfileName;
@@ -355,6 +344,9 @@ namespace CustomizePlus.Interface
 						&& Plugin.ProfileManager.GetWorkingCopy(prof, out CharacterProfile dupe)
 						&& dupe != null)
 					{
+						string newProfileName = ValidateProfileName(characterName, inputProfName);
+						dupe.ProfName = newProfileName;
+
 						Plugin.ProfileManager.StopEditing(dupe);
 						Plugin.ProfileManager.AddAndSaveProfile(dupe, true);
 					}
@@ -407,6 +399,21 @@ namespace CustomizePlus.Interface
 			}
 		}
 
+		private string ValidateProfileName(string charName, string profName)
+		{
+			string newProfileName = profName;
+			int tryIndex = 1;
+
+			while (Plugin.ProfileManager.Profiles
+				.Where(x => x.CharName == charName)
+				.Any(x => x.ProfName == profName))
+			{
+				newProfileName = $"{profName}-{tryIndex}";
+				tryIndex++;
+			}
+
+			return newProfileName;
+		}
 
 
 		// TODO: Finish feature. May require additional skeleton code from Anamnesis
