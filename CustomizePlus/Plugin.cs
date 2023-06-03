@@ -183,14 +183,14 @@ namespace CustomizePlus
 					if (renderManagerHook == null)
 					{
 						// "Render::Manager::Render"
-						IntPtr renderAddress = DalamudServices.SigScanner.ScanText("E8 ?? ?? ?? ?? 48 81 C3 ?? ?? ?? ?? BE ?? ?? ?? ?? 45 33 F6");
+						IntPtr renderAddress = DalamudServices.SigScanner.ScanText("E8 ?? ?? ?? ?? 48 81 C3 ?? ?? ?? ?? BF ?? ?? ?? ?? 33 ED");
 						renderManagerHook = Hook<RenderDelegate>.FromAddress(renderAddress, OnRender);
 						PluginLog.Debug("Render hook established");
 					}
 
 					if (gameObjectMovementHook == null)
 					{
-						IntPtr movementAddress = DalamudServices.SigScanner.ScanText("E8 ?? ?? ?? ?? 48 8B CB E8 ?? ?? ?? ?? 48 8B CB E8 ?? ?? ?? ?? 48 8B 03 48 8B CB FF 50 ?? 83 F8 ?? 75 ??");
+						IntPtr movementAddress = DalamudServices.SigScanner.ScanText("E8 ?? ?? ?? ?? EB 29 48 8B 5F 08");
 						gameObjectMovementHook = Hook<GameObjectMovementDelegate>.FromAddress(movementAddress, new GameObjectMovementDelegate(OnGameObjectMove));
 						PluginLog.Debug("Movement hook established");
 					}
@@ -199,8 +199,8 @@ namespace CustomizePlus
 					renderManagerHook.Enable();
 					gameObjectMovementHook.Enable();
 
+					PluginLog.Debug("Hooking render manager");
 					renderManagerHook.Enable();
-					PluginLog.Debug("Hooking render function");
 
 					//Get player's body scale string and send IPC message (only when saving manually to spare server)
 					//string? playerName = GetPlayerName();
@@ -213,9 +213,10 @@ namespace CustomizePlus
 				}
 				else
 				{
+					PluginLog.Debug("Unhooking...");
 					renderManagerHook?.Disable();
 					gameObjectMovementHook?.Disable();
-					PluginLog.Debug("Unhooking render function");
+					renderManagerHook?.Disable();
 				}
 			}
 			catch (Exception e)
