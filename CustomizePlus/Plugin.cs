@@ -16,8 +16,9 @@ using CustomizePlus.Data.Configuration;
 using CustomizePlus.Data.Profile;
 using CustomizePlus.Extensions;
 using CustomizePlus.Helpers;
-using CustomizePlus.Interface;
 using CustomizePlus.Services;
+using CustomizePlus.UI;
+using CustomizePlus.UI.Windows;
 using Dalamud.Game;
 using Dalamud.Hooking;
 using Dalamud.Logging;
@@ -36,7 +37,7 @@ namespace CustomizePlus
     {
         public string Name => "Customize Plus";
 
-        public static InterfaceManager InterfaceManager { get; } = new();
+        public static UserInterfaceManager InterfaceManager { get; } = new();
         public static ServiceManager ServiceManager { get; } = new();
         public static ProfileManager ProfileManager { get; } = new();
         public static ArmatureManager ArmatureManager { get; } = new();
@@ -79,7 +80,7 @@ namespace CustomizePlus
 
                 _ipcManager = new CustomizePlusIpc(DalamudServices.ObjectTable, DalamudServices.PluginInterface);
 
-                DalamudServices.CommandManager.AddCommand((s, t) => MainInterface.Toggle(), "/customize",
+                DalamudServices.CommandManager.AddCommand((s, t) => MainWindow.Toggle(), "/customize",
                     "Toggles the Customize+ configuration window.");
                 DalamudServices.CommandManager.AddCommand((s, t) => ApplyByCommand(t), "/customize-apply",
                     "Apply a specific Scale (usage: /customize-apply {Character Name},{Scale Name})");
@@ -87,11 +88,11 @@ namespace CustomizePlus
                     "Alias to /customize-apply");
 
                 DalamudServices.PluginInterface.UiBuilder.Draw += InterfaceManager.Draw;
-                DalamudServices.PluginInterface.UiBuilder.OpenConfigUi += MainInterface.Toggle;
+                DalamudServices.PluginInterface.UiBuilder.OpenConfigUi += MainWindow.Toggle;
 
                 if (DalamudServices.PluginInterface.IsDevMenuOpen)
                 {
-                    MainInterface.Show();
+                    MainWindow.Show();
                 }
 
                 ChatHelper.PrintInChat("Customize+ Started!");
@@ -123,7 +124,7 @@ namespace CustomizePlus
             CommandManagerExtensions.Dispose();
 
             DalamudServices.PluginInterface.UiBuilder.Draw -= InterfaceManager.Draw;
-            DalamudServices.PluginInterface.UiBuilder.OpenConfigUi -= MainInterface.Show;
+            DalamudServices.PluginInterface.UiBuilder.OpenConfigUi -= MainWindow.Show;
         }
 
 

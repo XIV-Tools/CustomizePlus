@@ -9,17 +9,19 @@ using System.Windows.Forms;
 using CustomizePlus.Data;
 using CustomizePlus.Data.Profile;
 using CustomizePlus.Helpers;
+using CustomizePlus.UI.Dialogs;
+using CustomizePlus.UI.Windows.Debug;
 using Dalamud.Interface;
 using Dalamud.Interface.Components;
 using Dalamud.Interface.ImGuiFileDialog;
 using Dalamud.Logging;
 using ImGuiNET;
-
+using ImGuizmoNET;
 using Newtonsoft.Json;
 
-namespace CustomizePlus.Interface
+namespace CustomizePlus.UI.Windows
 {
-    public class MainInterface : WindowBase
+    public class MainWindow : WindowBase
     {
         private static string _newCharacterName = GameDataHelper.GetPlayerName() ?? string.Empty;
         private static string _newProfileName = "Default";
@@ -31,12 +33,12 @@ namespace CustomizePlus.Interface
 
         public static void Show()
         {
-            Plugin.InterfaceManager.Show<MainInterface>();
+            Plugin.InterfaceManager.Show<MainWindow>();
         }
 
         public static void Toggle()
         {
-            Plugin.InterfaceManager.Toggle<MainInterface>();
+            Plugin.InterfaceManager.Toggle<MainWindow>();
         }
 
         protected override void DrawContents()
@@ -130,7 +132,7 @@ namespace CustomizePlus.Interface
 
                     if (importedProfile == null)
                     {
-                        MessageWindow.Show("Error importing information from clipboard.");
+                        MessageDialog.Show("Error importing information from clipboard.");
                     }
                     else if (Plugin.ProfileManager.Profiles.Contains(importedProfile))
                     {
@@ -166,7 +168,7 @@ namespace CustomizePlus.Interface
                 ImGui.SameLine();
                 if (ImGuiComponents.IconButton(FontAwesomeIcon.Pen))
                 {
-                    IPCTestInterface.Show(DalamudServices.PluginInterface);
+                    IPCTestWindow.Show(DalamudServices.PluginInterface);
                 }
             }
 
@@ -274,7 +276,7 @@ namespace CustomizePlus.Interface
                             var newProfileName = ValidateProfileName(characterName, inputProfName);
                             if (newProfileName != inputProfName)
                             {
-                                MessageWindow.Show($"Profile '{inputProfName}' already exists for {characterName}. Renamed to '{newProfileName}'.");
+                                MessageDialog.Show($"Profile '{inputProfName}' already exists for {characterName}. Renamed to '{newProfileName}'.");
                             }
 
                             prof.ProfileName = newProfileName;
@@ -309,7 +311,7 @@ namespace CustomizePlus.Interface
                         && Plugin.ProfileManager.GetWorkingCopy(prof, out var profCopy)
                         && profCopy != null)
                     {
-                        BoneEditInterface.Show(profCopy);
+                        BoneEditWindow.Show(profCopy);
                     }
 
                     if (ImGui.IsItemHovered())
@@ -441,7 +443,7 @@ namespace CustomizePlus.Interface
                 }, 1, null, true);
             }
 
-            MessageWindow.Show(
+            MessageDialog.Show(
                 "Due to technical limitations, Customize+ is only able to import scale values from *.pose files.\nPosition and rotation information will be ignored.",
                 new Vector2(570, 100), ImportAction, "ana_import_pos_rot_warning");
         }

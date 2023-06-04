@@ -6,13 +6,13 @@ using System.Numerics;
 
 using ImGuiNET;
 
-namespace CustomizePlus.Interface
+namespace CustomizePlus.UI.Dialogs
 {
     /// <summary>
     ///     Very basic message window implementation to show the window which might be shown once or multiple times and can
     ///     execute some action after being closed.
     /// </summary>
-    public class MessageWindow : WindowBase
+    public class MessageDialog : WindowBase
     {
         protected override string Title => "Customize+ message";
         protected override Vector2 MinSize => new(200, 100);
@@ -40,7 +40,7 @@ namespace CustomizePlus.Interface
                 return;
             }
 
-            var window = Plugin.InterfaceManager.Show<MessageWindow>();
+            var window = Plugin.InterfaceManager.Show<MessageDialog>();
             window.Text = text;
             window.WindowId = windowId;
             window.OnButtonPressed = onButtonPressed;

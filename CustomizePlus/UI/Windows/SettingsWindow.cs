@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 using CustomizePlus.Helpers;
 using Dalamud.Interface;
 
-namespace CustomizePlus.Interface
+namespace CustomizePlus.UI.Windows
 {
     internal class SettingsWindow : WindowBase
     {
@@ -31,7 +31,7 @@ namespace CustomizePlus.Interface
 
         private void DrawGeneralSettings()
         {
-            bool isShouldDraw = ImGui.CollapsingHeader("General");
+            var isShouldDraw = ImGui.CollapsingHeader("General");
 
             if (!isShouldDraw)
                 return;
@@ -43,7 +43,7 @@ namespace CustomizePlus.Interface
 
         private void DrawPluginEnabledCheckbox()
         {
-            bool isChecked = Plugin.ConfigurationManager.Configuration.PluginEnabled;
+            var isChecked = Plugin.ConfigurationManager.Configuration.PluginEnabled;
             //users doesn't really need to know what exactly this checkbox does so we just tell them it toggles all profiles
             if (CtrlHelper.CheckboxWithTextAndHelp("##pluginenabled", "Enable profiles", "Globally enables or disables all profiles.", ref isChecked))
             {
@@ -55,7 +55,7 @@ namespace CustomizePlus.Interface
 
         private void DrawApplyToNPCsCheckbox()
         {
-            bool isChecked = Plugin.ConfigurationManager.Configuration.ApplyToNPCs;
+            var isChecked = Plugin.ConfigurationManager.Configuration.ApplyToNPCs;
             if (CtrlHelper.CheckboxWithTextAndHelp("##applytonpcs", "LEGACY? Apply to NPCs", "Apply profiles to NPCs.\nSpecify a profile with the name 'Default' for it to apply to all NPCs and non-specified players.", ref isChecked))
             {
                 Plugin.ConfigurationManager.Configuration.ApplyToNPCs = isChecked;
@@ -65,7 +65,7 @@ namespace CustomizePlus.Interface
 
         private void DrawApplyToNPCsInCutscenesCheckbox()
         {
-            bool isChecked = Plugin.ConfigurationManager.Configuration.ApplyToNPCsInCutscenes;
+            var isChecked = Plugin.ConfigurationManager.Configuration.ApplyToNPCsInCutscenes;
             if (CtrlHelper.CheckboxWithTextAndHelp("##applytonpcscutscenes", "LEGACY? Apply to NPCs in Cutscenes", "Apply profiles to NPCs in cutscenes.\nSpecify a profile with the name 'DefaultCutscene' to apply it to all generic characters while in a cutscene.", ref isChecked))
             {
                 Plugin.ConfigurationManager.Configuration.ApplyToNPCsInCutscenes = isChecked;
@@ -75,13 +75,13 @@ namespace CustomizePlus.Interface
 
         private void DrawAdvancedSettings()
         {
-            bool isShouldDraw = ImGui.CollapsingHeader("Advanced");
+            var isShouldDraw = ImGui.CollapsingHeader("Advanced");
 
             if (!isShouldDraw)
                 return;
 
             ImGui.NewLine();
-            CtrlHelper.LabelWithIcon(FontAwesomeIcon.ExclamationTriangle,"Those are advanced settings, no support is provided for those settings unless they are not working at all.");
+            CtrlHelper.LabelWithIcon(FontAwesomeIcon.ExclamationTriangle, "Those are advanced settings, no support is provided for those settings unless they are not working at all.");
             ImGui.NewLine();
 
             DrawEnableRootPositionCheckbox();
@@ -89,7 +89,7 @@ namespace CustomizePlus.Interface
 
         private void DrawEnableRootPositionCheckbox()
         {
-            bool isChecked = Plugin.ConfigurationManager.Configuration.RootPositionEditingEnabled;
+            var isChecked = Plugin.ConfigurationManager.Configuration.RootPositionEditingEnabled;
             if (CtrlHelper.CheckboxWithTextAndHelp("##rootpos", "Root position editing", "Enables ability to edit root bone position.", ref isChecked))
             {
                 Plugin.ConfigurationManager.Configuration.RootPositionEditingEnabled = isChecked;

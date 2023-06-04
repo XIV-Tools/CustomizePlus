@@ -3,14 +3,14 @@
 
 using System;
 
-namespace CustomizePlus.Interface
+namespace CustomizePlus.UI
 {
-    public abstract class InterfaceBase : IDisposable
+    public abstract class UserInterfaceBase : IDisposable
     {
         public bool IsOpen { get; private set; }
 
         protected int Index { get; private set; }
-        protected InterfaceManager Manager => Plugin.InterfaceManager;
+        protected UserInterfaceManager Manager => Plugin.InterfaceManager;
 
         protected virtual bool SingleInstance => false;
 
@@ -22,7 +22,7 @@ namespace CustomizePlus.Interface
         {
             if (SingleInstance)
             {
-                var instance = Manager.GetInterface(GetType());
+                var instance = Manager.GetUserInterface(GetType());
                 if (instance != null)
                 {
                     instance?.Focus();

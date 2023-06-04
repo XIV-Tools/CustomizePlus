@@ -4,7 +4,7 @@
 using System.Numerics;
 
 using CustomizePlus.Core;
-using CustomizePlus.Interface;
+using CustomizePlus.UI.Dialogs;
 
 namespace CustomizePlus.Services
 {
@@ -23,7 +23,7 @@ namespace CustomizePlus.Services
                 return;
             }
 
-            MessageWindow.Show(
+            MessageDialog.Show(
                 "Several Customize+ features are not compatible with Anamnesis and Ktisis, namely bone position and rotation offsets.\n" +
                 "If you are using Anamnesis, Customize+ will automatically disable them for you when needed.\n" +
                 "If you are using Ktisis you will need to create separate body scale without position and rotation offsets to be used in GPose.",

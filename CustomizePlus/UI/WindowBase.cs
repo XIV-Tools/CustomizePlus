@@ -5,9 +5,9 @@ using System.Numerics;
 
 using ImGuiNET;
 
-namespace CustomizePlus.Interface
+namespace CustomizePlus.UI
 {
-    public abstract class WindowBase : InterfaceBase
+    public abstract class WindowBase : UserInterfaceBase
     {
         private bool _isAlwaysVisibleDummy = true; //dummy variable for LockCloseButton = true
         private bool _isVisible;
