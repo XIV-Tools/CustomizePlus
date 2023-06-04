@@ -52,12 +52,15 @@ namespace CustomizePlus.Helpers
 		public static unsafe bool TryLookupCharacterBase(string name, out CharacterBase* cBase)
 		{
 			if (FindModelByName(name) is DalamudObject obj
-				&& obj.Address != IntPtr.Zero
-				&& Marshal.ReadIntPtr(obj.Address, 0x0100) is IntPtr drawObj
-				&& drawObj != IntPtr.Zero)
+				&& obj.Address is IntPtr objPtr
+				&& objPtr != IntPtr.Zero)
 			{
-				cBase = (CharacterBase*)drawObj;
-				return true;
+				FFXIVClientObject* clientObj = (FFXIVClientObject*)objPtr;
+				if (clientObj != null)
+				{
+					cBase = (CharacterBase*)clientObj->DrawObject;
+					return true;
+				}
 			}
 
 			cBase = null;
