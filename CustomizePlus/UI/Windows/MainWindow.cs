@@ -28,7 +28,7 @@ namespace CustomizePlus.UI.Windows
         private readonly FileDialogManager _importFilePicker = new();
         private static string? PlayerCharacterName => GameDataHelper.GetPlayerName();
 
-        protected override string Title => "Customize+ Configuration";
+        protected override string Title => "Customize+";
         protected override bool SingleInstance => true;
 
         public static void Show()
