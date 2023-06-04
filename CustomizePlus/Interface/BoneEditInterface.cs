@@ -86,7 +86,7 @@ namespace CustomizePlus.Interface
 				(s) => this.profileInProgress.ProfName = s);
 
 			bool tempEnabled = this.profileInProgress.Enabled;
-			if (CtrlHelper.Checkbox("Preview Enabled", ref tempEnabled))
+			if (CtrlHelper.Checkbox("Enable Preview", ref tempEnabled))
 			{
 				this.profileInProgress.Enabled = tempEnabled;
 				this.ConfirmSkeletonConnection();
@@ -444,7 +444,7 @@ namespace CustomizePlus.Interface
 
 		public void DisplayNoLinkMsg()
 		{
-			string msg = $"The editor can't find ${profileInProgress.CharName} or their bone data in the game's memory.\nCertain editing features will be disabled.";
+			string msg = $"The editor can't find {profileInProgress.CharName} or their bone data in the game's memory.\nCertain editing features will be unavailable.";
 			MessageWindow.Show(msg);
 		}
 

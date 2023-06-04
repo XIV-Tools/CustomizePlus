@@ -4,6 +4,7 @@
 namespace CustomizePlus.Interface
 {
 	using System;
+	using System.Collections.Generic;
 	using System.IO;
 	using System.Linq;
 	using System.Numerics;
@@ -71,6 +72,14 @@ namespace CustomizePlus.Interface
 			if (ImGui.IsItemHovered())
 				ImGui.SetTooltip($"Enable or Disable Customize+");
 
+			ImGui.SameLine();
+			ImGui.Spacing();
+			ImGui.SameLine();
+
+			ImGui.TextUnformatted("|");
+
+			ImGui.SameLine();
+			ImGui.Spacing();
 			ImGui.SameLine();
 
 			bool applyToNpcs = Plugin.Config.ApplytoNPCs;
@@ -243,16 +252,34 @@ namespace CustomizePlus.Interface
 			//TODO there's probably some imgui functionality to sort the table when you click on the headers
 
 			var fontScale = ImGui.GetIO().FontGlobalScale;
-			if (ImGui.BeginTable("Config", 5, ImGuiTableFlags.Borders | ImGuiTableFlags.Resizable | ImGuiTableFlags.ScrollY, new Vector2(0, ImGui.GetFrameHeightWithSpacing() - (70 * fontScale))))
+			if (ImGui.BeginTable("Config", 5, ImGuiTableFlags.Borders | ImGuiTableFlags.Resizable | ImGuiTableFlags.ScrollY | ImGuiTableFlags.Sortable,
+				new Vector2(0, ImGui.GetFrameHeightWithSpacing() - (70 * fontScale))))
 			{
 				ImGui.TableSetupColumn("Enabled", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize);
-				ImGui.TableSetupColumn("Character");
-				ImGui.TableSetupColumn("Profile Name");
-				ImGui.TableSetupColumn("Info", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize);
-				ImGui.TableSetupColumn("Options", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize);
+				ImGui.TableSetupColumn("Character", ImGuiTableColumnFlags.WidthStretch | ImGuiTableColumnFlags.DefaultSort);
+				ImGui.TableSetupColumn("Profile Name", ImGuiTableColumnFlags.WidthStretch);
+				ImGui.TableSetupColumn("Info", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize | ImGuiTableColumnFlags.NoSort);
+				ImGui.TableSetupColumn("Options", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize | ImGuiTableColumnFlags.NoSort);
+
+				ImGui.TableSetupScrollFreeze(0, 1);
 				ImGui.TableHeadersRow();
 
-				foreach (CharacterProfile prof in Plugin.ProfileManager.Profiles.OrderBy(x => x.CharName).ThenBy(x => x.ProfName))
+				var sortSpecs = ImGui.TableGetSortSpecs().Specs;
+				Func<CharacterProfile, IComparable> sortByAttribute = sortSpecs.ColumnIndex switch
+				{
+					0 => x => x.Enabled ? 0 : 1,
+					1 => x => x.CharName,
+					2 => x => x.ProfName,
+					_ => x => x.CharName
+				};
+
+				var profileList = sortSpecs.SortDirection == ImGuiSortDirection.Ascending
+					? Plugin.ProfileManager.Profiles.OrderBy(sortByAttribute).ToList()
+					: sortSpecs.SortDirection == ImGuiSortDirection.Descending
+						? Plugin.ProfileManager.Profiles.OrderByDescending(sortByAttribute).ToList()
+						: Plugin.ProfileManager.Profiles.ToList();
+
+				foreach (CharacterProfile prof in profileList)
 				{
 					ImGui.PushID(prof.GetHashCode());
 
@@ -286,6 +313,7 @@ namespace CustomizePlus.Interface
 						if (ImGui.IsItemDeactivatedAfterEdit())
 						{
 							prof.CharName = characterName;
+							Plugin.ProfileManager.AddAndSaveProfile(prof);
 						}
 					}
 
@@ -309,6 +337,7 @@ namespace CustomizePlus.Interface
 							}
 
 							prof.ProfName = newProfileName;
+							Plugin.ProfileManager.AddAndSaveProfile(prof);
 						}
 					}
 
@@ -411,7 +440,7 @@ namespace CustomizePlus.Interface
 
 			while (Plugin.ProfileManager.Profiles
 				.Where(x => x.CharName == charName)
-				.Any(x => x.ProfName == profName))
+				.Any(x => x.ProfName == newProfileName))
 			{
 				newProfileName = $"{profName}-{tryIndex}";
 				tryIndex++;

@@ -213,7 +213,7 @@ namespace CustomizePlus.Interface
 
 		public void DisplayNoLinkMsg()
 		{
-			string msg = $"The editor can't find ${targetProfile.CharName} or their bone data in the game's memory.\nCertain editing features will be disabled.";
+			string msg = $"The editor can't find {targetProfile.CharName} or their bone data in the game's memory.";
 			MessageWindow.Show(msg);
 		}
 
