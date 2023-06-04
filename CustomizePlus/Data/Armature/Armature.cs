@@ -92,7 +92,7 @@ namespace CustomizePlus.Data.Armature
 			if (Helpers.GameDataHelper.TryLookupCharacterBase(this.Profile.CharName, out CharacterBase* cBase)
 				&& cBase != null)
 			{
-				if (cBase != this.CharacterBase)
+				if (cBase != this.CharacterBase || !this.Bones.Any())
 				{
 					this.CharacterBase = cBase;
 					this.RebuildSkeleton();

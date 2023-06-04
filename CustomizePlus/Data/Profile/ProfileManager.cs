@@ -88,6 +88,12 @@ namespace CustomizePlus.Data.Profile
 
 				prof.CreationDate = DateTime.Now;
 				prof.ModifiedDate = DateTime.Now;
+
+				//only let this new profile be enabled if
+				// (1) it wants to be in the first place
+				// (2) the character it's for doesn't already have an enabled profile
+				prof.Enabled = prof.Enabled && !this.GetEnabledProfiles().Any(x => x.CharName == prof.CharName);
+
 				this.Profiles.Add(prof);
 				ProfileReaderWriter.SaveProfile(prof);
 			}

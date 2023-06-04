@@ -60,8 +60,7 @@ namespace CustomizePlus.Data.Armature
 		{
 			foreach (var arm in this.armatures)
 			{
-				//TODO this is yucky
-				arm.Visible = Plugin.ProfileManager.GetEnabledProfiles().Contains(arm.Profile) && arm.TryLinkSkeleton();
+				arm.Visible = arm.Profile.Enabled && arm.TryLinkSkeleton();
 			}
 		}
 
