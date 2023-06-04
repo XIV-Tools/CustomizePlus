@@ -6,16 +6,13 @@ using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Windows.Forms;
-
 using CustomizePlus.Data;
 using CustomizePlus.Data.Profile;
 using CustomizePlus.Helpers;
-
 using Dalamud.Interface;
 using Dalamud.Interface.Components;
 using Dalamud.Interface.ImGuiFileDialog;
 using Dalamud.Logging;
-
 using ImGuiNET;
 
 using Newtonsoft.Json;
@@ -59,75 +56,6 @@ namespace CustomizePlus.Interface
 
             // Draw the File Picker
             _importFilePicker.Draw();
-
-            var enable = Plugin.Config.IsPluginEnabled;
-            if (ImGui.Checkbox("Enable", ref enable))
-            {
-                Plugin.Config.IsPluginEnabled = enable;
-                Plugin.ReloadHooks();
-            }
-
-            if (ImGui.IsItemHovered())
-            {
-                ImGui.SetTooltip("Enable or Disable Customize+");
-            }
-
-            ImGui.SameLine();
-            ImGui.Spacing();
-            ImGui.SameLine();
-
-            ImGui.TextUnformatted("|");
-
-            ImGui.SameLine();
-            ImGui.Spacing();
-            ImGui.SameLine();
-
-            var applyToNpcs = Plugin.Config.ApplyToNPCs;
-            if (ImGui.Checkbox("Apply to NPCS", ref applyToNpcs))
-            {
-                Plugin.Config.ApplyToNPCs = applyToNpcs;
-                Plugin.RefreshPlugin(true);
-            }
-
-            if (ImGui.IsItemHovered())
-            {
-                ImGui.SetTooltip(
-                    "Apply scales to NPCs.\nSpecify a scale with the name 'Default' for it to apply to all NPCs and non-specified players.");
-            }
-
-            ImGui.SameLine();
-            /*
-             * May not be needed, was intended for possible FPS fixes
-            bool applyToNpcsInBusyAreas = config.ApplyToNpcsInBusyAreas;
-            if (ImGui.Checkbox("Apply to NPCS in Busy Areas", ref applyToNpcsInBusyAreas))
-            {
-                config.ApplyToNpcsInBusyAreas = applyToNpcsInBusyAreas;
-            }
-
-            if (ImGui.IsItemHovered())
-                ImGui.SetTooltip($"Applies to NPCs in busy areas (when NPCs are in index > 200, which occurs when up to 100 characters are rendered.");
-
-            ImGui.SameLine();
-            */
-            var applyToNpcsInCutscenes = Plugin.Config.IsApplyToNPCsInCutscenes;
-            if (ImGui.Checkbox("Apply to NPCs in Cutscenes", ref applyToNpcsInCutscenes))
-            {
-                Plugin.Config.IsApplyToNPCsInCutscenes = applyToNpcsInCutscenes;
-            }
-
-            if (ImGui.IsItemHovered())
-            {
-                ImGui.SetTooltip(
-                    "Apply scales to NPCs in cutscenes.\nSpecify a scale with the name 'DefaultCutscene' to apply it to all generic characters while in a cutscene.");
-            }
-
-            ImGui.Spacing();
-            ImGui.Separator();
-            ImGui.Spacing();
-
-            ImGui.Text("Characters:");
-
-            ImGui.SameLine();
 
             if (ImGui.BeginPopup("Add"))
             {
@@ -174,10 +102,7 @@ namespace CustomizePlus.Interface
                 ImGui.OpenPopup("Add");
             }
 
-            if (ImGui.IsItemHovered())
-            {
-                ImGui.SetTooltip("Create a new character profile");
-            }
+            CtrlHelper.AddHoverText("Create a new character profile");
 
             ImGui.SameLine();
             if (ImGui.Button("Add from Clipboard"))
@@ -225,10 +150,7 @@ namespace CustomizePlus.Interface
                 }
             }
 
-            if (ImGui.IsItemHovered())
-            {
-                ImGui.SetTooltip("Add a character from your Clipboard");
-            }
+            CtrlHelper.AddHoverText("Add a character from your Clipboard");
 
             ImGui.SameLine();
             if (ImGui.Button("Add from Pose"))
@@ -236,14 +158,10 @@ namespace CustomizePlus.Interface
                 ImportWithImgui();
             }
 
-            if (ImGui.IsItemHovered())
-            {
-                ImGui.SetTooltip("Import one or more profiles from Anamnesis *.pose files");
-            }
-
+            CtrlHelper.AddHoverText("Import one or more profiles from Anamnesis*.pose files");
 
             // IPC Testing Window - Hidden unless enabled in json.
-            if (Plugin.Config.IsDebuggingMode)
+            if (Plugin.ConfigurationManager.Configuration.DebuggingModeEnabled)
             {
                 ImGui.SameLine();
                 if (ImGuiComponents.IconButton(FontAwesomeIcon.Pen))
@@ -251,6 +169,15 @@ namespace CustomizePlus.Interface
                     IPCTestInterface.Show(DalamudServices.PluginInterface);
                 }
             }
+
+            //Settings
+            ImGui.SameLine(ImGui.GetWindowWidth() - 30);
+            if (ImGuiComponents.IconButton(FontAwesomeIcon.Cog))
+            {
+                SettingsWindow.Show();
+            }
+
+            CtrlHelper.AddHoverText("Customize+ Settings");
 
             ImGui.Spacing();
             ImGui.Separator();

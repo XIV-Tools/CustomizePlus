@@ -2,9 +2,9 @@
 // Licensed under the MIT license.
 
 using System;
-
+using System.Drawing;
+using Dalamud.Interface;
 using Dalamud.Utility;
-
 using ImGuiNET;
 
 namespace CustomizePlus.Helpers
@@ -31,6 +31,22 @@ namespace CustomizePlus.Helpers
         public static bool Checkbox(string label, ref bool value)
         {
             return ImGui.Checkbox(label, ref value);
+        }
+
+        public static bool CheckboxWithTextAndHelp(string label, string text, string helpText, ref bool value)
+        {
+            bool checkBoxState = ImGui.Checkbox(label, ref value);
+            ImGui.SameLine();
+            ImGui.PushFont(UiBuilder.IconFont);
+            ImGui.Text(FontAwesomeIcon.InfoCircle.ToIconString());
+            ImGui.PopFont();
+            AddHoverText(helpText);
+            ImGui.SameLine();
+            ImGui.Text(text);
+
+            AddHoverText(helpText);
+
+            return checkBoxState;
         }
 
         public static bool CheckboxToggle(string label, in bool shown, Action<bool> toggle)
@@ -74,6 +90,16 @@ namespace CustomizePlus.Helpers
             {
                 AddHoverText(tooltip);
             }
+        }
+
+        public static void LabelWithIcon(FontAwesomeIcon icon, string text)
+        {
+            ImGui.SameLine();
+            ImGui.PushFont(UiBuilder.IconFont);
+            ImGui.Text(icon.ToIconString());
+            ImGui.PopFont();
+            ImGui.SameLine();
+            ImGui.Text(text);
         }
     }
 }

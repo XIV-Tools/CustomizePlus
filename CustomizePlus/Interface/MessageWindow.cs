@@ -33,7 +33,7 @@ namespace CustomizePlus.Interface
         public static void Show(string text, Vector2? windowSize = null, Action? onButtonPressed = null,
             string? windowId = null)
         {
-            if (windowId != null && Plugin.Config.ViewedMessageWindows.Contains(windowId.ToLowerInvariant()))
+            if (windowId != null && Plugin.ConfigurationManager.Configuration.ViewedMessageWindows.Contains(windowId.ToLowerInvariant()))
             {
                 onButtonPressed?.Invoke();
 
@@ -56,7 +56,7 @@ namespace CustomizePlus.Interface
                 ImGui.SetCursorPosX((((Vector2)ForcedSize).X / 2) - 130);
                 if (ImGui.Button("I understand, do not show this to me again"))
                 {
-                    Plugin.Config.ViewedMessageWindows.Add(WindowId.ToLowerInvariant());
+                    Plugin.ConfigurationManager.Configuration.ViewedMessageWindows.Add(WindowId.ToLowerInvariant());
                     Plugin.ConfigurationManager.SaveConfiguration();
                     OnButtonPressed?.Invoke();
 

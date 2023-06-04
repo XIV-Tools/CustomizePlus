@@ -258,6 +258,11 @@ namespace CustomizePlus.Interface
 
                 foreach (var boneGroup in groupedBones.OrderBy(x => (int)x.Key))
                 {
+	                //Hide root bone if it's not enabled in settings
+	                if (boneGroup.Key == BoneData.BoneFamily.Root &&
+	                    !Plugin.ConfigurationManager.Configuration.RootPositionEditingEnabled)
+	                    continue;
+                                    
                     ImGui.TableNextRow();
                     ImGui.TableSetColumnIndex(0);
 
