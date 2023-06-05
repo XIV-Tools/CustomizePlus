@@ -1,7 +1,6 @@
 ﻿// © Customize+.
 // Licensed under the MIT license.
 
-using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -12,53 +11,54 @@ using Dalamud.Logging;
 
 namespace CustomizePlus.Data.Armature
 {
-	public sealed class ArmatureManager
-	{
-		private readonly HashSet<Armature> armatures = new();
+    public sealed class ArmatureManager
+    {
+        private readonly HashSet<Armature> _armatures = new();
 
-		public void RenderCharacterProfiles(params Profile.CharacterProfile[] profiles)
-		{
-			this.RefreshActiveArmatures(profiles);
-			this.RefreshArmatureVisibility();
-			this.ApplyArmatureTransforms();
-		}
+        public void RenderCharacterProfiles(params CharacterProfile[] profiles)
+        {
+            RefreshActiveArmatures(profiles);
+            RefreshArmatureVisibility();
+            ApplyArmatureTransforms();
+        }
 
-		public unsafe void RenderArmatureByObject(GameObject obj)
-		{
-			if (this.armatures.FirstOrDefault(x => x.CharacterBase == obj.ToCharacterBase()) is Armature arm && arm != null)
-			{
-				if (arm.Visible)
-				{
-					arm.ApplyTransformation();
-				}
-			}
-		}
+        public unsafe void RenderArmatureByObject(GameObject obj)
+        {
+            if (_armatures.FirstOrDefault(x => x.ObjectRef == RenderObject.FromActor(obj)) is Armature arm &&
+                arm != null)
+            {
+                if (arm.Visible)
+                {
+                    arm.ApplyTransformation();
+                }
+            }
+        }
 
-		private void RefreshActiveArmatures(params Profile.CharacterProfile[] profiles)
-		{
-			foreach (var prof in profiles)
-			{
-				if (!this.armatures.Any(x => x.Profile == prof))
-				{
-					var newArm = new Armature(prof);
-					armatures.Add(newArm);
-					PluginLog.LogDebug($"Added '{newArm}' to cache");
-				}
-			}
+        private void RefreshActiveArmatures(params CharacterProfile[] profiles)
+        {
+            foreach (var prof in profiles)
+            {
+                if (!_armatures.Any(x => x.Profile == prof))
+                {
+                    var newArm = new Armature(prof);
+                    _armatures.Add(newArm);
+                    PluginLog.LogDebug($"Added '{newArm}' to cache");
+                }
+            }
 
-			foreach (var arm in this.armatures.Except(profiles.Select(x => x.Armature)))
-			{
-				if (arm != null)
-				{
-					this.armatures.Remove(arm);
-					PluginLog.LogDebug($"Removed '{arm}' from cache");
-				}
-			}
-		}
+            foreach (var arm in _armatures.Except(profiles.Select(x => x.Armature)))
+            {
+                if (arm != null)
+                {
+                    _armatures.Remove(arm);
+                    PluginLog.LogDebug($"Removed '{arm}' from cache");
+                }
+            }
+        }
 
 		private void RefreshArmatureVisibility()
 		{
-			foreach (var arm in this.armatures)
+			foreach (var arm in _armatures)
 			{
 				arm.Visible = arm.Profile.Enabled && arm.TryLinkSkeleton();
 			}
@@ -74,11 +74,6 @@ namespace CustomizePlus.Data.Armature
 				}
 
 				arm.ApplyTransformation();
-
-				//if (arm.GetReferenceSnap())
-				//{
-				//	arm.OverrideRootParenting();
-				//}
 			}
 		}
 	}

@@ -1,4 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
+
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Authors></Authors>
@@ -7,7 +8,7 @@
     <Description>CustomizePlus</Description>
     <Copyright></Copyright>
     <PackageProjectUrl>https://github.com/XIV-Tools/CustomizePlus</PackageProjectUrl>
-	  <UseWindowsForms>true</UseWindowsForms>
+    <UseWindowsForms>true</UseWindowsForms>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -18,7 +19,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-	  <CopyLocalLockfileAssemblies>true</CopyLocalLockfileAssemblies>
+    <CopyLocalLockfileAssemblies>true</CopyLocalLockfileAssemblies>
   </PropertyGroup>
 
   <ItemGroup>
@@ -64,10 +65,10 @@
       <HintPath>$(DalamudLibPath)Lumina.Excel.dll</HintPath>
       <Private>false</Private>
     </Reference>
-	<Reference Include="FFXIVClientStructs">
+    <Reference Include="FFXIVClientStructs">
       <HintPath>$(DalamudLibPath)FFXIVClientStructs.dll</HintPath>
       <Private>false</Private>
-	</Reference>
+    </Reference>
   </ItemGroup>
 
   <ItemGroup>

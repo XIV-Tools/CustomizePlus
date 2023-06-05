@@ -15,23 +15,27 @@ using FFXIVClientStructs.Havok;
 
 namespace CustomizePlus.Data.Armature
 {
-	/// <summary>
-	/// Represents a single bone of an ingame character's skeleton.
-	/// </summary>
-	public unsafe class ModelBone
-	{
-		public readonly Armature Armature;
+    /// <summary>
+    ///     Represents a single bone of an ingame character's skeleton.
+    /// </summary>
+    public unsafe class ModelBone
+    {
+        public readonly Armature Armature;
 
-		public readonly List<Tuple<int, int, int>> TripleIndices = new();
+        public readonly string BoneName;
+        public readonly string? ParentBoneName;
 
-		public readonly string BoneName;
-		public readonly string? ParentBoneName;
+        //public readonly int SkeletonIndex;
+        //public readonly int PoseIndex;
+        //public readonly int BoneIndex;
 
-		public BoneTransform PluginTransform;
+        public readonly List<Tuple<int, int, int>> TripleIndices = new();
+        public List<ModelBone> Children = new();
 
-		public ModelBone? Parent;
-		public ModelBone? Sibling;
-		public List<ModelBone> Children = new();
+        public ModelBone? Parent;
+
+        public BoneTransform PluginTransform;
+        public ModelBone? Sibling;
 
 		public override string ToString()
 		{
@@ -62,28 +66,54 @@ namespace CustomizePlus.Data.Armature
 		{
 			this.Armature = arm;
 
-			//this.SkeletonIndex = skeleIndex;
-			//this.PoseIndex = poseIndex;
-			//this.BoneIndex = boneIndex;
+            //this.SkeletonIndex = skeleIndex;
+            //this.PoseIndex = poseIndex;
+            //this.BoneIndex = boneIndex;
 
-			this.TripleIndices.Add(new Tuple<int, int, int>(skeleIndex, poseIndex, boneIndex));
+            TripleIndices.Add(new Tuple<int, int, int>(skeleIndex, poseIndex, boneIndex));
 
-			this.BoneName = name;
-			this.ParentBoneName = parentName;
+            BoneName = name;
+            ParentBoneName = parentName;
 
-			if (arm.Profile.Bones.TryGetValue(name, out var bec) && bec != null)
-			{
-				this.PluginTransform = bec;
-			}
-			else
-			{
-				this.PluginTransform = new BoneTransform();
-			}
+            if (arm.Profile.Bones.TryGetValue(name, out var bec) && bec != null)
+            {
+                PluginTransform = bec;
+            }
+            else
+            {
+                PluginTransform = new BoneTransform();
+            }
 
-			this.Parent = null;
-			this.Sibling = null;
-			this.Children = new();
-		}
+            Parent = null;
+            Sibling = null;
+            Children = new List<ModelBone>();
+        }
+
+        public override string ToString()
+        {
+            var sb = new StringBuilder();
+            if (Parent != null)
+            {
+                sb.Append($"[{Parent.BoneName}]-> ");
+            }
+
+            sb.Append(BoneName);
+            if (Sibling != null)
+            {
+                sb.Append($" <->[{Sibling.BoneName}]");
+            }
+
+            if (Children.Any())
+            {
+                sb.Append($" ({Children.Count} children)");
+            }
+            else
+            {
+                sb.Append(" (no children)");
+            }
+
+            return sb.ToString();
+        }
 
 		public void UpdateModel(BoneTransform newTransform, bool mirror = false, bool propagate = false)
 		{
@@ -97,43 +127,26 @@ namespace CustomizePlus.Data.Armature
 				this.Sibling.UpdateModel(mirroredTransform, false, propagate);
 			}
 
-			if (propagate)
-			{
-				foreach (var child in this.Children)
-				{
-					child.CascadeTransformation(newTransform, this.PluginTransform.Translation);
-				}
-			}
-
 			this.UpdateTransformation(newTransform);
 		}
 
-		private void UpdateTransformation(BoneTransform newTransform)
-		{
-			//update the transform locally
-			this.PluginTransform.UpdateToMatch(newTransform);
+        private void UpdateTransformation(BoneTransform newTransform)
+        {
+            //update the transform locally
+            PluginTransform.UpdateToMatch(newTransform);
 
-			//these should be connected by reference already, I think?
-			//but I suppose it doesn't hurt...?
-			if (newTransform.IsEdited())
-			{
-				this.Armature.Profile.Bones[this.BoneName] = this.PluginTransform;
-			}
-			else
-			{
-				this.Armature.Profile.Bones.Remove(this.BoneName);
-			}
-		}
+            //these should be connected by reference already, I think?
+            //but I suppose it doesn't hurt...?
+            if (newTransform.IsEdited())
+            {
+                Armature.Profile.Bones[BoneName] = PluginTransform;
+            }
+            else
+            {
+                Armature.Profile.Bones.Remove(BoneName);
+            }
+        }
 
-		private void CascadeTransformation(BoneTransform delta, Vector3 pointPos)
-		{
-			this.PluginTransform.ReorientKinematically(delta, pointPos);
-
-			foreach (var child in this.Children)
-			{
-				child.CascadeTransformation(delta, pointPos);
-			}
-		}
 
 		public enum PoseType { Local, Model, Reference /*, World*/}
 
@@ -201,10 +214,10 @@ namespace CustomizePlus.Data.Armature
 
 				hkaPose* currentPose = this.Armature.Skeleton->PartialSkeletons[triplex.Item1].GetHavokPose(triplex.Item2);
 
-				if (currentPose == null)
-				{
-					return;
-				}
+                if (currentPose == null)
+                {
+                    return;
+                }
 
 				if (Armature.GetReferenceSnap())
 				{
@@ -238,13 +251,6 @@ namespace CustomizePlus.Data.Armature
 			}
 
 
-			//hkQsTransformf[] deforms = this.GetGameTransforms();
-
-			//for (int i = 0; i < deforms.Length; ++i)
-			//{
-			//	hkQsTransformf tNew = this.PluginTransform.ModifyExistingTransformation(deforms[i]);
-			//	this.SetGameTransforms(tNew);
-			//}
 		}
 
 		public string ToTreeString()

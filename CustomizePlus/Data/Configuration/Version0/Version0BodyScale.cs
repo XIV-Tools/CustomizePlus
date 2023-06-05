@@ -4,6 +4,7 @@
 using FFXIVClientStructs.Havok;
 using System;
 using System.Collections.Generic;
+using CustomizePlus.Memory;
 
 namespace CustomizePlus.Data.Configuration.Version0
 {
