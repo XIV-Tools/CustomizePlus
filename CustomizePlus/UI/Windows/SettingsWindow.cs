@@ -2,11 +2,6 @@
 // Licensed under the MIT license.
 
 using ImGuiNET;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using CustomizePlus.Helpers;
 using Dalamud.Interface;
 
@@ -81,7 +76,7 @@ namespace CustomizePlus.UI.Windows
                 return;
 
             ImGui.NewLine();
-            CtrlHelper.LabelWithIcon(FontAwesomeIcon.ExclamationTriangle, "Those are advanced settings, no support is provided for those settings unless they are not working at all.");
+            CtrlHelper.LabelWithIcon(FontAwesomeIcon.ExclamationTriangle, "These are advanced settings. NO support is provided for them, unless they are not working at all.");
             ImGui.NewLine();
 
             DrawEnableRootPositionCheckbox();
@@ -90,7 +85,7 @@ namespace CustomizePlus.UI.Windows
         private void DrawEnableRootPositionCheckbox()
         {
             var isChecked = Plugin.ConfigurationManager.Configuration.RootPositionEditingEnabled;
-            if (CtrlHelper.CheckboxWithTextAndHelp("##rootpos", "Root position editing", "Enables ability to edit root bone position.", ref isChecked))
+            if (CtrlHelper.CheckboxWithTextAndHelp("##rootpos", "Root editing", "Enables ability to edit the root bones.", ref isChecked))
             {
                 Plugin.ConfigurationManager.Configuration.RootPositionEditingEnabled = isChecked;
                 Plugin.ConfigurationManager.SaveConfiguration();

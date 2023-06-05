@@ -242,7 +242,7 @@ namespace CustomizePlus.UI.Windows
 
                 ImGui.TableSetColumnEnabled(4, Settings.EditingAttribute == BoneAttribute.Scale);
 
-                ImGui.TableSetupColumn("\tName", ImGuiTableColumnFlags.NoReorder | ImGuiTableColumnFlags.WidthStretch);
+                ImGui.TableSetupColumn("Name", ImGuiTableColumnFlags.NoReorder | ImGuiTableColumnFlags.WidthStretch);
 
                 ImGui.TableSetupScrollFreeze(0, 1);
 
