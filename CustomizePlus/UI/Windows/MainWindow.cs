@@ -407,9 +407,7 @@ namespace CustomizePlus.UI.Windows
         /// </summary>
         private void ImportWithImgui()
         {
-            /// <summary>
-            /// Action performed when the file is imported.
-            /// </summary>
+            // Action performed when the file is imported.
             void ImportAction()
             {
                 _importFilePicker.OpenFileDialog("Import Pose File", ".pose", (isSuccess, path) =>
