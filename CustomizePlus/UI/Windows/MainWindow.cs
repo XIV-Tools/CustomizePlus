@@ -294,7 +294,7 @@ namespace CustomizePlus.UI.Windows
                     ImGui.TableNextColumn();
                     if (ImGuiComponents.IconButton(FontAwesomeIcon.InfoCircle))
                     {
-                        BoneMonitor.Show(prof);
+                        BoneMonitorWindow.Show(prof);
                     }
                     CtrlHelper.AddHoverText(string.Join('\n',
                         $"Profile '{prof.ProfileName}'",

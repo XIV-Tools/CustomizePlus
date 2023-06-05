@@ -1,23 +1,21 @@
 ﻿// © Customize+.
 // Licensed under the MIT license.
 
-namespace CustomizePlus.Interface
+using System.Collections.Generic;
+using System.Linq;
+using System.Numerics;
+using CustomizePlus.Data;
+using CustomizePlus.Data.Armature;
+using CustomizePlus.Data.Profile;
+using CustomizePlus.Helpers;
+using CustomizePlus.UI.Dialogs;
+using Dalamud.Interface;
+using Dalamud.Interface.Components;
+using ImGuiNET;
+
+namespace CustomizePlus.UI.Windows
 {
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Numerics;
-
-    using CustomizePlus.Data;
-    using CustomizePlus.Data.Armature;
-    using CustomizePlus.Data.Profile;
-    using CustomizePlus.Helpers;
-
-    using Dalamud.Interface;
-    using Dalamud.Interface.Components;
-
-    using ImGuiNET;
-
-    public class BoneEditInterface : WindowBase
+    public class BoneEditWindow : WindowBase
     {
         protected override string Title => $"Edit Profile: {profileInProgress.ProfileName}";
         protected override bool SingleInstance => true;
@@ -42,7 +40,7 @@ namespace CustomizePlus.Interface
 
         public static void Show(CharacterProfile prof)
         {
-            var editWnd = Plugin.InterfaceManager.Show<BoneEditInterface>();
+            var editWnd = Plugin.InterfaceManager.Show<BoneEditWindow>();
 
             editWnd.profileInProgress = prof;
             editWnd.originalCharName = prof.CharacterName;
@@ -376,7 +374,7 @@ namespace CustomizePlus.Interface
         public void DisplayNoLinkMsg()
         {
             var msg = $"The editor can't find {profileInProgress.CharacterName} or their bone data in the game's memory.\nCertain editing features will be unavailable.";
-            MessageWindow.Show(msg);
+            MessageDialog.Show(msg);
         }
 
         #region ImGui helper functions
