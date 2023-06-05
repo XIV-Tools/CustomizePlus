@@ -5,7 +5,6 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
-
 using Dalamud.Logging;
 
 namespace CustomizePlus.Helpers
@@ -33,7 +32,9 @@ namespace CustomizePlus.Helpers
 
             var result = picker.ShowDialog();
 
-            return result == DialogResult.OK ? picker.FileNames.Select(Path.GetFullPath).ToArray() : Array.Empty<string>();
+            return result == DialogResult.OK
+                ? picker.FileNames.Select(Path.GetFullPath).ToArray()
+                : Array.Empty<string>();
         }
 
         public static string? ReadFileAtPath(string path)

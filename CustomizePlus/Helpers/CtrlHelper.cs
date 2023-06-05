@@ -2,7 +2,6 @@
 // Licensed under the MIT license.
 
 using System;
-using System.Drawing;
 using Dalamud.Interface;
 using Dalamud.Utility;
 using ImGuiNET;
@@ -35,7 +34,7 @@ namespace CustomizePlus.Helpers
 
         public static bool CheckboxWithTextAndHelp(string label, string text, string helpText, ref bool value)
         {
-            bool checkBoxState = ImGui.Checkbox(label, ref value);
+            var checkBoxState = ImGui.Checkbox(label, ref value);
             ImGui.SameLine();
             ImGui.PushFont(UiBuilder.IconFont);
             ImGui.Text(FontAwesomeIcon.InfoCircle.ToIconString());

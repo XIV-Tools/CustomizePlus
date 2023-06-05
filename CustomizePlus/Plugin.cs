@@ -42,6 +42,7 @@ namespace CustomizePlus
         public static ProfileManager ProfileManager { get; } = new();
         public static ArmatureManager ArmatureManager { get; } = new();
         public static ConfigurationManager ConfigurationManager { get; set; } = new();
+
         //private static readonly Dictionary<string, BodyScale> NameToScale = new();
         //private static Dictionary<GameObject, BodyScale> scaleByObject = new();
         //private static ConcurrentDictionary<string, BodyScale> scaleOverride = new();
@@ -59,6 +60,7 @@ namespace CustomizePlus
         //private static BodyScale? defaultScale;
         //private static BodyScale? defaultRetainerScale;
         //private static BodyScale? defaultCutsceneScale;
+
 
         public Plugin(DalamudPluginInterface pluginInterface)
         {
@@ -190,7 +192,9 @@ namespace CustomizePlus
                     if (_renderManagerHook == null)
                     {
                         // "Render::Manager::Render"
-                        var renderAddress = DalamudServices.SigScanner.ScanText("E8 ?? ?? ?? ?? 48 81 C3 ?? ?? ?? ?? BF ?? ?? ?? ?? 33 ED");
+                        var renderAddress =
+                            DalamudServices.SigScanner.ScanText(
+                                "E8 ?? ?? ?? ?? 48 81 C3 ?? ?? ?? ?? BF ?? ?? ?? ?? 33 ED");
                         _renderManagerHook = Hook<RenderDelegate>.FromAddress(renderAddress, OnRender);
                         PluginLog.Debug("Render hook established");
                     }
@@ -198,7 +202,8 @@ namespace CustomizePlus
                     if (_gameObjectMovementHook == null)
                     {
                         var movementAddress = DalamudServices.SigScanner.ScanText("E8 ?? ?? ?? ?? EB 29 48 8B 5F 08");
-                        _gameObjectMovementHook = Hook<GameObjectMovementDelegate>.FromAddress(movementAddress, new GameObjectMovementDelegate(OnGameObjectMove));
+                        _gameObjectMovementHook =
+                            Hook<GameObjectMovementDelegate>.FromAddress(movementAddress, OnGameObjectMove);
                         PluginLog.Debug("Movement hook established");
                     }
 
@@ -216,7 +221,6 @@ namespace CustomizePlus
                     //	ipcManager.OnScaleUpdate(JsonConvert.SerializeObject(playerScale));
                     //	legacyIpcManager.OnScaleUpdate(playerScale);
                     //}
-
                 }
                 else
                 {
@@ -279,7 +283,8 @@ namespace CustomizePlus
                 }
 
                 var outProf =
-                    ProfileManager.Profiles.FirstOrDefault(x => x.ProfileName == profName && x.CharacterName == charaName);
+                    ProfileManager.Profiles.FirstOrDefault(x =>
+                        x.ProfileName == profName && x.CharacterName == charaName);
 
                 if (outProf == null)
                 {
@@ -389,9 +394,9 @@ namespace CustomizePlus
             {
                 var objIndex = obj.ObjectIndex;
 
-                bool isForbiddenFiller = objIndex == Constants.ObjectTableFillerIndex;
-                bool isForbiddenCutsceneNPC = Constants.IsInObjectTableCutsceneNPCRange(objIndex)
-                                           && !ConfigurationManager.Configuration.ApplyToNPCsInCutscenes;
+                var isForbiddenFiller = objIndex == Constants.ObjectTableFillerIndex;
+                var isForbiddenCutsceneNPC = Constants.IsInObjectTableCutsceneNPCRange(objIndex)
+                                             && !ConfigurationManager.Configuration.ApplyToNPCsInCutscenes;
 
                 //TODO none of this should really be necessary? the armature should already be
                 //keeping track of its own visibility wrt rules and such

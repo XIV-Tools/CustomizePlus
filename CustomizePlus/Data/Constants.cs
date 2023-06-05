@@ -1,6 +1,8 @@
 ﻿// © Customize+.
 // Licensed under the MIT license.
 
+using FFXIVClientStructs.Havok;
+
 namespace CustomizePlus.Data
 {
     internal static class Constants
@@ -53,18 +55,19 @@ namespace CustomizePlus.Data
         /// A "null" havok vector. Since the type isn't inherently nullable, and the default value (0, 0, 0, 0)
         /// is valid input in a lot of cases, we can use this instead.
         /// </summary>
-        public static readonly FFXIVClientStructs.Havok.hkVector4f NullVector = new()
+        public static readonly hkVector4f NullVector = new()
         {
             X = float.NaN,
             Y = float.NaN,
             Z = float.NaN,
             W = float.NaN
         };
+
         /// <summary>
         /// A "null" havok quaternion. Since the type isn't inherently nullable, and the default value (0, 0, 0, 0)
         /// is valid input in a lot of cases, we can use this instead.
         /// </summary>
-        public static readonly FFXIVClientStructs.Havok.hkQuaternionf NullQuaternion = new()
+        public static readonly hkQuaternionf NullQuaternion = new()
         {
             X = float.NaN,
             Y = float.NaN,
@@ -76,7 +79,7 @@ namespace CustomizePlus.Data
         /// A "null" havok transform. Since the type isn't inherently nullable, and the default values
         /// aren't immediately obviously wrong, we can use this instead.
         /// </summary>
-        public static readonly FFXIVClientStructs.Havok.hkQsTransformf NullTransform = new()
+        public static readonly hkQsTransformf NullTransform = new()
         {
             Translation = NullVector,
             Rotation = NullQuaternion,

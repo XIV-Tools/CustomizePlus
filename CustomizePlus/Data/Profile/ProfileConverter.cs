@@ -5,12 +5,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-
 using CustomizePlus.Anamnesis;
 using CustomizePlus.Data.Configuration.Version0;
 using CustomizePlus.Data.Configuration.Version2;
 using CustomizePlus.Extensions;
-
 using Newtonsoft.Json;
 
 namespace CustomizePlus.Data.Profile

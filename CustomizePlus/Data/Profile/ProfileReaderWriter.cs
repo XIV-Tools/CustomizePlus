@@ -3,11 +3,8 @@
 
 using System;
 using System.IO;
-
 using CustomizePlus.Helpers;
-
 using Dalamud.Logging;
-
 using Newtonsoft.Json;
 
 namespace CustomizePlus.Data.Profile

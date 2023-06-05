@@ -3,9 +3,7 @@
 
 using System;
 using System.Numerics;
-
 using Dalamud.Utility;
-
 using ImGuiNET;
 
 namespace CustomizePlus.UI.Dialogs
@@ -95,7 +93,7 @@ namespace CustomizePlus.UI.Dialogs
         private static float CenterMultiple(float width, int count)
         {
             var avail = ImGui.GetWindowWidth();
-            return (avail - (width * count) - ImGui.GetStyle().ItemSpacing.X) / count;
+            return (avail - width * count - ImGui.GetStyle().ItemSpacing.X) / count;
         }
     }
 }
