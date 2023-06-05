@@ -6,14 +6,18 @@ using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Windows.Forms;
+
 using CustomizePlus.Data;
 using CustomizePlus.Data.Profile;
 using CustomizePlus.Helpers;
+
 using Dalamud.Interface;
 using Dalamud.Interface.Components;
 using Dalamud.Interface.ImGuiFileDialog;
 using Dalamud.Logging;
+
 using ImGuiNET;
+
 using Newtonsoft.Json;
 
 namespace CustomizePlus.Interface
@@ -69,11 +73,19 @@ namespace CustomizePlus.Interface
             }
 
             ImGui.SameLine();
+            ImGui.Spacing();
+            ImGui.SameLine();
 
-            var applyToNpcs = Plugin.Config.IsApplyToNPCs;
+            ImGui.TextUnformatted("|");
+
+            ImGui.SameLine();
+            ImGui.Spacing();
+            ImGui.SameLine();
+
+            var applyToNpcs = Plugin.Config.ApplyToNPCs;
             if (ImGui.Checkbox("Apply to NPCS", ref applyToNpcs))
             {
-                Plugin.Config.IsApplyToNPCs = applyToNpcs;
+                Plugin.Config.ApplyToNPCs = applyToNpcs;
                 Plugin.RefreshPlugin(true);
             }
 
@@ -249,18 +261,34 @@ namespace CustomizePlus.Interface
             //TODO there's probably some imgui functionality to sort the table when you click on the headers
 
             var fontScale = ImGui.GetIO().FontGlobalScale;
-            if (ImGui.BeginTable("Config", 5,
-                    ImGuiTableFlags.Borders | ImGuiTableFlags.Resizable | ImGuiTableFlags.ScrollY,
-                    new Vector2(0, ImGui.GetFrameHeightWithSpacing() - 70 * fontScale)))
+            if (ImGui.BeginTable("Config", 5, ImGuiTableFlags.Borders | ImGuiTableFlags.Resizable | ImGuiTableFlags.ScrollY | ImGuiTableFlags.Sortable,
+                new Vector2(0, ImGui.GetFrameHeightWithSpacing() - (70 * fontScale))))
             {
                 ImGui.TableSetupColumn("Enabled", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize);
-                ImGui.TableSetupColumn("Character");
-                ImGui.TableSetupColumn("Profile Name");
-                ImGui.TableSetupColumn("Info", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize);
-                ImGui.TableSetupColumn("Options", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize);
+                ImGui.TableSetupColumn("Character", ImGuiTableColumnFlags.WidthStretch | ImGuiTableColumnFlags.DefaultSort);
+                ImGui.TableSetupColumn("Profile Name", ImGuiTableColumnFlags.WidthStretch);
+                ImGui.TableSetupColumn("Info", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize | ImGuiTableColumnFlags.NoSort);
+                ImGui.TableSetupColumn("Options", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize | ImGuiTableColumnFlags.NoSort);
+
+                ImGui.TableSetupScrollFreeze(0, 1);
                 ImGui.TableHeadersRow();
 
-                foreach (var prof in Plugin.ProfileManager.Profiles.OrderBy(x => x.CharacterName).ThenBy(x => x.ProfileName))
+                var sortSpecs = ImGui.TableGetSortSpecs().Specs;
+                Func<CharacterProfile, IComparable> sortByAttribute = sortSpecs.ColumnIndex switch
+                {
+                    0 => x => x.Enabled ? 0 : 1,
+                    1 => x => x.CharacterName,
+                    2 => x => x.ProfileName,
+                    _ => x => x.CharacterName
+                };
+
+                var profileList = sortSpecs.SortDirection == ImGuiSortDirection.Ascending
+                    ? Plugin.ProfileManager.Profiles.OrderBy(sortByAttribute).ToList()
+                    : sortSpecs.SortDirection == ImGuiSortDirection.Descending
+                        ? Plugin.ProfileManager.Profiles.OrderByDescending(sortByAttribute).ToList()
+                        : Plugin.ProfileManager.Profiles.ToList();
+
+                foreach (var prof in profileList)
                 {
                     ImGui.PushID(prof.GetHashCode());
 
@@ -269,7 +297,7 @@ namespace CustomizePlus.Interface
 
                     // Enable
                     var tempEnabled = prof.Enabled;
-                    ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 12 * fontScale);
+                    ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (12 * fontScale));
                     if (ImGui.Checkbox("##Enable", ref tempEnabled))
                     {
                         if (tempEnabled)
@@ -297,6 +325,7 @@ namespace CustomizePlus.Interface
                         if (ImGui.IsItemDeactivatedAfterEdit())
                         {
                             prof.CharacterName = characterName;
+                            Plugin.ProfileManager.AddAndSaveProfile(prof);
                         }
                     }
 
@@ -311,29 +340,18 @@ namespace CustomizePlus.Interface
                     ImGui.TableNextColumn();
                     ImGui.PushItemWidth(-1);
                     var inputProfName = prof.ProfileName ?? string.Empty;
-                    if (ImGui.InputText("##Profile Name", ref inputProfName, 64,
-                            ImGuiInputTextFlags.NoHorizontalScroll))
+                    if (ImGui.InputText("##Profile Name", ref inputProfName, 64, ImGuiInputTextFlags.NoHorizontalScroll))
                     {
                         if (ImGui.IsItemDeactivatedAfterEdit())
                         {
-                            var tryIndex = 2;
-                            var newProfileName = inputProfName;
-
-                            while (Plugin.ProfileManager.Profiles
-                                   .Where(x => x.CharacterName == prof.CharacterName)
-                                   .Any(x => x.ProfileName == newProfileName))
-                            {
-                                newProfileName = $"{inputProfName}-{tryIndex}";
-                                tryIndex++;
-                            }
-
+                            var newProfileName = ValidateProfileName(characterName, inputProfName);
                             if (newProfileName != inputProfName)
                             {
-                                MessageWindow.Show(
-                                    $"Profile '{inputProfName}' already exists for {prof.CharacterName}. Renamed to '{newProfileName}'.");
+                                MessageWindow.Show($"Profile '{inputProfName}' already exists for {characterName}. Renamed to '{newProfileName}'.");
                             }
 
                             prof.ProfileName = newProfileName;
+                            Plugin.ProfileManager.AddAndSaveProfile(prof);
                         }
                     }
 
@@ -345,7 +363,10 @@ namespace CustomizePlus.Interface
                     // ---
 
                     ImGui.TableNextColumn();
-                    ImGuiComponents.IconButton(FontAwesomeIcon.InfoCircle);
+                    if (ImGuiComponents.IconButton(FontAwesomeIcon.InfoCircle))
+                    {
+                        BoneMonitor.Show(prof);
+                    }
                     CtrlHelper.AddHoverText(string.Join('\n',
                         $"Profile '{prof.ProfileName}'",
                         $"for {prof.CharacterName}",
@@ -375,10 +396,12 @@ namespace CustomizePlus.Interface
                         && Plugin.ProfileManager.GetWorkingCopy(prof, out var dupe)
                         && dupe != null)
                     {
+                        var newProfileName = ValidateProfileName(characterName, inputProfName);
+                        dupe.ProfileName = newProfileName;
+
                         Plugin.ProfileManager.StopEditing(dupe);
                         Plugin.ProfileManager.AddAndSaveProfile(dupe, true);
                     }
-
                     CtrlHelper.AddHoverText("Duplicate Profile");
 
                     // Export to Clipboard
@@ -432,6 +455,22 @@ namespace CustomizePlus.Interface
                 Plugin.ProfileManager.SaveAllProfiles();
                 Close();
             }
+        }
+
+        private string ValidateProfileName(string charName, string profName)
+        {
+            var newProfileName = profName;
+            var tryIndex = 2;
+
+            while (Plugin.ProfileManager.Profiles
+                .Where(x => x.CharacterName == charName)
+                .Any(x => x.ProfileName == newProfileName))
+            {
+                newProfileName = $"{profName}-{tryIndex}";
+                tryIndex++;
+            }
+
+            return newProfileName;
         }
 
         /// <summary>

@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using Dalamud.Game.ClientState.Objects.Enums;
 
 namespace CustomizePlus.Data.Profile
@@ -46,6 +47,21 @@ namespace CustomizePlus.Data.Profile
             }
         }
 
+        public void CheckForNewProfiles()
+        {
+            foreach (var path in ProfileReaderWriter.GetProfilePaths())
+            {
+                if (ProfileReaderWriter.TryLoadProfile(path, out var prof)
+                    && prof != null
+                    && !Profiles.Contains(prof))
+                {
+                    PruneIdempotentTransforms(prof);
+
+                    Profiles.Add(prof);
+                }
+            }
+        }
+
         /// <summary>
         ///     Adds the given profile to the list of those managed, and immediately
         ///     saves it to disk. If the profile already exists (and it is not forced to be new)
@@ -71,6 +87,12 @@ namespace CustomizePlus.Data.Profile
 
                 prof.CreationDate = DateTime.Now;
                 prof.ModifiedDate = DateTime.Now;
+
+                //only let this new profile be enabled if
+                // (1) it wants to be in the first place
+                // (2) the character it's for doesn't already have an enabled profile
+                prof.Enabled = prof.Enabled && !GetEnabledProfiles().Any(x => x.CharacterName == prof.CharacterName);
+
                 Profiles.Add(prof);
                 ProfileReaderWriter.SaveProfile(prof);
             }

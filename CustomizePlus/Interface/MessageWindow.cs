@@ -3,13 +3,14 @@
 
 using System;
 using System.Numerics;
+
 using ImGuiNET;
 
 namespace CustomizePlus.Interface
 {
     /// <summary>
     ///     Very basic message window implementation to show the window which might be shown once or multiple times and can
-    ///     execute some action after being closed
+    ///     execute some action after being closed.
     /// </summary>
     public class MessageWindow : WindowBase
     {
@@ -19,25 +20,22 @@ namespace CustomizePlus.Interface
         protected override bool LockCloseButton => true;
 
         public string? WindowId { get; set; }
-        public string Text { get; set; }
+        public required string Text { get; set; }
         public Action? OnButtonPressed { get; set; }
 
         /// <summary>
-        ///     Show message window
+        ///     Show message window.
         /// </summary>
-        /// <param name="text">Window test</param>
-        /// <param name="windowSize">Optional window size</param>
-        /// <param name="onButtonPressed">Action to be executed when button is pressed</param>
-        /// <param name="windowId">Window id, if set will only show this window once and never again</param>
+        /// <param name="text">Window test.</param>
+        /// <param name="windowSize">Optional window size.</param>
+        /// <param name="onButtonPressed">Action to be executed when button is pressed.</param>
+        /// <param name="windowId">Window id, if set will only show this window once and never again.</param>
         public static void Show(string text, Vector2? windowSize = null, Action? onButtonPressed = null,
             string? windowId = null)
         {
             if (windowId != null && Plugin.Config.ViewedMessageWindows.Contains(windowId.ToLowerInvariant()))
             {
-                if (onButtonPressed != null)
-                {
-                    onButtonPressed();
-                }
+                onButtonPressed?.Invoke();
 
                 return;
             }
@@ -55,15 +53,12 @@ namespace CustomizePlus.Interface
 
             if (WindowId != null)
             {
-                ImGui.SetCursorPosX(((Vector2)ForcedSize).X / 2 - 130);
+                ImGui.SetCursorPosX((((Vector2)ForcedSize).X / 2) - 130);
                 if (ImGui.Button("I understand, do not show this to me again"))
                 {
                     Plugin.Config.ViewedMessageWindows.Add(WindowId.ToLowerInvariant());
                     Plugin.ConfigurationManager.SaveConfiguration();
-                    if (OnButtonPressed != null)
-                    {
-                        OnButtonPressed();
-                    }
+                    OnButtonPressed?.Invoke();
 
                     Close();
                 }
@@ -71,13 +66,10 @@ namespace CustomizePlus.Interface
                 return;
             }
 
-            ImGui.SetCursorPosX(((Vector2)ForcedSize).X / 2 - 20);
+            ImGui.SetCursorPosX((((Vector2)ForcedSize).X / 2) - 20);
             if (ImGui.Button("OK"))
             {
-                if (OnButtonPressed != null)
-                {
-                    OnButtonPressed();
-                }
+                OnButtonPressed?.Invoke();
 
                 Close();
             }

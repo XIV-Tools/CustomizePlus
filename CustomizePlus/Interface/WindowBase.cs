@@ -2,6 +2,7 @@
 // Licensed under the MIT license.
 
 using System.Numerics;
+
 using ImGuiNET;
 
 namespace CustomizePlus.Interface
@@ -21,7 +22,7 @@ namespace CustomizePlus.Interface
         protected virtual bool LockCloseButton { get; set; }
 
         /// <summary>
-        ///     Normally you wouldn't want to override this
+        ///     Gets normally you wouldn't want to override this.
         /// </summary>
         protected virtual string DrawTitle => $"{Title}";
 

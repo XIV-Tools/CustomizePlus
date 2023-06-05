@@ -2,7 +2,9 @@
 // Licensed under the MIT license.
 
 using System;
+
 using Dalamud.Utility;
+
 using ImGuiNET;
 
 namespace CustomizePlus.Helpers

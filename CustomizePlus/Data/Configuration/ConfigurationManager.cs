@@ -3,10 +3,13 @@
 
 using System;
 using System.IO;
+
 using CustomizePlus.Data.Configuration.Version0;
 using CustomizePlus.Data.Configuration.Version2;
 using CustomizePlus.Helpers;
+
 using Dalamud.Logging;
+
 using Newtonsoft.Json;
 
 namespace CustomizePlus.Data.Configuration
@@ -93,12 +96,9 @@ namespace CustomizePlus.Data.Configuration
         /// </summary>
         private static int? GetCurrentConfigurationVersion()
         {
-            if (!DalamudServices.PluginInterface.ConfigFile.Exists)
-            {
-                return null;
-            }
-
-            return JsonConvert
+            return !DalamudServices.PluginInterface.ConfigFile.Exists
+                ? null
+                : JsonConvert
                 .DeserializeObject<ConfigurationVersion>(
                     File.ReadAllText(DalamudServices.PluginInterface.ConfigFile.FullName)).Version;
         }

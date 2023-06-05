@@ -4,14 +4,18 @@
 using System;
 using System.Collections.Generic;
 using System.Numerics;
+
 using CustomizePlus.Data;
 using CustomizePlus.Data.Profile;
+
 using Dalamud.Interface;
 using Dalamud.Interface.Components;
 using Dalamud.Logging;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Ipc;
+
 using ImGuiNET;
+
 using Newtonsoft.Json;
 
 namespace CustomizePlus.Interface
@@ -23,7 +27,7 @@ namespace CustomizePlus.Interface
 
         private bool automaticBoneAttribute;
 
-        private BoneAttribute BoneAttribute;
+        private BoneAttribute boneAttribute;
         private readonly List<string> boneCodenamesUsed = new();
         private readonly List<string> boneDispNamesUsed = new();
         private readonly Dictionary<string, BoneTransform> boneValuesNew = new();
@@ -190,21 +194,21 @@ namespace CustomizePlus.Interface
                 ImGui.SetTooltip("Applies changes automatically without saving.");
             }
 
-            if (ImGui.RadioButton("Position", BoneAttribute == BoneAttribute.Position))
+            if (ImGui.RadioButton("Position", boneAttribute == BoneAttribute.Position))
             {
-                BoneAttribute = BoneAttribute.Position;
+                boneAttribute = BoneAttribute.Position;
             }
 
             ImGui.SameLine();
-            if (ImGui.RadioButton("Rotation", BoneAttribute == BoneAttribute.Rotation))
+            if (ImGui.RadioButton("Rotation", boneAttribute == BoneAttribute.Rotation))
             {
-                BoneAttribute = BoneAttribute.Rotation;
+                boneAttribute = BoneAttribute.Rotation;
             }
 
             ImGui.SameLine();
-            if (ImGui.RadioButton("Scale", BoneAttribute == BoneAttribute.Scale))
+            if (ImGui.RadioButton("Scale", boneAttribute == BoneAttribute.Scale))
             {
-                BoneAttribute = BoneAttribute.Scale;
+                boneAttribute = BoneAttribute.Scale;
             }
 
             ImGui.Separator();
@@ -229,7 +233,7 @@ namespace CustomizePlus.Interface
 
             var rootLocalTemp = Vector3.One;
             var isRootControlDisabled = false;
-            switch (BoneAttribute)
+            switch (boneAttribute)
             {
                 case BoneAttribute.Position:
                     rootLocalTemp = rootEditsContainer.Translation;
@@ -266,7 +270,7 @@ namespace CustomizePlus.Interface
                     rootLocalTemp.Z = rootLocalTemp.W;
                 }*/
 
-                switch (BoneAttribute)
+                switch (boneAttribute)
                 {
                     case BoneAttribute.Position:
                         rootEditsContainer.Translation = new Vector3(rootLocalTemp.X, rootLocalTemp.Y, rootLocalTemp.Z);
@@ -295,7 +299,7 @@ namespace CustomizePlus.Interface
             var col3Label = "Z";
             var col4Label = "All";
 
-            switch (BoneAttribute)
+            switch (boneAttribute)
             {
                 case BoneAttribute.Position:
                     col4Label = "Unused";
@@ -343,7 +347,7 @@ namespace CustomizePlus.Interface
                 */
 
                 BoneTransform currentEditsContainer = new()
-                    { Translation = Vector3.Zero, Rotation = Vector3.Zero, Scaling = Vector3.One };
+                { Translation = Vector3.Zero, Rotation = Vector3.Zero, Scaling = Vector3.One };
                 var label = "Not Found";
 
                 try
@@ -359,7 +363,7 @@ namespace CustomizePlus.Interface
                     else
                     {
                         currentEditsContainer = new BoneTransform
-                            { Translation = Vector3.Zero, Rotation = Vector3.Zero, Scaling = Vector3.One };
+                        { Translation = Vector3.Zero, Rotation = Vector3.Zero, Scaling = Vector3.One };
                     }
                 }
                 catch (Exception ex)
@@ -367,7 +371,7 @@ namespace CustomizePlus.Interface
                 }
 
                 var currentVector = Vector3.One;
-                switch (BoneAttribute)
+                switch (boneAttribute)
                 {
                     case BoneAttribute.Position:
                         currentVector = currentEditsContainer.Translation;
@@ -394,7 +398,7 @@ namespace CustomizePlus.Interface
                 {
                     BoneTransform editsContainer = null;
 
-                    switch (BoneAttribute)
+                    switch (boneAttribute)
                     {
                         case BoneAttribute.Position:
                         case BoneAttribute.Rotation:
@@ -426,7 +430,7 @@ namespace CustomizePlus.Interface
                             throw new Exception();
                         }
 
-                        switch (BoneAttribute)
+                        switch (boneAttribute)
                         {
                             case BoneAttribute.Position:
                                 editsContainer.Translation =
@@ -468,7 +472,7 @@ namespace CustomizePlus.Interface
                 var maxLimit = 10f;
                 var increment = 0.001f;
 
-                switch (BoneAttribute)
+                switch (boneAttribute)
                 {
                     case BoneAttribute.Rotation:
                         minLimit = -360f;
@@ -484,7 +488,7 @@ namespace CustomizePlus.Interface
                     {
                         if (reset)
                         {
-                            switch (BoneAttribute)
+                            switch (boneAttribute)
                             {
                                 case BoneAttribute.Position:
                                 case BoneAttribute.Rotation:
@@ -532,7 +536,7 @@ namespace CustomizePlus.Interface
                             throw new Exception();
                         }
 
-                        switch (BoneAttribute)
+                        switch (boneAttribute)
                         {
                             case BoneAttribute.Position:
                                 editsContainer.Translation =
@@ -616,14 +620,14 @@ namespace CustomizePlus.Interface
         {
             getCharacterProfile = pi.GetIpcSubscriber<string, string>("CustomizePlus.GetCharacterProfile");
             //PluginLog.Information($"{_setCharacterProfile}: -- {bodyString} -- {newBody.CharacterName}");
-            var CharacterProfileString = getCharacterProfile.InvokeFunc(newScaleCharacter);
+            var characterProfileString = getCharacterProfile.InvokeFunc(newScaleCharacter);
 
             //PluginLog.Information(CharacterProfileString);
-            if (CharacterProfileString != null)
+            if (characterProfileString != null)
             {
-                var CharacterProfile = JsonConvert.DeserializeObject<CharacterProfile?>(CharacterProfileString);
+                var characterProfile = JsonConvert.DeserializeObject<CharacterProfile?>(characterProfileString);
                 PluginLog.Information(
-                    $"IPC request for {characterName} found scale named: {CharacterProfile.ProfileName}");
+                    $"IPC request for {characterName} found scale named: {characterProfile.ProfileName}");
             }
             else
             {

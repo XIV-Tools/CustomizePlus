@@ -4,14 +4,18 @@
 using System;
 using System.Linq;
 using System.Runtime.InteropServices;
+
+using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Component.GUI;
+
 using Penumbra.String;
+
+using DalamudObject = Dalamud.Game.ClientState.Objects.Types.GameObject;
+using DalamudObjectKind = Dalamud.Game.ClientState.Objects.Enums.ObjectKind;
 //using Dalamud.Game.ClientState.Objects.Types;
 using FFXIVClientCharacter = FFXIVClientStructs.FFXIV.Client.Game.Character.Character;
 using FFXIVClientObject = FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject;
-using DalamudObjectKind = Dalamud.Game.ClientState.Objects.Enums.ObjectKind;
-using DalamudObject = Dalamud.Game.ClientState.Objects.Types.GameObject;
 
 namespace CustomizePlus.Helpers
 {
@@ -29,6 +33,38 @@ namespace CustomizePlus.Helpers
 
             //return null;
         }
+
+        public static unsafe CharacterBase* ToCharacterBase(this DalamudObject obj)
+        {
+            return obj.Address != IntPtr.Zero
+                && Marshal.ReadIntPtr(obj.Address, 0x0100) is IntPtr drawObj
+                && drawObj != IntPtr.Zero
+                ? (CharacterBase*)drawObj
+                : (CharacterBase*)null;
+        }
+
+        public static unsafe bool TryLookupCharacterBase(string name, out CharacterBase* cBase)
+        {
+            if (FindModelByName(name) is DalamudObject obj
+                && obj.Address is IntPtr objPtr
+                && objPtr != IntPtr.Zero)
+            {
+                var clientObj = (FFXIVClientObject*)objPtr;
+                if (clientObj != null)
+                {
+                    cBase = (CharacterBase*)clientObj->DrawObject;
+                    return true;
+                }
+            }
+
+            cBase = null;
+            return false;
+        }
+
+        //public unsafe static FFXIVClientStructs.FFXIV.Client.Graphics.Scene.CharacterBase* FindRenderBaseByName(string name)
+        //{
+        //	foreach()
+        //}
 
         //public static unsafe (BodyScale, bool) FindScale(int objectIndex)
         //{
@@ -176,6 +212,7 @@ namespace CustomizePlus.Helpers
 
         // Checks Customization (not ours) of the cutscene model vs the player model to see if
         // the player name should be used.
+        [Obsolete]
         public static unsafe string? GetCutsceneName(FFXIVClientObject* gameObject)
         {
             if (gameObject->Name[0] != 0 || gameObject->ObjectKind != (byte)DalamudObjectKind.Player)

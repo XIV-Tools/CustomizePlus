@@ -6,7 +6,7 @@ using CustomizePlus.Core;
 namespace CustomizePlus.Services
 {
     /// <summary>
-    ///     Service which detects if Anamnesis/Ktisis posing mode is enabled
+    ///     Service which detects if Anamnesis/Ktisis posing mode is enabled.
     /// </summary>
     internal class PosingModeDetectService : ServiceBase<PosingModeDetectService>
     {

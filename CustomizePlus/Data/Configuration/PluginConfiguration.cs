@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+
 using Dalamud.Configuration;
 
 namespace CustomizePlus.Data.Configuration
@@ -17,7 +18,7 @@ namespace CustomizePlus.Data.Configuration
         //public HashSet<Data.Profile.CharacterProfile> Profiles { get; set; } = new(); //replace with new profile data structure
         public bool IsPluginEnabled { get; set; } = true;
 
-        public bool IsApplyToNPCs { get; set; } = false;
+        public bool ApplyToNPCs { get; set; } = false;
         public bool IsApplyToNPCsInCutscenes { get; set; } = false;
 
         //public RenderRulesManager DefaultRules { get; set; } = new();

@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
+
 using ImGuiScene;
 
 namespace CustomizePlus.Data
@@ -48,12 +49,9 @@ namespace CustomizePlus.Data
 
             var assemblyDirectory = Path.GetDirectoryName(assemblyLocation);
 
-            if (assemblyDirectory == null)
-            {
-                throw new Exception("Failed to get executing assembly location");
-            }
-
-            return Path.Combine(assemblyDirectory, file);
+            return assemblyDirectory == null
+                ? throw new Exception("Failed to get executing assembly location")
+                : Path.Combine(assemblyDirectory, file);
         }
     }
 }
