@@ -4,11 +4,11 @@
 using System;
 using System.Collections.Generic;
 
-namespace CustomizePlus.Interface
+namespace CustomizePlus.UI
 {
-    public class InterfaceManager : IDisposable
+    public class UserInterfaceManager : IDisposable
     {
-        private readonly List<InterfaceBase> _interfaces = new();
+        private readonly List<UserInterfaceBase> _interfaces = new();
 
         public void Dispose()
         {
@@ -41,7 +41,7 @@ namespace CustomizePlus.Interface
         }
 
         public T Show<T>()
-            where T : InterfaceBase
+            where T : UserInterfaceBase
         {
             //todo: do not allow more than a single instance of the same window?
             var ui = Activator.CreateInstance<T>();
@@ -57,7 +57,7 @@ namespace CustomizePlus.Interface
 
         // Added this so you can close with /customize. This may need a rework in the future to access the broader usecase of the rest of the methods. But this should serve for now?
         public void Toggle<T>()
-            where T : InterfaceBase, new()
+            where T : UserInterfaceBase, new()
         {
             if (_interfaces.Count <= 0)
             {
@@ -66,14 +66,14 @@ namespace CustomizePlus.Interface
 
             // Close all windows, if we closed any window set 'switchedOff' to true so we know we are hiding interfaces.
             // If we did not turn anything off, we probably want to show our window.
-            if (!CloseAllInterfaces())
+            if (!CloseAllUserInterfaces())
             {
                 Show<T>();
             }
         }
 
         // Closes all Interfaces, returns true if at least one Interface was closed.
-        public bool CloseAllInterfaces()
+        public bool CloseAllUserInterfaces()
         {
             var interfaceWasClosed = false;
             foreach (var currentInterface in _interfaces)
@@ -88,7 +88,7 @@ namespace CustomizePlus.Interface
             return interfaceWasClosed;
         }
 
-        public InterfaceBase? GetInterface(Type type)
+        public UserInterfaceBase? GetUserInterface(Type type)
         {
             foreach (var ui in _interfaces)
             {

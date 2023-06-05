@@ -6,40 +6,39 @@ using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Windows.Forms;
-
 using CustomizePlus.Data;
 using CustomizePlus.Data.Profile;
 using CustomizePlus.Helpers;
-
+using CustomizePlus.UI.Dialogs;
+using CustomizePlus.UI.Windows.Debug;
 using Dalamud.Interface;
 using Dalamud.Interface.Components;
 using Dalamud.Interface.ImGuiFileDialog;
 using Dalamud.Logging;
-
 using ImGuiNET;
-
+using ImGuizmoNET;
 using Newtonsoft.Json;
 
-namespace CustomizePlus.Interface
+namespace CustomizePlus.UI.Windows
 {
-    public class MainInterface : WindowBase
+    public class MainWindow : WindowBase
     {
         private static string _newCharacterName = GameDataHelper.GetPlayerName() ?? string.Empty;
         private static string _newProfileName = "Default";
         private readonly FileDialogManager _importFilePicker = new();
         private static string? PlayerCharacterName => GameDataHelper.GetPlayerName();
 
-        protected override string Title => "Customize+ Configuration";
+        protected override string Title => "Customize+";
         protected override bool SingleInstance => true;
 
         public static void Show()
         {
-            Plugin.InterfaceManager.Show<MainInterface>();
+            Plugin.InterfaceManager.Show<MainWindow>();
         }
 
         public static void Toggle()
         {
-            Plugin.InterfaceManager.Toggle<MainInterface>();
+            Plugin.InterfaceManager.Toggle<MainWindow>();
         }
 
         protected override void DrawContents()
@@ -59,75 +58,6 @@ namespace CustomizePlus.Interface
 
             // Draw the File Picker
             _importFilePicker.Draw();
-
-            var enable = Plugin.Config.IsPluginEnabled;
-            if (ImGui.Checkbox("Enable", ref enable))
-            {
-                Plugin.Config.IsPluginEnabled = enable;
-                Plugin.ReloadHooks();
-            }
-
-            if (ImGui.IsItemHovered())
-            {
-                ImGui.SetTooltip("Enable or Disable Customize+");
-            }
-
-            ImGui.SameLine();
-            ImGui.Spacing();
-            ImGui.SameLine();
-
-            ImGui.TextUnformatted("|");
-
-            ImGui.SameLine();
-            ImGui.Spacing();
-            ImGui.SameLine();
-
-            var applyToNpcs = Plugin.Config.ApplyToNPCs;
-            if (ImGui.Checkbox("Apply to NPCS", ref applyToNpcs))
-            {
-                Plugin.Config.ApplyToNPCs = applyToNpcs;
-                Plugin.RefreshPlugin(true);
-            }
-
-            if (ImGui.IsItemHovered())
-            {
-                ImGui.SetTooltip(
-                    "Apply scales to NPCs.\nSpecify a scale with the name 'Default' for it to apply to all NPCs and non-specified players.");
-            }
-
-            ImGui.SameLine();
-            /*
-             * May not be needed, was intended for possible FPS fixes
-            bool applyToNpcsInBusyAreas = config.ApplyToNpcsInBusyAreas;
-            if (ImGui.Checkbox("Apply to NPCS in Busy Areas", ref applyToNpcsInBusyAreas))
-            {
-                config.ApplyToNpcsInBusyAreas = applyToNpcsInBusyAreas;
-            }
-
-            if (ImGui.IsItemHovered())
-                ImGui.SetTooltip($"Applies to NPCs in busy areas (when NPCs are in index > 200, which occurs when up to 100 characters are rendered.");
-
-            ImGui.SameLine();
-            */
-            var applyToNpcsInCutscenes = Plugin.Config.IsApplyToNPCsInCutscenes;
-            if (ImGui.Checkbox("Apply to NPCs in Cutscenes", ref applyToNpcsInCutscenes))
-            {
-                Plugin.Config.IsApplyToNPCsInCutscenes = applyToNpcsInCutscenes;
-            }
-
-            if (ImGui.IsItemHovered())
-            {
-                ImGui.SetTooltip(
-                    "Apply scales to NPCs in cutscenes.\nSpecify a scale with the name 'DefaultCutscene' to apply it to all generic characters while in a cutscene.");
-            }
-
-            ImGui.Spacing();
-            ImGui.Separator();
-            ImGui.Spacing();
-
-            ImGui.Text("Characters:");
-
-            ImGui.SameLine();
 
             if (ImGui.BeginPopup("Add"))
             {
@@ -174,10 +104,7 @@ namespace CustomizePlus.Interface
                 ImGui.OpenPopup("Add");
             }
 
-            if (ImGui.IsItemHovered())
-            {
-                ImGui.SetTooltip("Create a new character profile");
-            }
+            CtrlHelper.AddHoverText("Create a new character profile");
 
             ImGui.SameLine();
             if (ImGui.Button("Add from Clipboard"))
@@ -205,7 +132,7 @@ namespace CustomizePlus.Interface
 
                     if (importedProfile == null)
                     {
-                        MessageWindow.Show("Error importing information from clipboard.");
+                        MessageDialog.Show("Error importing information from clipboard.");
                     }
                     else if (Plugin.ProfileManager.Profiles.Contains(importedProfile))
                     {
@@ -225,10 +152,7 @@ namespace CustomizePlus.Interface
                 }
             }
 
-            if (ImGui.IsItemHovered())
-            {
-                ImGui.SetTooltip("Add a character from your Clipboard");
-            }
+            CtrlHelper.AddHoverText("Add a character from your Clipboard");
 
             ImGui.SameLine();
             if (ImGui.Button("Add from Pose"))
@@ -236,21 +160,26 @@ namespace CustomizePlus.Interface
                 ImportWithImgui();
             }
 
-            if (ImGui.IsItemHovered())
-            {
-                ImGui.SetTooltip("Import one or more profiles from Anamnesis *.pose files");
-            }
-
+            CtrlHelper.AddHoverText("Import one or more profiles from Anamnesis*.pose files");
 
             // IPC Testing Window - Hidden unless enabled in json.
-            if (Plugin.Config.IsDebuggingMode)
+            if (Plugin.ConfigurationManager.Configuration.DebuggingModeEnabled)
             {
                 ImGui.SameLine();
                 if (ImGuiComponents.IconButton(FontAwesomeIcon.Pen))
                 {
-                    IPCTestInterface.Show(DalamudServices.PluginInterface);
+                    IPCTestWindow.Show(DalamudServices.PluginInterface);
                 }
             }
+
+            //Settings
+            ImGui.SameLine(ImGui.GetWindowWidth() - 30);
+            if (ImGuiComponents.IconButton(FontAwesomeIcon.Cog))
+            {
+                SettingsWindow.Show();
+            }
+
+            CtrlHelper.AddHoverText("Customize+ Settings");
 
             ImGui.Spacing();
             ImGui.Separator();
@@ -347,7 +276,7 @@ namespace CustomizePlus.Interface
                             var newProfileName = ValidateProfileName(characterName, inputProfName);
                             if (newProfileName != inputProfName)
                             {
-                                MessageWindow.Show($"Profile '{inputProfName}' already exists for {characterName}. Renamed to '{newProfileName}'.");
+                                MessageDialog.Show($"Profile '{inputProfName}' already exists for {characterName}. Renamed to '{newProfileName}'.");
                             }
 
                             prof.ProfileName = newProfileName;
@@ -365,7 +294,7 @@ namespace CustomizePlus.Interface
                     ImGui.TableNextColumn();
                     if (ImGuiComponents.IconButton(FontAwesomeIcon.InfoCircle))
                     {
-                        BoneMonitor.Show(prof);
+                        BoneMonitorWindow.Show(prof);
                     }
                     CtrlHelper.AddHoverText(string.Join('\n',
                         $"Profile '{prof.ProfileName}'",
@@ -382,7 +311,7 @@ namespace CustomizePlus.Interface
                         && Plugin.ProfileManager.GetWorkingCopy(prof, out var profCopy)
                         && profCopy != null)
                     {
-                        BoneEditInterface.Show(profCopy);
+                        BoneEditWindow.Show(profCopy);
                     }
 
                     if (ImGui.IsItemHovered())
@@ -514,7 +443,7 @@ namespace CustomizePlus.Interface
                 }, 1, null, true);
             }
 
-            MessageWindow.Show(
+            MessageDialog.Show(
                 "Due to technical limitations, Customize+ is only able to import scale values from *.pose files.\nPosition and rotation information will be ignored.",
                 new Vector2(570, 100), ImportAction, "ana_import_pos_rot_warning");
         }

@@ -6,13 +6,13 @@ using System.Numerics;
 
 using ImGuiNET;
 
-namespace CustomizePlus.Interface
+namespace CustomizePlus.UI.Dialogs
 {
     /// <summary>
     ///     Very basic message window implementation to show the window which might be shown once or multiple times and can
     ///     execute some action after being closed.
     /// </summary>
-    public class MessageWindow : WindowBase
+    public class MessageDialog : WindowBase
     {
         protected override string Title => "Customize+ message";
         protected override Vector2 MinSize => new(200, 100);
@@ -33,14 +33,14 @@ namespace CustomizePlus.Interface
         public static void Show(string text, Vector2? windowSize = null, Action? onButtonPressed = null,
             string? windowId = null)
         {
-            if (windowId != null && Plugin.Config.ViewedMessageWindows.Contains(windowId.ToLowerInvariant()))
+            if (windowId != null && Plugin.ConfigurationManager.Configuration.ViewedMessageWindows.Contains(windowId.ToLowerInvariant()))
             {
                 onButtonPressed?.Invoke();
 
                 return;
             }
 
-            var window = Plugin.InterfaceManager.Show<MessageWindow>();
+            var window = Plugin.InterfaceManager.Show<MessageDialog>();
             window.Text = text;
             window.WindowId = windowId;
             window.OnButtonPressed = onButtonPressed;
@@ -56,7 +56,7 @@ namespace CustomizePlus.Interface
                 ImGui.SetCursorPosX((((Vector2)ForcedSize).X / 2) - 130);
                 if (ImGui.Button("I understand, do not show this to me again"))
                 {
-                    Plugin.Config.ViewedMessageWindows.Add(WindowId.ToLowerInvariant());
+                    Plugin.ConfigurationManager.Configuration.ViewedMessageWindows.Add(WindowId.ToLowerInvariant());
                     Plugin.ConfigurationManager.SaveConfiguration();
                     OnButtonPressed?.Invoke();
 

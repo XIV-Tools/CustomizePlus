@@ -8,7 +8,6 @@
 using System;
 using System.Linq;
 using System.Runtime.InteropServices;
-
 using CustomizePlus.Api;
 using CustomizePlus.Core;
 using CustomizePlus.Data;
@@ -17,14 +16,13 @@ using CustomizePlus.Data.Configuration;
 using CustomizePlus.Data.Profile;
 using CustomizePlus.Extensions;
 using CustomizePlus.Helpers;
-using CustomizePlus.Interface;
 using CustomizePlus.Services;
-
+using CustomizePlus.UI;
+using CustomizePlus.UI.Windows;
 using Dalamud.Game;
 using Dalamud.Hooking;
 using Dalamud.Logging;
 using Dalamud.Plugin;
-
 using Newtonsoft.Json;
 
 //using Dalamud.Game.ClientState.Objects.Types;
@@ -37,21 +35,30 @@ namespace CustomizePlus
 {
     public sealed class Plugin : IDalamudPlugin
     {
+        public string Name => "Customize Plus";
+
+        public static UserInterfaceManager InterfaceManager { get; } = new();
+        public static ServiceManager ServiceManager { get; } = new();
+        public static ProfileManager ProfileManager { get; } = new();
+        public static ArmatureManager ArmatureManager { get; } = new();
+        public static ConfigurationManager ConfigurationManager { get; set; } = new();
         //private static readonly Dictionary<string, BodyScale> NameToScale = new();
         //private static Dictionary<GameObject, BodyScale> scaleByObject = new();
         //private static ConcurrentDictionary<string, BodyScale> scaleOverride = new();
 
+        private static CustomizePlusIpc _ipcManager = null!;
 
         private static Hook<RenderDelegate>? _renderManagerHook;
         private static Hook<GameObjectMovementDelegate>? _gameObjectMovementHook;
 
+        private delegate IntPtr RenderDelegate(IntPtr a1, long a2, int a3, int a4);
+
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        private delegate void GameObjectMovementDelegate(IntPtr gameObject);
 
         //private static BodyScale? defaultScale;
         //private static BodyScale? defaultRetainerScale;
         //private static BodyScale? defaultCutsceneScale;
-
-
-        private static CustomizePlusIpc _ipcManager = null!;
 
         public Plugin(DalamudPluginInterface pluginInterface)
         {
@@ -73,7 +80,7 @@ namespace CustomizePlus
 
                 _ipcManager = new CustomizePlusIpc(DalamudServices.ObjectTable, DalamudServices.PluginInterface);
 
-                DalamudServices.CommandManager.AddCommand((s, t) => MainInterface.Toggle(), "/customize",
+                DalamudServices.CommandManager.AddCommand((s, t) => MainWindow.Toggle(), "/customize",
                     "Toggles the Customize+ configuration window.");
                 DalamudServices.CommandManager.AddCommand((s, t) => ApplyByCommand(t), "/customize-apply",
                     "Apply a specific Scale (usage: /customize-apply {Character Name},{Scale Name})");
@@ -81,11 +88,11 @@ namespace CustomizePlus
                     "Alias to /customize-apply");
 
                 DalamudServices.PluginInterface.UiBuilder.Draw += InterfaceManager.Draw;
-                DalamudServices.PluginInterface.UiBuilder.OpenConfigUi += MainInterface.Toggle;
+                DalamudServices.PluginInterface.UiBuilder.OpenConfigUi += MainWindow.Toggle;
 
                 if (DalamudServices.PluginInterface.IsDevMenuOpen)
                 {
-                    MainInterface.Show();
+                    MainWindow.Show();
                 }
 
                 ChatHelper.PrintInChat("Customize+ Started!");
@@ -97,18 +104,6 @@ namespace CustomizePlus
                     "An error occurred while starting Customize+. See the Dalamud log for more details");
             }
         }
-
-        public static InterfaceManager InterfaceManager { get; } = new();
-        public static ServiceManager ServiceManager { get; } = new();
-
-        public static ProfileManager ProfileManager { get; } = new();
-        public static ArmatureManager ArmatureManager { get; } = new();
-
-        public static ConfigurationManager ConfigurationManager { get; set; } = new();
-        public static PluginConfiguration Config => ConfigurationManager.Configuration;
-
-
-        public string Name => "Customize Plus";
 
         public void Dispose()
         {
@@ -129,7 +124,7 @@ namespace CustomizePlus
             CommandManagerExtensions.Dispose();
 
             DalamudServices.PluginInterface.UiBuilder.Draw -= InterfaceManager.Draw;
-            DalamudServices.PluginInterface.UiBuilder.OpenConfigUi -= MainInterface.Show;
+            DalamudServices.PluginInterface.UiBuilder.OpenConfigUi -= MainWindow.Show;
         }
 
 
@@ -190,7 +185,7 @@ namespace CustomizePlus
         {
             try
             {
-                if (Config.IsPluginEnabled)
+                if (ConfigurationManager.Configuration.PluginEnabled)
                 {
                     if (_renderManagerHook == null)
                     {
@@ -394,9 +389,9 @@ namespace CustomizePlus
             {
                 var objIndex = obj.ObjectIndex;
 
-                var isForbiddenFiller = objIndex == Constants.ObjectTableFillerIndex;
-                var isForbiddenCutsceneNPC = Constants.InObjectTableCutsceneNPCRange(objIndex)
-                                           && !Config.IsApplyToNPCsInCutscenes;
+                bool isForbiddenFiller = objIndex == Constants.ObjectTableFillerIndex;
+                bool isForbiddenCutsceneNPC = Constants.IsInObjectTableCutsceneNPCRange(objIndex)
+                                           && !ConfigurationManager.Configuration.ApplyToNPCsInCutscenes;
 
                 //TODO none of this should really be necessary? the armature should already be
                 //keeping track of its own visibility wrt rules and such
@@ -407,10 +402,5 @@ namespace CustomizePlus
                 }
             }
         }
-
-        private delegate IntPtr RenderDelegate(IntPtr a1, long a2, int a3, int a4);
-
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate void GameObjectMovementDelegate(IntPtr gameObject);
     }
 }
