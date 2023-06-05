@@ -143,14 +143,14 @@ namespace CustomizePlus.Interface
 			{
 				Settings.EditingAttribute = BoneAttribute.Position;
 			}
-			CtrlHelper.AddHoverText($"{FontAwesomeIcon.ExclamationTriangle} May cause unintended animation changes. Edit at your own risk");
+			CtrlHelper.AddHoverText($"May have unintended effects. Edit at your own risk!");
 
 			ImGui.SameLine();
 			if (ImGui.RadioButton("Rotation", Settings.EditingAttribute == BoneAttribute.Rotation))
 			{
 				Settings.EditingAttribute = BoneAttribute.Rotation;
 			}
-			CtrlHelper.AddHoverText($"{FontAwesomeIcon.ExclamationTriangle} May cause unintended animation changes. Edit at your own risk");
+			CtrlHelper.AddHoverText($"May have unintended effects. Edit at your own risk!");
 
 			ImGui.SameLine();
 			if (ImGui.RadioButton("Scale", Settings.EditingAttribute == BoneAttribute.Scale))
@@ -224,146 +224,76 @@ namespace CustomizePlus.Interface
 			//CompleteBoneEditor("n_root");
 
 			string col1Label = Settings.EditingAttribute == BoneAttribute.Rotation
-				? $"{FontAwesomeIcon.ArrowsLeftRight.ToIconString()} Roll"
-				: $"{FontAwesomeIcon.ArrowsUpDown.ToIconString()} X";
+				? $"Roll"
+				: $"X";
 			string col2Label = Settings.EditingAttribute == BoneAttribute.Rotation
-				? $"{FontAwesomeIcon.ArrowsUpDown.ToIconString()} Pitch"
-				: $"{FontAwesomeIcon.ArrowsLeftRight.ToIconString()} Y";	
+				? $"Pitch"
+				: $"Y";
 			string col3Label = Settings.EditingAttribute == BoneAttribute.Rotation
-				? $"{FontAwesomeIcon.GroupArrowsRotate.ToIconString()} Yaw"
-				: $"{FontAwesomeIcon.ArrowsToEye.ToIconString()} Z";	
+				? $"Yaw"
+				: $"Z";
 			string col4Label = Settings.EditingAttribute == BoneAttribute.Scale
-				? $"{FontAwesomeIcon.ArrowsUpDownLeftRight.ToIconString()} All"
-				: $"{FontAwesomeIcon.Ban.ToIconString()} N/A";
+				? $"All"
+				: $"N/A";
 
-			//ImGui.Separator();
-			//if (ImGui.BeginTable("Bones", 6, ImGuiTableFlags.Borders | ImGuiTableFlags.Resizable | ImGuiTableFlags.ScrollY))
-			//{
-			//	ImGui.TableSetupColumn("Options", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize);
-			//	ImGui.TableSetupColumn("X");
-			//	ImGui.TableSetupColumn("Y");
-			//	ImGui.TableSetupColumn("Z");
-			//	ImGui.TableSetupColumn("All");
-			//	ImGui.TableSetupColumn("Bone Name", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize);
-			//	ImGui.TableHeadersRow();
-
-			//	IEnumerable<string> relevantBoneNames = Settings.ShowLiveBones
-			//	? this.skeletonInProgress.GetExtantBoneNames()
-			//	: this.profileInProgress.Bones.Keys;
-
-			//	var groupedBones = relevantBoneNames.GroupBy(x => BoneData.GetBoneFamily(x));
-
-			//	foreach (var boneGroup in groupedBones.OrderBy(x => (int)x.Key))
-			//	{
-			//		//ImGui.PushID((int)boneGroup.Key);
-
-			//		//ImGui.TableNextRow();
-			//		//ImGui.TableNextColumn();
-
-			//		////create a dropdown entry for the family if one doesn't already exist
-			//		////mind that it'll only be rendered if bones exist to fill it
-			//		//if (!Settings.GroupExpandedState.TryGetValue(boneGroup.Key, out bool expanded))
-			//		//{
-			//		//	Settings.GroupExpandedState[boneGroup.Key] = false;
-			//		//	expanded = false;
-			//		//}
-
-			//		//CtrlHelper.ArrowToggle($"##{boneGroup.Key}", ref expanded);
-			//		//ImGui.SameLine();
-			//		//CtrlHelper.StaticLabel(boneGroup.Key.ToString());
-			//		//if (BoneData.DisplayableFamilies.TryGetValue(boneGroup.Key, out string? tip) && tip != null)
-			//		//{
-			//		//	CtrlHelper.AddHoverText(tip);
-			//		//}
-
-			//		//ImGui.TableNextColumn();
-			//		//ImGui.TableNextColumn();
-			//		//ImGui.TableNextColumn();
-			//		//ImGui.TableNextColumn();
-			//		//ImGui.TableNextColumn();
-
-			//		bool expanded = true;
-			//		if (expanded)
-			//		{
-			//			//ImGui.Spacing();
-
-			//			foreach (string codename in boneGroup.OrderBy(x => BoneData.GetBoneIndex(x)))
-			//			{
-
-			//				ImGui.TableNextRow();
-
-			//				CompleteBoneRow(codename, col1Label, col2Label, col3Label);
-			//			}
-
-			//			//ImGui.Spacing();
-			//		}
-
-			//		Settings.GroupExpandedState[boneGroup.Key] = expanded;
-
-			//		ImGui.Separator();
-			//		//ImGui.PopID();
-			//	}
-			//}
-			ImGui.BeginTable("Bones", 6, ImGuiTableFlags.SizingStretchSame);
-			ImGui.TableNextColumn();
-			ImGui.Text("Bones:");
-			ImGui.TableNextColumn();
-			ImGui.Text(col1Label);
-			ImGui.TableNextColumn();
-			ImGui.Text(col2Label);
-			ImGui.TableNextColumn();
-			ImGui.Text(col3Label);
-			ImGui.TableNextColumn();
-			ImGui.Text(col4Label);
-			ImGui.TableNextColumn();
-			ImGui.Text("Name");
-			ImGui.EndTable();
-			ImGui.Separator();
-
-			ImGui.BeginChild("scrolling", new Vector2(0, ImGui.GetFrameHeightWithSpacing() - 56), false);
-
-			IEnumerable<string> relevantBoneNames = Settings.ShowLiveBones
-				? this.skeletonInProgress.GetExtantBoneNames()
-				: this.profileInProgress.Bones.Keys;
-
-			var groupedBones = relevantBoneNames.GroupBy(x => BoneData.GetBoneFamily(x));
-
-			foreach (var boneGroup in groupedBones.OrderBy(x => (int)x.Key))
+			if (ImGui.BeginTable("Bones", 6, ImGuiTableFlags.Borders | ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.ScrollY,
+				new Vector2(0, ImGui.GetFrameHeightWithSpacing() - 56)))
 			{
-				//create a dropdown entry for the family if one doesn't already exist
-				//mind that it'll only be rendered if bones exist to fill it
-				if (!Settings.GroupExpandedState.TryGetValue(boneGroup.Key, out bool expanded))
-				{
-					Settings.GroupExpandedState[boneGroup.Key] = false;
-					expanded = false;
-				}
+				ImGui.TableSetupColumn("Bones", ImGuiTableColumnFlags.NoReorder | ImGuiTableColumnFlags.WidthFixed);
 
-				CtrlHelper.ArrowToggle($"##{boneGroup.Key}", ref expanded);
-				ImGui.SameLine();
-				CtrlHelper.StaticLabel(boneGroup.Key.ToString());
-				if (BoneData.DisplayableFamilies.TryGetValue(boneGroup.Key, out string? tip) && tip != null)
-				{
-					CtrlHelper.AddHoverText(tip);
-				}
+				ImGui.TableSetupColumn(col1Label, ImGuiTableColumnFlags.NoReorder | ImGuiTableColumnFlags.WidthStretch);
+				ImGui.TableSetupColumn(col2Label, ImGuiTableColumnFlags.NoReorder | ImGuiTableColumnFlags.WidthStretch);
+				ImGui.TableSetupColumn(col3Label, ImGuiTableColumnFlags.NoReorder | ImGuiTableColumnFlags.WidthStretch);
+				ImGui.TableSetupColumn(col4Label, ImGuiTableColumnFlags.NoReorder | ImGuiTableColumnFlags.WidthStretch);
 
-				if (expanded)
-				{
-					ImGui.Spacing();
+				ImGui.TableSetColumnEnabled(4, Settings.EditingAttribute == BoneAttribute.Scale);
 
-					foreach (string codename in boneGroup.OrderBy(x => BoneData.GetBoneIndex(x)))
+				ImGui.TableSetupColumn("\tName", ImGuiTableColumnFlags.NoReorder | ImGuiTableColumnFlags.WidthStretch);
+
+				ImGui.TableSetupScrollFreeze(0, 1);
+
+				ImGui.TableHeadersRow();
+
+				IEnumerable<string> relevantBoneNames = Settings.ShowLiveBones
+					? this.skeletonInProgress.GetExtantBoneNames()
+					: this.profileInProgress.Bones.Keys;
+
+				var groupedBones = relevantBoneNames.GroupBy(x => BoneData.GetBoneFamily(x));
+
+				foreach (var boneGroup in groupedBones.OrderBy(x => (int)x.Key))
+				{
+					ImGui.TableNextRow();
+					ImGui.TableSetColumnIndex(0);
+
+					//create a dropdown entry for the family if one doesn't already exist
+					//mind that it'll only be rendered if bones exist to fill it
+					if (!Settings.GroupExpandedState.TryGetValue(boneGroup.Key, out bool expanded))
 					{
-						CompleteBoneEditor(codename);
+						Settings.GroupExpandedState[boneGroup.Key] = false;
+						expanded = false;
 					}
 
-					ImGui.Spacing();
+					CtrlHelper.ArrowToggle($"##{boneGroup.Key}", ref expanded);
+					ImGui.SameLine();
+					CtrlHelper.StaticLabel(boneGroup.Key.ToString());
+					if (BoneData.DisplayableFamilies.TryGetValue(boneGroup.Key, out string? tip) && tip != null)
+					{
+						CtrlHelper.AddHoverText(tip);
+					}
+
+					if (expanded)
+					{
+						foreach (string codename in boneGroup.OrderBy(x => BoneData.GetBoneIndex(x)))
+						{
+							CompleteBoneEditor(codename);
+						}
+					}
+
+					Settings.GroupExpandedState[boneGroup.Key] = expanded;
 				}
 
-				Settings.GroupExpandedState[boneGroup.Key] = expanded;
-
-				ImGui.Separator();
+				ImGui.EndTable();
 			}
-
-			ImGui.EndChild();
 
 			ImGui.Separator();
 
@@ -501,7 +431,7 @@ namespace CustomizePlus.Interface
 			return output;
 		}
 
-		private bool BoneSlider(string label, ref Vector3 value)
+		private bool FullBoneSlider(string label, ref Vector3 value)
 		{
 			float velocity = Settings.EditingAttribute == BoneAttribute.Rotation ? 1.0f : 0.001f;
 			float minValue = Settings.EditingAttribute == BoneAttribute.Rotation ? -360.0f : -10.0f;
@@ -515,9 +445,32 @@ namespace CustomizePlus.Interface
 			};
 
 
+			ImGui.PushItemWidth(ImGui.GetColumnWidth());
 			if (ImGui.DragFloat(label, ref temp, velocity, minValue, maxValue, $"%.{precision}f"))
 			{
 				value = new Vector3(temp, temp, temp);
+				return true;
+			}
+			return false;
+		}
+
+		private bool SingleBoneSlider(string label, ref float value)
+		{
+			float velocity = Settings.EditingAttribute == BoneAttribute.Rotation ? 1.0f : 0.001f;
+			float minValue = Settings.EditingAttribute == BoneAttribute.Rotation ? -360.0f : -10.0f;
+			float maxValue = Settings.EditingAttribute == BoneAttribute.Rotation ? 360.0f : 10.0f;
+
+			float temp = Settings.EditingAttribute switch
+			{
+				BoneAttribute.Position => 0.0f,
+				BoneAttribute.Rotation => 0.0f,
+				_ => 1.0f
+			};
+
+			ImGui.PushItemWidth(ImGui.GetColumnWidth());
+			if (ImGui.DragFloat(label, ref temp, velocity, minValue, maxValue, $"%.{precision}f"))
+			{
+				value = temp;
 				return true;
 			}
 			return false;
@@ -593,7 +546,7 @@ namespace CustomizePlus.Interface
 
 			if (Settings.EditingAttribute != BoneAttribute.Scale) ImGui.BeginDisabled();
 
-			flagUpdate |= BoneSlider($"##{displayName}AllAxes", ref newVector);
+			flagUpdate |= FullBoneSlider($"##{displayName}AllAxes", ref newVector);
 
 			if (Settings.EditingAttribute != BoneAttribute.Scale) ImGui.EndDisabled();
 
@@ -649,7 +602,6 @@ namespace CustomizePlus.Interface
 				return;
 			}
 
-
 			string displayName = BoneData.GetBoneDisplayName(codename) ?? codename;
 
 			bool flagUpdate = false;
@@ -665,30 +617,38 @@ namespace CustomizePlus.Interface
 
 			ImGui.PushID(codename);
 
+			ImGui.TableNextRow();
+			ImGui.TableSetColumnIndex(0);
+
+			//----------------------------------
 			flagUpdate |= ResetBoneButton(codename, ref newVector);
-
 			ImGui.SameLine();
-
 			flagUpdate |= RevertBoneButton(codename, ref newVector);
 
-			ImGui.SameLine();
+			//----------------------------------
+			ImGui.TableNextColumn();
+			flagUpdate |= SingleBoneSlider($"##{displayName}", ref newVector.X);
 
-			ImGui.SetNextItemWidth(this.windowHorz * 3 / 6);
-			flagUpdate |= TripleBoneSlider($"##{displayName}", ref newVector);
+			//----------------------------------
+			ImGui.TableNextColumn();
+			flagUpdate |= SingleBoneSlider($"##{displayName}", ref newVector.Y);
 
-			ImGui.SameLine();
+			//-----------------------------------
+			ImGui.TableNextColumn();
+			flagUpdate |= SingleBoneSlider($"##{displayName}", ref newVector.Z);
 
+			//----------------------------------
 			if (Settings.EditingAttribute != BoneAttribute.Scale)
 				ImGui.BeginDisabled();
 
-			ImGui.SetNextItemWidth(this.windowHorz / 7);
-			flagUpdate |= BoneSlider($"##{displayName}AllAxes", ref newVector);
+			ImGui.TableNextColumn();
+			flagUpdate |= FullBoneSlider($"##{displayName}-All", ref newVector);
 
 			if (Settings.EditingAttribute != BoneAttribute.Scale)
 				ImGui.EndDisabled();
 
-			ImGui.SameLine();
-
+			//----------------------------------
+			ImGui.TableNextColumn();
 			CtrlHelper.StaticLabel(displayName, BoneData.IsIVCSBone(codename) ? $"(IVCS) {codename}" : codename);
 
 			ImGui.PopID();

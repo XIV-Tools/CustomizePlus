@@ -11,6 +11,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using FFXIVClientStructs.Havok;
 
 //using Dalamud.Game.ClientState.Objects.Types;
 

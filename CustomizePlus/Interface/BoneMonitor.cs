@@ -23,11 +23,13 @@ namespace CustomizePlus.Interface
 	internal class BoneMonitor : WindowBase
 	{
 		protected override string Title => $"Bone Monitor: {this.targetProfile.ToDebugString()}";
-		protected override string DrawTitle => $"{this.Title}###customize_plus_scale_edit_window{this.Index}"; //keep the same ID for all scale editor windows
+		protected override string DrawTitle => $"{this.Title}###bone_monitor_window{this.Index}";
 
 		protected override ImGuiWindowFlags WindowFlags => ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse;
 
 		private BoneAttribute targetAttribute = default;
+		private ModelBone.PoseType _targetPose = default;
+
 		private readonly Dictionary<BoneData.BoneFamily, bool> groupExpandedState = new();
 		private bool modelFrozen = false;
 		private bool aggregateDeforms = false;
@@ -98,6 +100,25 @@ namespace CustomizePlus.Interface
 			ImGui.Spacing();
 			ImGui.SameLine();
 
+			if (ImGui.RadioButton("Local", _targetPose == ModelBone.PoseType.Local))
+			{
+				_targetPose = ModelBone.PoseType.Local;
+			}
+
+			ImGui.SameLine();
+			if (ImGui.RadioButton("Model", _targetPose == ModelBone.PoseType.Model))
+			{
+				_targetPose = ModelBone.PoseType.Model;
+			}
+
+			ImGui.SameLine();
+			if (ImGui.RadioButton("Reference", _targetPose == ModelBone.PoseType.Reference))
+			{
+				_targetPose = ModelBone.PoseType.Reference;
+			}
+
+			//-------------
+
 			CtrlHelper.Checkbox("Aggregate Deforms", ref this.aggregateDeforms);
 
 			ImGui.SameLine();
@@ -119,7 +140,7 @@ namespace CustomizePlus.Interface
 
 			ImGui.Separator();
 
-			if (ImGui.BeginTable("Bones", 9, ImGuiTableFlags.Borders | ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.ScrollY,
+			if (ImGui.BeginTable("Bones", 10, ImGuiTableFlags.Borders | ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.ScrollY,
 				new Vector2(0, ImGui.GetFrameHeightWithSpacing() - 56)))
 			{
 				ImGui.TableSetupColumn("Opt", ImGuiTableColumnFlags.NoReorder | ImGuiTableColumnFlags.WidthFixed);
@@ -132,6 +153,8 @@ namespace CustomizePlus.Interface
 				ImGui.TableSetupColumn("pSke", ImGuiTableColumnFlags.NoReorder | ImGuiTableColumnFlags.WidthFixed);
 				ImGui.TableSetupColumn("Pose", ImGuiTableColumnFlags.NoReorder | ImGuiTableColumnFlags.WidthFixed);
 				ImGui.TableSetupColumn("Bone", ImGuiTableColumnFlags.NoReorder | ImGuiTableColumnFlags.WidthFixed);
+
+				ImGui.TableSetupColumn("Bone Code", ImGuiTableColumnFlags.NoReorder | ImGuiTableColumnFlags.WidthStretch);
 
 				ImGui.TableSetupColumn("Bone Name", ImGuiTableColumnFlags.NoReorder | ImGuiTableColumnFlags.WidthStretch);
 
@@ -251,7 +274,7 @@ namespace CustomizePlus.Interface
 				&& mb != null
 				&& mb.TripleIndices.ElementAtOrDefault(triplexIndex) is var triplex
 				&& triplex != null
-				&& mb.TryGetGameTransform(triplexIndex, out FFXIVClientStructs.Havok.hkQsTransformf deform))
+				&& mb.TryGetGameTransform(triplexIndex, _targetPose, out FFXIVClientStructs.Havok.hkQsTransformf deform))
 			{
 				string displayName = mb.GetDisplayName();
 
@@ -316,8 +339,10 @@ namespace CustomizePlus.Interface
 				//----------------------------------
 
 				ImGui.TableNextColumn();
-
 				CtrlHelper.StaticLabel(mb.BoneName, displayName);
+
+				ImGui.TableNextColumn();
+				CtrlHelper.StaticLabel(BoneData.GetBoneDisplayName(mb.BoneName));
 
 				ImGui.PopFont();
 

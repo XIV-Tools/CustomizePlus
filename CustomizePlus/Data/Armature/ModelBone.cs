@@ -1,16 +1,13 @@
 ﻿// © Customize+.
 // Licensed under the MIT license.
 
-using CustomizePlus.Extensions;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Text;
-using System.Collections.Generic;
-//using CustomizePlus.Memory;
 
-using System.Runtime.InteropServices;
-using Dalamud.Game.ClientState.Objects.Types;
+using CustomizePlus.Extensions;
 
 using FFXIVClientStructs.FFXIV.Client.Graphics.Render;
 using FFXIVClientStructs.Havok;
@@ -138,16 +135,25 @@ namespace CustomizePlus.Data.Armature
 			}
 		}
 
-		public bool TryGetGameTransform(int triplexNo, out hkQsTransformf output)
+		public enum PoseType { Local, Model, Reference /*, World*/}
+
+		public bool TryGetGameTransform(int triplexNo, PoseType refFrame, out hkQsTransformf output)
 		{
 			if (this.TripleIndices.ElementAtOrDefault(triplexNo) is var triplex && triplex != null)
 			{
 				PartialSkeleton pSkele = this.Armature.Skeleton->PartialSkeletons[triplex.Item1];
 				hkaPose* currentPose = pSkele.GetHavokPose(triplex.Item2);
 
-				if (currentPose != null && currentPose->LocalPose[triplex.Item3] is hkQsTransformf pose)
+				if (currentPose != null)
 				{
-					output = pose;
+					output = refFrame switch
+					{
+						PoseType.Local => currentPose->LocalPose[triplex.Item3],
+						PoseType.Model => currentPose->ModelPose[triplex.Item3],
+						PoseType.Reference => currentPose->Skeleton->ReferencePose[triplex.Item3],
+						_ => throw new NotImplementedException(),
+					};
+
 					return true;
 				}
 			}
@@ -202,8 +208,24 @@ namespace CustomizePlus.Data.Armature
 
 				if (Armature.GetReferenceSnap())
 				{
-					//hkQsTransformf t = currentPose->Skeleton->ReferencePose.Data[triplex.Item3];
-					hkQsTransformf t = currentPose->ModelPose.Data[triplex.Item3];
+					//Referencing from Ktisis, Function 'SetFromLocalPose' @ Line 39 in 'Havok.cs'
+
+					//hkQsTransformf tRef = currentPose->Skeleton->ReferencePose.Data[triplex.Item3];
+					hkQsTransformf tRef = currentPose->LocalPose[triplex.Item3];
+
+					hkQsTransformf tParent = currentPose->ModelPose[currentPose->Skeleton->ParentIndices[triplex.Item3]];
+					hkQsTransformf tModel = * currentPose->AccessBoneModelSpace(triplex.Item3, hkaPose.PropagateOrNot.DontPropagate);
+
+					tModel.Translation =
+						(
+							tParent.Translation.GetAsNumericsVector().RemoveWTerm()
+							+ Vector3.Transform(tRef.Translation.GetAsNumericsVector().RemoveWTerm(), tParent.Rotation.ToQuaternion())
+						).ToHavokTranslation();
+
+					tModel.Rotation = (tParent.Rotation.ToQuaternion() * tRef.Rotation.ToQuaternion()).ToHavokRotation();
+					tModel.Scale = tRef.Scale;
+
+					hkQsTransformf t = tModel;
 					hkQsTransformf tNew = this.PluginTransform.ModifyExistingTransformation(t);
 					currentPose->ModelPose.Data[triplex.Item3] = tNew;
 				}
@@ -268,7 +290,7 @@ namespace CustomizePlus.Data.Armature
 
 			ModelBone? ancestor = this.Parent;
 
-			while(ancestor != null)
+			while (ancestor != null)
 			{
 				yield return ancestor;
 

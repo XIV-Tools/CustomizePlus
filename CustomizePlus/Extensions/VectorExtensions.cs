@@ -139,6 +139,11 @@ namespace CustomizePlus.Extensions
 			return new Vector4(q.X, q.Y, q.Z, q.W);
 		}
 
+		public static Vector3 RemoveWTerm(this Vector4 vec)
+		{
+			return new Vector3(vec.X, vec.Y, vec.Z);
+		}
+
 		public static bool Equals(this hkVector4f first, hkVector4f second)
 		{
 			return first.X == second.X

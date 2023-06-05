@@ -74,6 +74,11 @@ namespace CustomizePlus.Data.Armature
 				}
 
 				arm.ApplyTransformation();
+
+				//if (arm.GetReferenceSnap())
+				//{
+				//	arm.OverrideRootParenting();
+				//}
 			}
 		}
 	}

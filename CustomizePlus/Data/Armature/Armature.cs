@@ -5,12 +5,14 @@ using CustomizePlus.Data.Profile;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 
 using System.Runtime.InteropServices;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Render;
 using FFXIVClientStructs.Havok;
+using CustomizePlus.Extensions;
 
 namespace CustomizePlus.Data.Armature
 {
@@ -165,6 +167,8 @@ namespace CustomizePlus.Data.Armature
 					}
 				}
 
+				BoneData.LogNewBones(this.Bones.Keys.Where(BoneData.IsNewBone).ToArray());
+
 				DiscoverParentage();
 				DiscoverSiblings();
 
@@ -232,6 +236,56 @@ namespace CustomizePlus.Data.Armature
 				}
 			}
 		}
+
+		public void OverrideRootParenting()
+		{
+			PartialSkeleton pSkeleNot = this.Skeleton->PartialSkeletons[0];
+
+			for (int pSkeleIndex = 1; pSkeleIndex < this.Skeleton->PartialSkeletonCount; ++pSkeleIndex)
+			{
+				PartialSkeleton partialSkele = this.Skeleton->PartialSkeletons[pSkeleIndex];
+
+				for (int poseIndex = 0; poseIndex < 4; ++poseIndex)
+				{
+					hkaPose* currentPose = partialSkele.GetHavokPose(poseIndex);
+
+					if (currentPose != null && partialSkele.ConnectedBoneIndex >= 0)
+					{
+						int boneIdx = partialSkele.ConnectedBoneIndex;
+						int parentBoneIdx = partialSkele.ConnectedParentBoneIndex;
+
+						hkQsTransformf* transA = currentPose->AccessBoneModelSpace(boneIdx, 0);
+						hkQsTransformf* transB = pSkeleNot.GetHavokPose(0)->AccessBoneModelSpace(parentBoneIdx, 0);
+							
+							//currentPose->AccessBoneModelSpace(parentBoneIdx, hkaPose.PropagateOrNot.DontPropagate);
+
+						for (int i = 0; i < currentPose->Skeleton->Bones.Length; ++i)
+						{
+							currentPose->ModelPose[i] = ApplyPropagatedTransform(currentPose->ModelPose[i], transB, transA->Translation, transB->Rotation);
+							currentPose->ModelPose[i] = ApplyPropagatedTransform(currentPose->ModelPose[i], transB, transB->Translation, transA->Rotation);
+						}
+					}
+				}
+			}
+		}
+
+		private hkQsTransformf ApplyPropagatedTransform(hkQsTransformf init, hkQsTransformf* propTrans, hkVector4f initialPos, hkQuaternionf initialRot)
+		{
+			Vector3 sourcePosition = propTrans->Translation.GetAsNumericsVector().RemoveWTerm();
+			Quaternion deltaRot = propTrans->Rotation.ToQuaternion() / initialRot.ToQuaternion();
+			Vector3 deltaPos = sourcePosition - initialPos.GetAsNumericsVector().RemoveWTerm();
+
+			hkQsTransformf output = new()
+			{
+				Translation = Vector3.Transform(init.Translation.GetAsNumericsVector().RemoveWTerm() - sourcePosition, deltaRot).ToHavokTranslation(),
+				Rotation = deltaRot.ToHavokRotation(),
+				Scale = init.Scale
+			};
+
+			return output;
+		}
+
+
 
 		private void DiscoverParentage()
 		{
