@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+
 using Newtonsoft.Json;
 
 namespace CustomizePlus.Data.Profile
@@ -58,26 +59,23 @@ namespace CustomizePlus.Data.Profile
 
         public Dictionary<string, BoneTransform> Bones { get; init; } = new();
 
-		public override string ToString()
-		{
-			return $"Profile '{ProfName}' on {CharName}";
-		}
+        public override string ToString()
+        {
+            return $"Profile '{ProfileName}' on {CharacterName}";
+        }
 
-		public string ToDebugString()
+        public string ToDebugString()
         {
             return $"Profile ({_localId}) '{ProfileName}' on {CharacterName}";
         }
 
         public override bool Equals(object? obj)
         {
-            if (obj is CharacterProfile other)
-            {
-                return UniqueId == other.UniqueId
+            return obj is CharacterProfile other
+                ? UniqueId == other.UniqueId
                        && CharacterName == other.CharacterName
-                       && ProfileName == other.ProfileName;
-            }
-
-            return base.Equals(obj);
+                       && ProfileName == other.ProfileName
+                : base.Equals(obj);
         }
 
         public override int GetHashCode()

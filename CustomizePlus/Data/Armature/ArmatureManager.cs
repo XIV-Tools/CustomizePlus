@@ -13,9 +13,9 @@ namespace CustomizePlus.Data.Armature
 {
     public sealed class ArmatureManager
     {
-        private readonly HashSet<Armature> _armatures = new();
+        private readonly HashSet<Armature> armatures = new();
 
-        public void RenderCharacterProfiles(params CharacterProfile[] profiles)
+        public void RenderCharacterProfiles(params Profile.CharacterProfile[] profiles)
         {
             RefreshActiveArmatures(profiles);
             RefreshArmatureVisibility();
@@ -24,8 +24,7 @@ namespace CustomizePlus.Data.Armature
 
         public unsafe void RenderArmatureByObject(GameObject obj)
         {
-            if (_armatures.FirstOrDefault(x => x.ObjectRef == RenderObject.FromActor(obj)) is Armature arm &&
-                arm != null)
+            if (armatures.FirstOrDefault(x => x.CharacterBaseRef == obj.ToCharacterBase()) is Armature arm && arm != null)
             {
                 if (arm.Visible)
                 {
@@ -34,47 +33,52 @@ namespace CustomizePlus.Data.Armature
             }
         }
 
-        private void RefreshActiveArmatures(params CharacterProfile[] profiles)
+        private void RefreshActiveArmatures(params Profile.CharacterProfile[] profiles)
         {
             foreach (var prof in profiles)
             {
-                if (!_armatures.Any(x => x.Profile == prof))
+                if (!armatures.Any(x => x.Profile == prof))
                 {
                     var newArm = new Armature(prof);
-                    _armatures.Add(newArm);
+                    armatures.Add(newArm);
                     PluginLog.LogDebug($"Added '{newArm}' to cache");
                 }
             }
 
-            foreach (var arm in _armatures.Except(profiles.Select(x => x.Armature)))
+            foreach (var arm in armatures.Except(profiles.Select(x => x.Armature)))
             {
                 if (arm != null)
                 {
-                    _armatures.Remove(arm);
+                    armatures.Remove(arm);
                     PluginLog.LogDebug($"Removed '{arm}' from cache");
                 }
             }
         }
 
-		private void RefreshArmatureVisibility()
-		{
-			foreach (var arm in _armatures)
-			{
-				arm.Visible = arm.Profile.Enabled && arm.TryLinkSkeleton();
-			}
-		}
+        private void RefreshArmatureVisibility()
+        {
+            foreach (var arm in armatures)
+            {
+                arm.Visible = arm.Profile.Enabled && arm.TryLinkSkeleton();
+            }
+        }
 
-		private void ApplyArmatureTransforms()
-		{
-			foreach (Armature arm in this.armatures.Where(x => x.Visible))
-			{
-				if (arm.GetReferenceSnap())
-				{
-					arm.OverrideWithReferencePose();
-				}
+        private void ApplyArmatureTransforms()
+        {
+            foreach (var arm in armatures.Where(x => x.Visible))
+            {
+                if (arm.GetReferenceSnap())
+                {
+                    arm.OverrideWithReferencePose();
+                }
 
-				arm.ApplyTransformation();
-			}
-		}
-	}
+                arm.ApplyTransformation();
+
+                //if (arm.GetReferenceSnap())
+                //{
+                //	arm.OverrideRootParenting();
+                //}
+            }
+        }
+    }
 }

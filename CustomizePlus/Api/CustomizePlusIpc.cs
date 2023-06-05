@@ -3,12 +3,15 @@
 
 using System;
 using System.Linq;
+
 using CustomizePlus.Data.Profile;
+
 using Dalamud.Game.ClientState.Objects;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Logging;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Ipc;
+
 using Newtonsoft.Json;
 
 namespace CustomizePlus.Api
@@ -42,8 +45,8 @@ namespace CustomizePlus.Api
 
         public CustomizePlusIpc(ObjectTable objectTable, DalamudPluginInterface pluginInterface)
         {
-            this._objectTable = objectTable;
-            this._pluginInterface = pluginInterface;
+            _objectTable = objectTable;
+            _pluginInterface = pluginInterface;
 
             InitializeProviders();
         }
@@ -166,22 +169,12 @@ namespace CustomizePlus.Api
         private string? GetBodyScale(string characterName)
         {
             var prof = Plugin.ProfileManager.GetProfileByCharacterName(characterName);
-            if (prof != null)
-            {
-                return JsonConvert.SerializeObject(prof);
-            }
-
-            return null;
+            return prof != null ? JsonConvert.SerializeObject(prof) : null;
         }
 
         private string? GetBodyScaleFromCharacter(Character? character)
         {
-            if (character == null)
-            {
-                return null;
-            }
-
-            return GetBodyScale(character.Name.ToString());
+            return character == null ? null : GetBodyScale(character.Name.ToString());
         }
 
         private void SetBodyScale(string bodyScaleString, string characterName)
@@ -225,12 +218,9 @@ namespace CustomizePlus.Api
 
         private Character? FindCharacterByName(string? characterName)
         {
-            if (characterName == null)
-            {
-                return null;
-            }
-
-            return _objectTable.FirstOrDefault(gameObject => gameObject.Name.ToString() == characterName) as Character;
+            return characterName == null
+                ? null
+                : _objectTable.FirstOrDefault(gameObject => gameObject.Name.ToString() == characterName) as Character;
         }
     }
 }

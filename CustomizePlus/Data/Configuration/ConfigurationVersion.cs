@@ -6,7 +6,7 @@ using Dalamud.Configuration;
 namespace CustomizePlus.Data.Configuration
 {
     /// <summary>
-    ///     Wrapper object which allows us to read configuration version no matter the actual configuration file contents
+    ///     Wrapper object which allows us to read configuration version no matter the actual configuration file contents.
     /// </summary>
     public class ConfigurationVersion : IPluginConfiguration
     {

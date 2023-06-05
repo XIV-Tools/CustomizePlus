@@ -2,9 +2,12 @@
 // Licensed under the MIT license.
 
 using System;
+
 using CustomizePlus.Core;
 using CustomizePlus.Helpers;
+
 using Dalamud.Hooking;
+
 using FFXIVClientStructs.FFXIV.Client.System.Framework;
 
 namespace CustomizePlus.Services

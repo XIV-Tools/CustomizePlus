@@ -4,9 +4,12 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+
 using CustomizePlus.Data.Configuration.Interfaces;
 using CustomizePlus.Data.Profile;
+
 using Dalamud.Configuration;
+
 using Newtonsoft.Json;
 
 namespace CustomizePlus.Data.Configuration.Version2
@@ -25,12 +28,9 @@ namespace CustomizePlus.Data.Configuration.Version2
 
         public ILegacyConfiguration? LoadFromFile(string path)
         {
-            if (!Path.Exists(path))
-            {
-                throw new ArgumentException("Specified config path is invalid");
-            }
-
-            return JsonConvert.DeserializeObject<Version2Configuration>(File.ReadAllText(path));
+            return !Path.Exists(path)
+                ? throw new ArgumentException("Specified config path is invalid")
+                : (ILegacyConfiguration?)JsonConvert.DeserializeObject<Version2Configuration>(File.ReadAllText(path));
         }
 
         public PluginConfiguration ConvertToLatestVersion()
@@ -40,7 +40,7 @@ namespace CustomizePlus.Data.Configuration.Version2
                 Version = PluginConfiguration.CurrentVersion,
                 IsPluginEnabled = Enable,
                 IsDebuggingMode = DebuggingMode,
-                IsApplyToNPCs = ApplyToNpcs,
+                ApplyToNPCs = ApplyToNpcs,
                 IsApplyToNPCsInCutscenes = ApplyToNpcsInCutscenes
             };
 

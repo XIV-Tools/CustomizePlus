@@ -15,12 +15,7 @@ namespace CustomizePlus.Core
         {
             get
             {
-                if (_instance == null)
-                {
-                    throw new Exception($"No service found: {typeof(T)}");
-                }
-
-                return _instance;
+                return _instance ?? throw new Exception($"No service found: {typeof(T)}");
             }
         }
 

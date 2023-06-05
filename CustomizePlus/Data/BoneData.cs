@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+
 using Dalamud.Logging;
 using Dalamud.Utility;
 
@@ -368,7 +369,7 @@ namespace CustomizePlus.Data
 
         public static bool IsDefaultBone(string codename)
         {
-            return BoneTable.TryGetValue(codename, out var row) ? row.IsDefault : false;
+            return BoneTable.TryGetValue(codename, out var row) && row.IsDefault;
         }
 
         public static int GetBoneIndex(string codename)
@@ -378,7 +379,7 @@ namespace CustomizePlus.Data
 
         public static bool IsIVCSBone(string codename)
         {
-            return BoneTable.TryGetValue(codename, out var row) ? row.IsIVCS : false;
+            return BoneTable.TryGetValue(codename, out var row) && row.IsIVCS;
         }
 
         public static string? GetBoneMirror(string codename)
@@ -471,12 +472,9 @@ namespace CustomizePlus.Data
 
             public int CompareTo(BoneDatum other)
             {
-                if (RowIndex != other.RowIndex)
-                {
-                    return RowIndex.CompareTo(other.RowIndex);
-                }
-
-                return String.Compare(DisplayName, other.DisplayName, StringComparison.Ordinal);
+                return RowIndex != other.RowIndex
+                    ? RowIndex.CompareTo(other.RowIndex)
+                    : string.Compare(DisplayName, other.DisplayName, StringComparison.Ordinal);
             }
         }
 
@@ -495,7 +493,7 @@ namespace CustomizePlus.Data
 
                     // if any of the first subs is nonstandard letter, we can presume that any bcd... are part of a rising sequence
                     var firstAsc =
-                        parsedBones.Any(x => x.sub1 == "a" || x.sub1 == "c" || x.sub1 == "d" || x.sub1 == "e");
+                        parsedBones.Any(x => x.sub1 is "a" or "c" or "d" or "e");
                     //and we can then presume that the second subs are directional
                     //or vice versa. the naming conventions aren't really consistent about whether the sequence is first or second
 

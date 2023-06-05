@@ -10,12 +10,8 @@ namespace CustomizePlus.Data.Profile
     {
         public override bool Equals(CharacterProfile? x, CharacterProfile? y)
         {
-            if (x == null || y == null)
-            {
-                return false;
-            }
-
-            return x.UniqueId == y.UniqueId
+            return x != null && y != null
+&& x.UniqueId == y.UniqueId
                    && x.CreationDate == y.CreationDate
                    && x.CharacterName == y.CharacterName
                    && x.ProfileName == y.ProfileName;

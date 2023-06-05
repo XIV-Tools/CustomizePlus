@@ -2,6 +2,7 @@
 // Licensed under the MIT license.
 
 using System.Numerics;
+
 using CustomizePlus.Core;
 using CustomizePlus.Interface;
 

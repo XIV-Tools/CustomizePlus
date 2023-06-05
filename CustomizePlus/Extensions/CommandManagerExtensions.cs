@@ -2,6 +2,7 @@
 // Licensed under the MIT license.
 
 using System.Collections.Generic;
+
 using Dalamud.Game.Command;
 
 namespace CustomizePlus.Extensions

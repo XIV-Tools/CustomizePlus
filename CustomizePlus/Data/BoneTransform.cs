@@ -4,9 +4,10 @@
 using System;
 using System.Numerics;
 using System.Runtime.Serialization;
+
 using CustomizePlus.Extensions;
-using CustomizePlus.Memory;
-using Newtonsoft.Json;
+
+using FFXIVClientStructs.Havok;
 
 namespace CustomizePlus.Data
 {
@@ -22,55 +23,52 @@ namespace CustomizePlus.Data
     [Serializable]
     public class BoneTransform
     {
-        [JsonIgnore] private Vector3 _eulerRotation;
-
-        private Vector3 _scaling;
         //TODO if if ever becomes a point of concern, I might be able to marginally speed things up
         // by natively storing translation and scaling values as their own vector4s
         //that way the cost of translating back and forth to vector3s would be frontloaded
         //	to when the user is updating things instead of during the render loop
 
-		private Vector3 _translation;
-		public Vector3 Translation
-		{
-			get => _translation;
-			set => _translation = ClampVector(value);
-		}
+        private Vector3 _translation;
+        public Vector3 Translation
+        {
+            get => _translation;
+            set => _translation = ClampVector(value);
+        }
 
-		private Vector3 _rotation;
-		public Vector3 Rotation
-		{
-			get => _rotation;
-			set => _rotation = ClampRotation(value);
-		}
+        private Vector3 _rotation;
+        public Vector3 Rotation
+        {
+            get => _rotation;
+            set => _rotation = ClampRotation(value);
+        }
 
-		private Vector3 _scaling;
-		public Vector3 Scaling
-		{
-			get => _scaling;
-			set => _scaling = ClampVector(value);
-		}
+        private Vector3 _scaling;
+        public Vector3 Scaling
+        {
+            get => _scaling;
+            set => _scaling = ClampVector(value);
+        }
 
-		public BoneTransform()
-		{
-			Translation = Vector3.Zero;
-			Rotation = Vector3.Zero;
-			Scaling = Vector3.One;
-		}
+        public BoneTransform()
+        {
+            Translation = Vector3.Zero;
+            Rotation = Vector3.Zero;
+            Scaling = Vector3.One;
+        }
 
-		public BoneTransform(BoneTransform original)
-		{
-			this.UpdateToMatch(original);
-		}
+        public BoneTransform(BoneTransform original)
+        {
+            UpdateToMatch(original);
+        }
 
-		[OnDeserialized]
-		internal void OnDeserialized(StreamingContext context)
-		{
-			//Sanitize all values on deserialization
-			_translation = ClampToDefaultLimits(_translation);
-			_rotation = ClampRotation(_rotation);
-			_scaling = ClampToDefaultLimits(_scaling);
-		}
+        [OnDeserialized]
+        internal void OnDeserialized(StreamingContext context)
+        {
+            //Sanitize all values on deserialization
+            _translation = ClampToDefaultLimits(_translation);
+            _rotation = ClampRotation(_rotation);
+            _scaling = ClampToDefaultLimits(_scaling);
+        }
 
         public bool IsEdited()
         {
@@ -140,53 +138,53 @@ namespace CustomizePlus.Data
             };
         }
 
-		/// <summary>
-		/// Sanitize all vectors inside of this container.
-		/// </summary>
-		private void Sanitize()
-		{
-			_translation = ClampVector(_translation);
-			_rotation = ClampRotation(_rotation);
-			_scaling = ClampVector(_scaling);
-		}
+        /// <summary>
+        /// Sanitize all vectors inside of this container.
+        /// </summary>
+        private void Sanitize()
+        {
+            _translation = ClampVector(_translation);
+            _rotation = ClampRotation(_rotation);
+            _scaling = ClampVector(_scaling);
+        }
 
-		/// <summary>
-		/// Clamp all vector values to be within allowed limits.
-		/// </summary>
-		private Vector3 ClampVector(Vector3 vector)
-		{
-			return new Vector3()
-			{
-				X = Math.Clamp(vector.X, Constants.MinVectorValueLimit, Constants.MaxVectorValueLimit),
-				Y = Math.Clamp(vector.Y, Constants.MinVectorValueLimit, Constants.MaxVectorValueLimit),
-				Z = Math.Clamp(vector.Z, Constants.MinVectorValueLimit, Constants.MaxVectorValueLimit)
-			};
-		}
+        /// <summary>
+        /// Clamp all vector values to be within allowed limits.
+        /// </summary>
+        private Vector3 ClampVector(Vector3 vector)
+        {
+            return new Vector3()
+            {
+                X = Math.Clamp(vector.X, Constants.MinVectorValueLimit, Constants.MaxVectorValueLimit),
+                Y = Math.Clamp(vector.Y, Constants.MinVectorValueLimit, Constants.MaxVectorValueLimit),
+                Z = Math.Clamp(vector.Z, Constants.MinVectorValueLimit, Constants.MaxVectorValueLimit)
+            };
+        }
 
-		private static Vector3 ClampRotation(Vector3 rotVec)
-		{
-			static float Clamp(float angle)
-			{
-				if (angle > 180) angle -= 360;
-				else if (angle < -180) angle += 360;
+        private static Vector3 ClampRotation(Vector3 rotVec)
+        {
+            static float Clamp(float angle)
+            {
+                if (angle > 180) angle -= 360;
+                else if (angle < -180) angle += 360;
 
-				return angle;
-			}
+                return angle;
+            }
 
-			rotVec.X = Clamp(rotVec.X);
-			rotVec.Y = Clamp(rotVec.Y);
-			rotVec.Z = Clamp(rotVec.Z);
+            rotVec.X = Clamp(rotVec.X);
+            rotVec.Y = Clamp(rotVec.Y);
+            rotVec.Z = Clamp(rotVec.Z);
 
-			return rotVec;
-		}
+            return rotVec;
+        }
 
-		
+
 
         /// <summary>
         ///     Given a transformation represented by the given parameters, apply this transform's
         ///     operations to further modify them.
         /// </summary>
-        public Transform ModifyExistingTransformation(Transform tr)
+        public hkQsTransformf ModifyExistingTransformation(hkQsTransformf tr)
         {
             tr.Scale.X *= Scaling.X;
             tr.Scale.Y *= Scaling.Y;
@@ -208,16 +206,15 @@ namespace CustomizePlus.Data
         }
 
         /// <summary>
-        ///     Clamp all vector values to be within allowed limits
+        ///     Clamp all vector values to be within allowed limits.
         /// </summary>
-        /// <param name="vector"></param>
         private static Vector3 ClampToDefaultLimits(Vector3 vector)
         {
             vector.X = Math.Clamp(vector.X, Constants.MinVectorValueLimit, Constants.MaxVectorValueLimit);
             vector.Y = Math.Clamp(vector.Y, Constants.MinVectorValueLimit, Constants.MaxVectorValueLimit);
             vector.Z = Math.Clamp(vector.Z, Constants.MinVectorValueLimit, Constants.MaxVectorValueLimit);
 
-			return vector;
-		}
-	}
+            return vector;
+        }
+    }
 }

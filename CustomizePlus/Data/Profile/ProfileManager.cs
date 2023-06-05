@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using Dalamud.Game.ClientState.Objects.Enums;
 
 namespace CustomizePlus.Data.Profile
@@ -48,11 +49,11 @@ namespace CustomizePlus.Data.Profile
 
         public void CheckForNewProfiles()
         {
-            foreach (string path in ProfileReaderWriter.GetProfilePaths())
+            foreach (var path in ProfileReaderWriter.GetProfilePaths())
             {
                 if (ProfileReaderWriter.TryLoadProfile(path, out var prof)
                     && prof != null
-                    && !this.Profiles.Contains(prof))
+                    && !Profiles.Contains(prof))
                 {
                     PruneIdempotentTransforms(prof);
 
@@ -84,18 +85,18 @@ namespace CustomizePlus.Data.Profile
                 //(which incidentally prevents it from inheriting a hash code)
                 //and add it to the list of managed profiles
 
-				prof.CreationDate = DateTime.Now;
-				prof.ModifiedDate = DateTime.Now;
+                prof.CreationDate = DateTime.Now;
+                prof.ModifiedDate = DateTime.Now;
 
-				//only let this new profile be enabled if
-				// (1) it wants to be in the first place
-				// (2) the character it's for doesn't already have an enabled profile
-				prof.Enabled = prof.Enabled && !this.GetEnabledProfiles().Any(x => x.CharName == prof.CharName);
+                //only let this new profile be enabled if
+                // (1) it wants to be in the first place
+                // (2) the character it's for doesn't already have an enabled profile
+                prof.Enabled = prof.Enabled && !GetEnabledProfiles().Any(x => x.CharacterName == prof.CharacterName);
 
-				this.Profiles.Add(prof);
-				ProfileReaderWriter.SaveProfile(prof);
-			}
-		}
+                Profiles.Add(prof);
+                ProfileReaderWriter.SaveProfile(prof);
+            }
+        }
 
         public void DeleteProfile(CharacterProfile prof)
         {

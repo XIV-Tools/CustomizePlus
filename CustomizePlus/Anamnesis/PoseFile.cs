@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+
 using Newtonsoft.Json;
 
 namespace CustomizePlus.Anamnesis
@@ -57,14 +58,7 @@ namespace CustomizePlus.Anamnesis
             public override Vector? ReadJson(JsonReader reader, Type objectType, Vector? existingValue,
                 bool hasExistingValue, JsonSerializer serializer)
             {
-                var str = reader.Value as string;
-
-                if (str == null)
-                {
-                    return null;
-                }
-
-                return Vector.FromString(str);
+                return reader.Value is not string str ? null : Vector.FromString(str);
             }
 
             public override void WriteJson(JsonWriter writer, Vector? value, JsonSerializer serializer)
