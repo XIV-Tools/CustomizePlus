@@ -11,16 +11,16 @@ using CustomizePlus.Data.Armature;
 using CustomizePlus.Data.Profile;
 using CustomizePlus.Extensions;
 using CustomizePlus.Helpers;
-
+using CustomizePlus.UI.Dialogs;
 using Dalamud.Interface;
 using Dalamud.Interface.Components;
 using Dalamud.Utility;
 
 using ImGuiNET;
 
-namespace CustomizePlus.Interface
+namespace CustomizePlus.UI.Windows
 {
-    internal class BoneMonitor : WindowBase
+    internal class BoneMonitorWindow : WindowBase
     {
         protected override string Title => $"Bone Monitor: {targetProfile.ToDebugString()}";
         protected override string DrawTitle => $"{Title}###bone_monitor_window{Index}";
@@ -40,7 +40,7 @@ namespace CustomizePlus.Interface
 
         public static void Show(CharacterProfile prof)
         {
-            var editWnd = Plugin.InterfaceManager.Show<BoneMonitor>();
+            var editWnd = Plugin.InterfaceManager.Show<BoneMonitorWindow>();
 
             editWnd.targetProfile = prof;
 
@@ -235,7 +235,7 @@ namespace CustomizePlus.Interface
         public void DisplayNoLinkMsg()
         {
             var msg = $"The editor can't find {targetProfile.CharacterName} or their bone data in the game's memory.";
-            MessageWindow.Show(msg);
+            MessageDialog.Show(msg);
         }
 
         #region ImGui helper functions

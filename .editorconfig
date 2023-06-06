@@ -1,7 +1,5 @@
 root = true
 
-[*.cs]
-indent_style = tab
 file_header_template = © Customize+.\nLicensed under the MIT license.
 
 dotnet_diagnostic.sa1000.severity = none

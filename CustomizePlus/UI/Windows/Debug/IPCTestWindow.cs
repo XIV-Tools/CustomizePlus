@@ -18,9 +18,9 @@ using ImGuiNET;
 
 using Newtonsoft.Json;
 
-namespace CustomizePlus.Interface
+namespace CustomizePlus.UI.Windows.Debug
 {
-    public class IPCTestInterface : WindowBase
+    public class IPCTestWindow : WindowBase
     {
         private readonly List<string> boneCodenames = BoneData.GetBoneCodenames();
         private readonly List<string> boneDispNames = BoneData.GetBoneDisplayNames();
@@ -87,7 +87,7 @@ namespace CustomizePlus.Interface
         public static void Show(DalamudPluginInterface pi)
         {
             var localPlugin = pi;
-            var editWnd = Plugin.InterfaceManager.Show<IPCTestInterface>();
+            var editWnd = Plugin.InterfaceManager.Show<IPCTestWindow>();
             editWnd.getCharacterProfile =
                 localPlugin.GetIpcSubscriber<string, string>("CustomizePlus.GetCharacterProfile");
             //localPlugin.GetIpcSubscriber<Character?, string?> ProviderGetCharacterProfileFromCharacter;

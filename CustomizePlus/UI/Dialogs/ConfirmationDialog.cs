@@ -8,7 +8,7 @@ using Dalamud.Utility;
 
 using ImGuiNET;
 
-namespace CustomizePlus.Interface
+namespace CustomizePlus.UI.Dialogs
 {
     /// <summary>
     ///     Simple "OK/Cancel" dialog as a safety precaution against lossy procedures.

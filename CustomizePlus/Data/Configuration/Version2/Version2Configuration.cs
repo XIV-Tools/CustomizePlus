@@ -38,10 +38,10 @@ namespace CustomizePlus.Data.Configuration.Version2
             var config = new PluginConfiguration
             {
                 Version = PluginConfiguration.CurrentVersion,
-                IsPluginEnabled = Enable,
-                IsDebuggingMode = DebuggingMode,
+                PluginEnabled = Enable,
+                DebuggingModeEnabled = DebuggingMode,
                 ApplyToNPCs = ApplyToNpcs,
-                IsApplyToNPCsInCutscenes = ApplyToNpcsInCutscenes
+                ApplyToNPCsInCutscenes = ApplyToNpcsInCutscenes
             };
 
             foreach (var bodyScale in BodyScales)

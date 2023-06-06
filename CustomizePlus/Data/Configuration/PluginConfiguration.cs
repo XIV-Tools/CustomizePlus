@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-
 using Dalamud.Configuration;
 
 namespace CustomizePlus.Data.Configuration
@@ -16,14 +15,14 @@ namespace CustomizePlus.Data.Configuration
         public int Version { get; set; } = CurrentVersion;
 
         //public HashSet<Data.Profile.CharacterProfile> Profiles { get; set; } = new(); //replace with new profile data structure
-        public bool IsPluginEnabled { get; set; } = true;
+        public bool PluginEnabled { get; set; }
 
-        public bool ApplyToNPCs { get; set; } = false;
-        public bool IsApplyToNPCsInCutscenes { get; set; } = false;
+        public bool ApplyToNPCs { get; set; } //todo: legacy setting?
+        public bool ApplyToNPCsInCutscenes { get; set; } //todo: legacy setting?
 
         //public RenderRulesManager DefaultRules { get; set; } = new();
-        public bool IsApplyProfilesInCutscenes { get; set; } = true; //global override? maybe remove
-        public int IsCapSkeletonsRendered { get; set; } = -1; //TODO rename this, please
+        public bool ApplyProfilesInCutscenes { get; set; } = true; //global override? maybe remove
+        public int CapSkeletonsRendered { get; set; } = -1; //TODO rename this, please
 
 
         //public bool AutomaticEditMode { get; set; } = false; //should belong to editor session
@@ -32,7 +31,12 @@ namespace CustomizePlus.Data.Configuration
         //public EditMode EditingAttribute { get; set; } = EditMode.Scale; //should be local to the editor window
 
 
-        public bool IsDebuggingMode { get; set; } = false;
+        public bool DebuggingModeEnabled { get; set; }
+
+        /// <summary>
+        /// Hides root position from the UI. DOES NOT DISABLE LOADING IT FROM THE CONFIG!
+        /// </summary>
+        public bool RootPositionEditingEnabled { get; set; }
 
 
         public HashSet<string> ViewedMessageWindows = new();

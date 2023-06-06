@@ -4,7 +4,7 @@
   <PropertyGroup>
     <Authors></Authors>
     <Company></Company>
-    <Version>0.0.1.8</Version>
+    <Version>0.0.2.0</Version>
     <Description>CustomizePlus</Description>
     <Copyright></Copyright>
     <PackageProjectUrl>https://github.com/XIV-Tools/CustomizePlus</PackageProjectUrl>
@@ -21,6 +21,12 @@
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <CopyLocalLockfileAssemblies>true</CopyLocalLockfileAssemblies>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Util\**" />
+    <EmbeddedResource Remove="Util\**" />
+    <None Remove="Util\**" />
+  </ItemGroup>
 
   <ItemGroup>
     <Content Include="..\Data\icon.png">
@@ -75,10 +81,6 @@
     <None Update="CustomizePlus.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Util\" />
   </ItemGroup>
 
 </Project>
