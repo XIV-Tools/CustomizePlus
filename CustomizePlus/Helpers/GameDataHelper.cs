@@ -4,12 +4,15 @@
 using System;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Xml.Linq;
 
 using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 
 using Penumbra.String;
+
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.ToolTip;
 
 using DalamudObject = Dalamud.Game.ClientState.Objects.Types.GameObject;
 using DalamudObjectKind = Dalamud.Game.ClientState.Objects.Enums.ObjectKind;
@@ -297,6 +300,32 @@ namespace CustomizePlus.Helpers
         public static string? GetPlayerName()
         {
             return DalamudServices.ObjectTable[0]?.Name.ToString();
+        }
+
+        public unsafe static string? GetPlayerTargetName()
+        {
+            DalamudObject? target = DalamudServices.ObjectTable[0]?.TargetObject;
+
+            //make sure that the player is actually targeting something
+            //and then make sure that the target in question is actually something with a skeleton
+
+            if (target != null
+                && target.Address is IntPtr tgtPtr
+                && tgtPtr != IntPtr.Zero)
+            {
+                var clientObj = (FFXIVClientObject*)tgtPtr;
+                if (clientObj != null)
+                {
+                    var cBase = (CharacterBase*)clientObj->DrawObject;
+                    
+                    if (cBase != null)
+                    {
+                        return new ByteString(clientObj->Name).ToString();
+                    }
+                }
+            }
+
+            return null;
         }
 
         /*
