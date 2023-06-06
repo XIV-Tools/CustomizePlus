@@ -3,9 +3,7 @@
 
 using System;
 using System.Numerics;
-
 using CustomizePlus.Anamnesis;
-
 using FFXIVClientStructs.Havok;
 
 namespace CustomizePlus.Extensions
@@ -45,16 +43,16 @@ namespace CustomizePlus.Extensions
             var nq = Vector4.Normalize(q.GetAsNumericsVector());
 
             var rollX = MathF.Atan2(
-                     2 * ((nq.W * nq.X) + (nq.Y * nq.Z)),
-                1 - (2 * ((nq.X * nq.X) + (nq.Y * nq.Y))));
+                2 * (nq.W * nq.X + nq.Y * nq.Z),
+                1 - 2 * (nq.X * nq.X + nq.Y * nq.Y));
 
             var pitchY = 2 * MathF.Atan2(
-                MathF.Sqrt(1 + (2 * ((nq.W * nq.Y) - (nq.X * nq.Z)))),
-                MathF.Sqrt(1 - (2 * ((nq.W * nq.Y) - (nq.X * nq.Z)))));
+                MathF.Sqrt(1 + 2 * (nq.W * nq.Y - nq.X * nq.Z)),
+                MathF.Sqrt(1 - 2 * (nq.W * nq.Y - nq.X * nq.Z)));
 
             var yawZ = MathF.Atan2(
-                     2 * ((nq.W * nq.Z) + (nq.X * nq.Y)),
-                1 - (2 * ((nq.Y * nq.Y) + (nq.Z * nq.Z))));
+                2 * (nq.W * nq.Z + nq.X * nq.Y),
+                1 - 2 * (nq.Y * nq.Y + nq.Z * nq.Z));
 
             return new Vector3(rollX, pitchY, yawZ);
         }
@@ -77,7 +75,7 @@ namespace CustomizePlus.Extensions
 
         public static hkQuaternionf ToHavokRotation(this Quaternion rotation)
         {
-            return new hkQuaternionf()
+            return new hkQuaternionf
             {
                 X = rotation.X,
                 Y = rotation.Y,
@@ -88,7 +86,7 @@ namespace CustomizePlus.Extensions
 
         public static hkVector4f ToHavokTranslation(this Vector3 translation)
         {
-            return new hkVector4f()
+            return new hkVector4f
             {
                 X = translation.X,
                 Y = translation.Y,
@@ -99,7 +97,7 @@ namespace CustomizePlus.Extensions
 
         public static hkVector4f ToHavokScaling(this Vector3 scaling)
         {
-            return new hkVector4f()
+            return new hkVector4f
             {
                 X = scaling.X,
                 Y = scaling.Y,
@@ -110,7 +108,7 @@ namespace CustomizePlus.Extensions
 
         public static hkVector4f ToHavokVector(this Vector4 vec)
         {
-            return new hkVector4f()
+            return new hkVector4f
             {
                 X = vec.X,
                 Y = vec.Y,
@@ -142,9 +140,9 @@ namespace CustomizePlus.Extensions
         public static bool Equals(this hkVector4f first, hkVector4f second)
         {
             return first.X == second.X
-                && first.Y == second.Y
-                && first.Z == second.Z
-                && first.W == second.W;
+                   && first.Y == second.Y
+                   && first.Z == second.Z
+                   && first.W == second.W;
         }
     }
 }

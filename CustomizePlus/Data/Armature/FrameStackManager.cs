@@ -3,7 +3,6 @@
 
 using System.Linq;
 using System.Numerics;
-
 using CustomizePlus.Helpers;
 
 namespace CustomizePlus.Data.Armature

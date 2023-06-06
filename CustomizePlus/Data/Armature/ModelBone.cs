@@ -6,10 +6,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Text;
-
 using CustomizePlus.Extensions;
-
 using FFXIVClientStructs.Havok;
+
 //using CustomizePlus.Memory;
 
 namespace CustomizePlus.Data.Armature
@@ -19,6 +18,13 @@ namespace CustomizePlus.Data.Armature
     /// </summary>
     public unsafe class ModelBone
     {
+        public enum PoseType
+        {
+            Local,
+            Model,
+            Reference /*, World*/
+        }
+
         public readonly Armature Armature;
 
         public readonly string BoneName;
@@ -36,19 +42,6 @@ namespace CustomizePlus.Data.Armature
         public BoneTransform PluginTransform;
         public ModelBone? Sibling;
 
-        public string GetDisplayName()
-        {
-            var partials = TripleIndices.Select(x => x.Item1).Distinct();
-            var poses = TripleIndices.Select(x => x.Item2).Distinct();
-            var bones = TripleIndices.Select(x => x.Item3).Distinct();
-
-            var t1 = partials.Count() > 1 ? $"[{partials.Count()}]" : (partials.FirstOrDefault().ToString() ?? "?");
-            var t2 = poses.Count() > 1 ? $"[{poses.Count()}]" : (poses.FirstOrDefault().ToString() ?? "?");
-            var t3 = bones.Count() > 1 ? $"[{bones.Count()}]" : (bones.FirstOrDefault().ToString() ?? "?");
-
-            return $"{BoneName} @ <{t1}, {t2}, {t3}>";
-        }
-
         public ModelBone(Armature arm, string name, string parentName, int skeleIndex, int poseIndex, int boneIndex)
         {
             Armature = arm;
@@ -62,11 +55,26 @@ namespace CustomizePlus.Data.Armature
             BoneName = name;
             ParentBoneName = parentName;
 
-            PluginTransform = arm.Profile.Bones.TryGetValue(name, out var bec) && bec != null ? bec : new BoneTransform();
+            PluginTransform = arm.Profile.Bones.TryGetValue(name, out var bec) && bec != null
+                ? bec
+                : new BoneTransform();
 
             Parent = null;
             Sibling = null;
             Children = new List<ModelBone>();
+        }
+
+        public string GetDisplayName()
+        {
+            var partials = TripleIndices.Select(x => x.Item1).Distinct();
+            var poses = TripleIndices.Select(x => x.Item2).Distinct();
+            var bones = TripleIndices.Select(x => x.Item3).Distinct();
+
+            var t1 = partials.Count() > 1 ? $"[{partials.Count()}]" : partials.FirstOrDefault().ToString() ?? "?";
+            var t2 = poses.Count() > 1 ? $"[{poses.Count()}]" : poses.FirstOrDefault().ToString() ?? "?";
+            var t3 = bones.Count() > 1 ? $"[{bones.Count()}]" : bones.FirstOrDefault().ToString() ?? "?";
+
+            return $"{BoneName} @ <{t1}, {t2}, {t3}>";
         }
 
         public override string ToString()
@@ -97,7 +105,6 @@ namespace CustomizePlus.Data.Armature
 
         public void UpdateModel(BoneTransform newTransform, bool mirror = false, bool propagate = false)
         {
-
             if (mirror && Sibling != null)
             {
                 var mirroredTransform = BoneData.IsIVCSBone(BoneName)
@@ -127,9 +134,6 @@ namespace CustomizePlus.Data.Armature
             }
         }
 
-
-        public enum PoseType { Local, Model, Reference /*, World*/}
-
         public bool TryGetGameTransform(int triplexNo, PoseType refFrame, out hkQsTransformf output)
         {
             if (TripleIndices.ElementAtOrDefault(triplexNo) is var triplex && triplex != null)
@@ -144,7 +148,7 @@ namespace CustomizePlus.Data.Armature
                         PoseType.Local => currentPose->LocalPose[triplex.Item3],
                         PoseType.Model => currentPose->ModelPose[triplex.Item3],
                         PoseType.Reference => currentPose->Skeleton->ReferencePose[triplex.Item3],
-                        _ => throw new NotImplementedException(),
+                        _ => throw new NotImplementedException()
                     };
 
                     return true;
@@ -185,7 +189,8 @@ namespace CustomizePlus.Data.Armature
                 //	//what's going on here?
                 //}
 
-                var currentPose = Armature.CharacterBaseRef->Skeleton->PartialSkeletons[triplex.Item1].GetHavokPose(triplex.Item2);
+                var currentPose = Armature.CharacterBaseRef->Skeleton->PartialSkeletons[triplex.Item1]
+                    .GetHavokPose(triplex.Item2);
 
                 if (currentPose == null)
                 {
@@ -200,15 +205,18 @@ namespace CustomizePlus.Data.Armature
                     var tRef = currentPose->LocalPose[triplex.Item3];
 
                     var tParent = currentPose->ModelPose[currentPose->Skeleton->ParentIndices[triplex.Item3]];
-                    var tModel = *currentPose->AccessBoneModelSpace(triplex.Item3, hkaPose.PropagateOrNot.DontPropagate);
+                    var tModel =
+                        *currentPose->AccessBoneModelSpace(triplex.Item3, hkaPose.PropagateOrNot.DontPropagate);
 
                     tModel.Translation =
-                        (
-                            tParent.Translation.GetAsNumericsVector().RemoveWTerm()
-                            + Vector3.Transform(tRef.Translation.GetAsNumericsVector().RemoveWTerm(), tParent.Rotation.ToQuaternion())
-                        ).ToHavokTranslation();
+                    (
+                        tParent.Translation.GetAsNumericsVector().RemoveWTerm()
+                        + Vector3.Transform(tRef.Translation.GetAsNumericsVector().RemoveWTerm(),
+                            tParent.Rotation.ToQuaternion())
+                    ).ToHavokTranslation();
 
-                    tModel.Rotation = (tParent.Rotation.ToQuaternion() * tRef.Rotation.ToQuaternion()).ToHavokRotation();
+                    tModel.Rotation =
+                        (tParent.Rotation.ToQuaternion() * tRef.Rotation.ToQuaternion()).ToHavokRotation();
                     tModel.Scale = tRef.Scale;
 
                     var t = tModel;
@@ -243,6 +251,7 @@ namespace CustomizePlus.Data.Armature
             {
                 sb.Append($" ─── {Sibling.BoneName}");
             }
+
             sb.AppendLine();
 
             for (var i = 0; i < Children.Count - 1; ++i)

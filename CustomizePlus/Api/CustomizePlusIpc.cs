@@ -3,15 +3,12 @@
 
 using System;
 using System.Linq;
-
 using CustomizePlus.Data.Profile;
-
 using Dalamud.Game.ClientState.Objects;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Logging;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Ipc;
-
 using Newtonsoft.Json;
 
 namespace CustomizePlus.Api

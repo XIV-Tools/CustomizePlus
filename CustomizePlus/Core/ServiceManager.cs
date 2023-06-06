@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-
 using CustomizePlus.Services;
 
 namespace CustomizePlus.Core
@@ -13,6 +12,8 @@ namespace CustomizePlus.Core
     //Borrowed from Brio
     public class ServiceManager
     {
+        public bool IsStarted { get; private set; }
+
         private readonly List<IService> _services = new();
         private readonly Stopwatch _tickTimer = new();
 
@@ -22,8 +23,6 @@ namespace CustomizePlus.Core
             Add<GPoseAmnesisKtisisWarningService>();
             Add<PosingModeDetectService>();
         }
-
-        public bool IsStarted { get; private set; }
 
         //--------
 

@@ -4,12 +4,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-
 using CustomizePlus.Data.Configuration.Interfaces;
 using CustomizePlus.Data.Profile;
-
 using Dalamud.Configuration;
-
 using Newtonsoft.Json;
 
 namespace CustomizePlus.Data.Configuration.Version0

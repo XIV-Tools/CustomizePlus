@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-
 using FFXIVClientStructs.Havok;
 
 namespace CustomizePlus.Data.Configuration.Version0

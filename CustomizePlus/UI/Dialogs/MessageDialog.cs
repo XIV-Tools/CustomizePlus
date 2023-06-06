@@ -3,7 +3,6 @@
 
 using System;
 using System.Numerics;
-
 using ImGuiNET;
 
 namespace CustomizePlus.UI.Dialogs
@@ -33,7 +32,8 @@ namespace CustomizePlus.UI.Dialogs
         public static void Show(string text, Vector2? windowSize = null, Action? onButtonPressed = null,
             string? windowId = null)
         {
-            if (windowId != null && Plugin.ConfigurationManager.Configuration.ViewedMessageWindows.Contains(windowId.ToLowerInvariant()))
+            if (windowId != null &&
+                Plugin.ConfigurationManager.Configuration.ViewedMessageWindows.Contains(windowId.ToLowerInvariant()))
             {
                 onButtonPressed?.Invoke();
 
@@ -53,7 +53,7 @@ namespace CustomizePlus.UI.Dialogs
 
             if (WindowId != null)
             {
-                ImGui.SetCursorPosX((((Vector2)ForcedSize).X / 2) - 130);
+                ImGui.SetCursorPosX(((Vector2)ForcedSize).X / 2 - 130);
                 if (ImGui.Button("I understand, do not show this to me again"))
                 {
                     Plugin.ConfigurationManager.Configuration.ViewedMessageWindows.Add(WindowId.ToLowerInvariant());
@@ -66,7 +66,7 @@ namespace CustomizePlus.UI.Dialogs
                 return;
             }
 
-            ImGui.SetCursorPosX((((Vector2)ForcedSize).X / 2) - 20);
+            ImGui.SetCursorPosX(((Vector2)ForcedSize).X / 2 - 20);
             if (ImGui.Button("OK"))
             {
                 OnButtonPressed?.Invoke();
