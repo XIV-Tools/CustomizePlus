@@ -337,7 +337,7 @@ namespace CustomizePlus.UI.Windows
                 //----------------------------------
 
                 ImGui.TableNextColumn();
-                CtrlHelper.StaticLabel(mb.BoneName, displayName);
+                CtrlHelper.StaticLabel(mb.BoneName, CtrlHelper.TextAlignment.Left, displayName);
 
                 ImGui.TableNextColumn();
                 CtrlHelper.StaticLabel(BoneData.GetBoneDisplayName(mb.BoneName));
