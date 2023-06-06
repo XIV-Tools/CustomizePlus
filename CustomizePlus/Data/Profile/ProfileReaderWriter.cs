@@ -84,9 +84,17 @@ namespace CustomizePlus.Data.Profile
         public static string[] GetProfilePaths()
         {
             var dir = DalamudServices.PluginInterface.GetPluginConfigDirectory();
-            if (Directory.Exists(dir))
+
+            try
             {
-                return Directory.GetFiles(dir, "*.profile");
+                if (Directory.Exists(dir))
+                {
+                    return Directory.GetFiles(dir, "*.profile");
+                }
+            }
+            catch (Exception ex)
+            {
+                PluginLog.LogError($"Error retrieving profile paths from {dir}: {ex}");
             }
 
             Directory.CreateDirectory(dir);

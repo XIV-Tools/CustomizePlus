@@ -36,6 +36,7 @@ namespace CustomizePlus.Data.Profile
         {
             CharacterName = original.CharacterName;
             ProfileName = original.ProfileName;
+            ConfigVersion = original.ConfigVersion;
             Enabled = original.Enabled;
             CreationDate = original.CreationDate;
             ModifiedDate = DateTime.Now;
@@ -50,7 +51,10 @@ namespace CustomizePlus.Data.Profile
         }
 
         public string CharacterName { get; set; } = "Default";
+        public string CharName { set => CharacterName = value; }
         public string ProfileName { get; set; } = "Profile";
+        public string ProfName { set => ProfileName = value; }
+        public int ConfigVersion { get; set; } = Constants.ConfigurationVersion;
         public bool Enabled { get; set; }
         public DateTime CreationDate { get; set; } = DateTime.Now;
         public DateTime ModifiedDate { get; set; } = DateTime.Now;
