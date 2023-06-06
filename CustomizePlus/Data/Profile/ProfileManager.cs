@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Linq;
 
 using Dalamud.Game.ClientState.Objects.Enums;
@@ -32,6 +33,8 @@ namespace CustomizePlus.Data.Profile
 
         public void LoadProfiles()
         {
+            Dalamud.Logging.PluginLog.LogDebug("Loading profiles...");
+
             foreach (var path in ProfileReaderWriter.GetProfilePaths())
             {
                 if (ProfileReaderWriter.TryLoadProfile(path, out var prof) && prof != null)
@@ -39,12 +42,16 @@ namespace CustomizePlus.Data.Profile
                     PruneIdempotentTransforms(prof);
 
                     Profiles.Add(prof);
+                    Dalamud.Logging.PluginLog.LogDebug($"Loading {prof}");
+
                     if (prof.Enabled)
                     {
                         AssertEnabledProfile(prof);
                     }
                 }
             }
+
+            Dalamud.Logging.PluginLog.LogDebug("Finished loading ");
         }
 
         public void CheckForNewProfiles()
@@ -55,6 +62,8 @@ namespace CustomizePlus.Data.Profile
                     && prof != null
                     && !Profiles.Contains(prof))
                 {
+                    Dalamud.Logging.PluginLog.LogDebug($"Found new profile {prof}. Loading...");
+
                     PruneIdempotentTransforms(prof);
 
                     Profiles.Add(prof);
@@ -121,11 +130,13 @@ namespace CustomizePlus.Data.Profile
 
         public void AssertEnabledProfile(CharacterProfile activeProfile)
         {
+            Dalamud.Logging.PluginLog.LogDebug($"Asserting that {activeProfile} is enabled...");
             activeProfile.Enabled = true;
 
             foreach (var profile in Profiles
                          .Where(x => x.CharacterName == activeProfile.CharacterName && x != activeProfile))
             {
+                Dalamud.Logging.PluginLog.LogDebug($"\t-> {profile} disabled");
                 profile.Enabled = false;
             }
         }
@@ -212,11 +223,14 @@ namespace CustomizePlus.Data.Profile
 
         public void ProcessConvertedProfiles()
         {
+            Dalamud.Logging.PluginLog.LogDebug("Loading converted profiles...");
+
             foreach (var prof in ConvertedProfiles)
             {
                 if (ConvertedProfiles.Remove(prof))
                 {
                     AddAndSaveProfile(prof);
+                    Dalamud.Logging.PluginLog.LogDebug($"Loaded {prof}");
                 }
             }
         }

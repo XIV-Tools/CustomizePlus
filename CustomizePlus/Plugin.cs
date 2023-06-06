@@ -146,7 +146,6 @@ namespace CustomizePlus
                 //ProfileManager.SaveAllProfiles(); //?
                 //ProfileManager.LoadProfiles();
 
-
                 //NameToScale.Clear();
 
                 //defaultScale = null;
@@ -253,6 +252,7 @@ namespace CustomizePlus
         private static void Framework_Update(Framework framework)
         {
             ServiceManager.Tick();
+            ProfileManager.CheckForNewProfiles();
         }
 
         private void ApplyByCommand(string args)
@@ -325,8 +325,6 @@ namespace CustomizePlus
 
             try
             {
-                ProfileManager.CheckForNewProfiles();
-
                 var activeProfiles = ProfileManager.GetEnabledProfiles();
                 ArmatureManager.RenderCharacterProfiles(activeProfiles);
 
