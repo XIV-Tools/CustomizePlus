@@ -2,6 +2,7 @@
 // Licensed under the MIT license.
 
 using System;
+using System.Linq;
 using System.IO;
 
 using CustomizePlus.Helpers;
@@ -113,6 +114,9 @@ namespace CustomizePlus.Data.Profile
                     {
                         prof = file;
                         prof.OriginalFilePath = path;
+
+                        BoneData.LogNewBones(prof.Bones.Keys.Where(BoneData.IsNewBone).ToArray());
+
                         return true;
                     }
                 }
