@@ -23,7 +23,7 @@ namespace CustomizePlus.Interface
         protected override bool SingleInstance => true;
         protected override string DrawTitle => $"{Title}###customize_plus_scale_edit_window{Index}"; //keep the same ID for all scale editor windows
 
-        protected override ImGuiWindowFlags WindowFlags => ImGuiWindowFlags.NoScrollbar |
+        protected override ImGuiWindowFlags WindowFlags => ImGuiWindowFlags.NoScrollWithMouse | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoTitleBar |
             (dirty ? ImGuiWindowFlags.UnsavedDocument : ImGuiWindowFlags.None);
         private int precision = 3;
 

@@ -363,7 +363,7 @@ namespace CustomizePlus.Interface
                     // ---
 
                     ImGui.TableNextColumn();
-                    if (ImGuiComponents.IconButton(FontAwesomeIcon.InfoCircle))
+                    if (ImGuiComponents.IconButton(FontAwesomeIcon.InfoCircle) && Plugin.Config.IsDebuggingMode)
                     {
                         BoneMonitor.Show(prof);
                     }

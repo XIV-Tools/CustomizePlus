@@ -161,10 +161,10 @@ namespace CustomizePlus.Data.Armature
                 DiscoverSiblings();
 
                 Dalamud.Logging.PluginLog.LogDebug($"Rebuilt {this}:");
-                foreach (var kvp in Bones)
-                {
-                    Dalamud.Logging.PluginLog.LogDebug($"\t- {kvp.Value}");
-                }
+                //foreach (var kvp in Bones)
+                //{
+                //    Dalamud.Logging.PluginLog.LogDebug($"\t- {kvp.Value}");
+                //}
             }
             catch (Exception ex)
             {
