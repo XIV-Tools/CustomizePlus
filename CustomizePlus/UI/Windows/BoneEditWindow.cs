@@ -21,11 +21,11 @@ namespace CustomizePlus.UI.Windows
         protected override bool SingleInstance => true;
         protected override string DrawTitle => $"{Title}###customize_plus_scale_edit_window{Index}"; //keep the same ID for all scale editor windows
 
-        protected override ImGuiWindowFlags WindowFlags => ImGuiWindowFlags.NoScrollWithMouse | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoTitleBar |
+        protected override ImGuiWindowFlags WindowFlags => ImGuiWindowFlags.NoScrollWithMouse | ImGuiWindowFlags.NoScrollbar |
             (dirty ? ImGuiWindowFlags.UnsavedDocument : ImGuiWindowFlags.None);
         private int precision = 3;
 
-        protected override bool LockCloseButton => true;
+        protected override bool LockCloseButton => this.dirty;
 
         public EditorSessionSettings Settings;
 
@@ -57,161 +57,169 @@ namespace CustomizePlus.UI.Windows
 
         protected override void DrawContents()
         {
-            windowHorz = ImGui.GetWindowWidth();
-
             if (profileInProgress.CharacterName != originalCharName
                 || profileInProgress.ProfileName != originalProfName)
             {
                 dirty = true;
             }
 
-            ImGui.SetNextItemWidth(windowHorz / 4);
-            CtrlHelper.TextPropertyBox("Character Name",
-                () => profileInProgress.CharacterName,
-                (s) => profileInProgress.CharacterName = s);
-
-            ImGui.SameLine();
-            ImGui.Spacing();
-            ImGui.SameLine();
-
-            ImGui.SetNextItemWidth(windowHorz / 4);
-            CtrlHelper.TextPropertyBox("Profile Name",
-                () => profileInProgress.ProfileName,
-                (s) => profileInProgress.ProfileName = s);
-
-            var tempEnabled = profileInProgress.Enabled;
-            if (CtrlHelper.Checkbox("Enable Preview", ref tempEnabled))
+            if (ImGui.BeginTable("##Save/Close", 3, ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.NoClip))
             {
-                profileInProgress.Enabled = tempEnabled;
-                ConfirmSkeletonConnection();
+                ImGui.TableSetupColumn("##CharName", ImGuiTableColumnFlags.WidthStretch);
+                ImGui.TableSetupColumn("##ProfName", ImGuiTableColumnFlags.WidthStretch);
+                ImGui.TableSetupColumn("##Precision", ImGuiTableColumnFlags.WidthFixed);
+
+                ImGui.TableNextRow();
+                ImGui.TableSetColumnIndex(0);
+
+                CtrlHelper.StaticLabel("Character Name", CtrlHelper.TextAlignment.Center);
+                CtrlHelper.TextPropertyBox("##Character Name",
+                    () => profileInProgress.CharacterName,
+                    (s) => profileInProgress.CharacterName = s);
+
+                ImGui.TableNextColumn();
+
+                CtrlHelper.StaticLabel("Profile Name", CtrlHelper.TextAlignment.Center);
+                CtrlHelper.TextPropertyBox("##Profile Name",
+                    () => profileInProgress.ProfileName,
+                    (s) => profileInProgress.ProfileName = s);
+
+                ImGui.TableNextColumn();
+
+                CtrlHelper.StaticLabel("Decimal Precision", CtrlHelper.TextAlignment.Left);
+                ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
+                ImGui.SliderInt("##Precision", ref precision, 1, 6, $"{precision} Places");
+                CtrlHelper.AddHoverText("Level of precision to display while editing values");
+
+                //I don't know why it does what it does
+                //but if this column index reset is removed it messes up all the separator lines in the window?
+                ImGui.TableSetColumnIndex(0);
+                ImGui.EndTable();
             }
-            CtrlHelper.AddHoverText($"Hook the editor into the game to edit and preview live bone data");
-
-            ImGui.SameLine();
-
-            if (!profileInProgress.Enabled) ImGui.BeginDisabled();
-
-            if (CtrlHelper.Checkbox("Show Live Bones", ref Settings.ShowLiveBones))
-            {
-                ConfirmSkeletonConnection();
-            }
-            CtrlHelper.AddHoverText($"If selected, present for editing all bones found in the game data,\nelse show only bones for which the profile already contains edits.");
-
-            ImGui.SameLine();
-
-            ImGui.BeginDisabled();
-            var tempRefSnap = profileInProgress.Armature.GetReferenceSnap();
-            if (CtrlHelper.Checkbox("A-Pose", ref tempRefSnap))
-            {
-                ConfirmSkeletonConnection();
-                profileInProgress.Armature.SetReferenceSnap(tempRefSnap);
-            }
-            CtrlHelper.AddHoverText($"Force character into their default reference pose");
-            ImGui.EndDisabled();
-
-            ImGui.SameLine();
-
-            if (CtrlHelper.Checkbox("Mirror Mode", ref Settings.MirrorModeEnabled))
-            {
-                ConfirmSkeletonConnection();
-            }
-            CtrlHelper.AddHoverText($"Bone changes will be reflected from left to right and vice versa");
-
-            ImGui.SameLine();
-
-            if (CtrlHelper.Checkbox("Parenting Mode", ref Settings.ParentingEnabled))
-            {
-                ConfirmSkeletonConnection();
-            }
-            CtrlHelper.AddHoverText($"Changes will propagate \"outward\" from edited bones");
-
-            if (!profileInProgress.Enabled) ImGui.EndDisabled();
-
-            ImGui.SameLine();
-            ImGui.Spacing();
-            ImGui.SameLine();
 
             ImGui.Separator();
 
-            if (ImGui.RadioButton("Position", Settings.EditingAttribute == BoneAttribute.Position))
+            if (ImGui.BeginTable("Checkboxes", 3, ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.NoClip))
             {
-                Settings.EditingAttribute = BoneAttribute.Position;
-            }
-            CtrlHelper.AddHoverText($"May have unintended effects. Edit at your own risk!");
+                ImGui.TableSetupColumn("CheckEnabled", ImGuiTableColumnFlags.WidthStretch);
+                ImGui.TableSetupColumn("CheckLive", ImGuiTableColumnFlags.WidthStretch);
+                //ImGui.TableSetupColumn("CheckAPose", ImGuiTableColumnFlags.WidthStretch);
+                ImGui.TableSetupColumn("CheckMirrored", ImGuiTableColumnFlags.WidthStretch);
+                //ImGui.TableSetupColumn("CheckParented", ImGuiTableColumnFlags.WidthStretch);
 
-            ImGui.SameLine();
-            if (ImGui.RadioButton("Rotation", Settings.EditingAttribute == BoneAttribute.Rotation))
+                ImGui.TableNextRow();
+                ImGui.TableSetColumnIndex(0);
+
+                var tempEnabled = profileInProgress.Enabled;
+                if (CtrlHelper.Checkbox("Enable Preview", ref tempEnabled))
+                {
+                    profileInProgress.Enabled = tempEnabled;
+                    ConfirmSkeletonConnection();
+                }
+                CtrlHelper.AddHoverText($"Hook the editor into the game to edit and preview live bone data");
+
+                ImGui.TableNextColumn();
+
+                if (!profileInProgress.Enabled) ImGui.BeginDisabled();
+
+                if (CtrlHelper.Checkbox("Show Live Bones", ref Settings.ShowLiveBones))
+                {
+                    ConfirmSkeletonConnection();
+                }
+                CtrlHelper.AddHoverText($"If selected, present for editing all bones found in the game data,\nelse show only bones for which the profile already contains edits.");
+
+                //ImGui.TableNextColumn();
+
+                //var tempRefSnap = profileInProgress.Armature.GetReferenceSnap();
+                //if (CtrlHelper.Checkbox("A-Pose", ref tempRefSnap))
+                //{
+                //    ConfirmSkeletonConnection();
+                //    profileInProgress.Armature.SetReferenceSnap(tempRefSnap);
+                //}
+                //CtrlHelper.AddHoverText($"Force character into their default reference pose");
+
+                ImGui.TableNextColumn();
+
+                if (CtrlHelper.Checkbox("Mirror Mode", ref Settings.MirrorModeEnabled))
+                {
+                    ConfirmSkeletonConnection();
+                }
+                CtrlHelper.AddHoverText($"Bone changes will be reflected from left to right and vice versa");
+
+                //ImGui.TableNextColumn();
+
+                //if (CtrlHelper.Checkbox("Parenting Mode", ref Settings.ParentingEnabled))
+                //{
+                //    ConfirmSkeletonConnection();
+                //}
+                //CtrlHelper.AddHoverText($"Changes will propagate \"outward\" from edited bones");
+
+                if (!profileInProgress.Enabled) ImGui.EndDisabled();
+                ImGui.EndTable();
+            }
+
+            ImGui.Separator();
+
+            if (ImGui.BeginTable("Misc", 3, ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.NoClip))
             {
-                Settings.EditingAttribute = BoneAttribute.Rotation;
+                ImGui.TableSetupColumn("Attributes", ImGuiTableColumnFlags.WidthFixed);
+                ImGui.TableSetupColumn("Space", ImGuiTableColumnFlags.WidthStretch);
+                ImGui.TableSetupColumn("ReloadButton", ImGuiTableColumnFlags.WidthFixed);
+
+                ImGui.TableNextRow();
+                ImGui.TableSetColumnIndex(0);
+
+                if (ImGui.RadioButton("Position", Settings.EditingAttribute == BoneAttribute.Position))
+                {
+                    Settings.EditingAttribute = BoneAttribute.Position;
+                }
+                CtrlHelper.AddHoverText($"May have unintended effects. Edit at your own risk!");
+
+                ImGui.SameLine();
+                if (ImGui.RadioButton("Rotation", Settings.EditingAttribute == BoneAttribute.Rotation))
+                {
+                    Settings.EditingAttribute = BoneAttribute.Rotation;
+                }
+                CtrlHelper.AddHoverText($"May have unintended effects. Edit at your own risk!");
+
+                ImGui.SameLine();
+                if (ImGui.RadioButton("Scale", Settings.EditingAttribute == BoneAttribute.Scale))
+                {
+                    Settings.EditingAttribute = BoneAttribute.Scale;
+                }
+
+                ImGui.TableNextColumn();
+                ImGui.TableNextColumn();
+
+                if (!profileInProgress.Enabled) ImGui.BeginDisabled();
+                if (ImGui.Button("Reload Bone Data"))
+                {
+                    SkeletonInProgress.RebuildSkeleton();
+                }
+                CtrlHelper.AddHoverText("Refresh the skeleton data obtained from in-game");
+                if (!profileInProgress.Enabled) ImGui.EndDisabled();
+
+                ImGui.EndTable();
             }
-            CtrlHelper.AddHoverText($"May have unintended effects. Edit at your own risk!");
 
-            ImGui.SameLine();
-            if (ImGui.RadioButton("Scale", Settings.EditingAttribute == BoneAttribute.Scale))
-            {
-                Settings.EditingAttribute = BoneAttribute.Scale;
-            }
+            //if (!Settings.EditStack.UndoPossible()) ImGui.BeginDisabled();
+            //if (ImGuiComponents.IconButton(FontAwesomeIcon.UndoAlt))
+            //{
+            //    Settings.EditStack.Undo();
+            //}
+            //CtrlHelper.AddHoverText("Undo last edit");
+            //if (!Settings.EditStack.UndoPossible()) ImGui.EndDisabled();
 
-            ImGui.SameLine();
-            ImGui.Spacing();
-            ImGui.SameLine();
+            //ImGui.SameLine();
 
-            ImGui.TextUnformatted("|");
+            //if (!Settings.EditStack.RedoPossible()) ImGui.BeginDisabled();
+            //if (ImGuiComponents.IconButton(FontAwesomeIcon.RedoAlt))
+            //{
+            //    Settings.EditStack.Redo();
+            //}
+            //CtrlHelper.AddHoverText("Redo next edit");
+            //if (!Settings.EditStack.RedoPossible()) ImGui.EndDisabled();
 
-            ImGui.SameLine();
-            ImGui.Spacing();
-            ImGui.SameLine();
-
-            if (!Settings.EditStack.UndoPossible()) ImGui.BeginDisabled();
-            if (ImGuiComponents.IconButton(FontAwesomeIcon.UndoAlt))
-            {
-                Settings.EditStack.Undo();
-            }
-            CtrlHelper.AddHoverText("Undo last edit");
-            if (!Settings.EditStack.UndoPossible()) ImGui.EndDisabled();
-
-            ImGui.SameLine();
-
-            if (!Settings.EditStack.RedoPossible()) ImGui.BeginDisabled();
-            if (ImGuiComponents.IconButton(FontAwesomeIcon.RedoAlt))
-            {
-                Settings.EditStack.Redo();
-            }
-            CtrlHelper.AddHoverText("Redo next edit");
-            if (!Settings.EditStack.RedoPossible()) ImGui.EndDisabled();
-
-            ImGui.SameLine();
-            ImGui.Spacing();
-            ImGui.SameLine();
-
-            ImGui.TextUnformatted("|");
-
-            ImGui.SameLine();
-            ImGui.Spacing();
-            ImGui.SameLine();
-
-            if (!profileInProgress.Enabled) ImGui.BeginDisabled();
-            if (ImGui.Button("Reload Bone Data"))
-            {
-                SkeletonInProgress.RebuildSkeleton();
-            }
-            CtrlHelper.AddHoverText("Refresh the skeleton data obtained from in-game");
-            if (!profileInProgress.Enabled) ImGui.EndDisabled();
-
-            ImGui.SameLine();
-            ImGui.Spacing();
-            ImGui.SameLine();
-
-            ImGui.TextUnformatted("|");
-
-            ImGui.SameLine();
-            ImGui.Spacing();
-            ImGui.SameLine();
-
-            ImGui.SetNextItemWidth(150);
-            //ImGui.SliderInt("Precision", ref precision, 1, 6);
-            ImGui.SliderInt(string.Empty, ref precision, 1, 6, $"Precision = {precision}");
-            CtrlHelper.AddHoverText("Level of precision to display while editing values");
 
             ImGui.Separator();
 
@@ -230,19 +238,18 @@ namespace CustomizePlus.UI.Windows
                 ? $"All"
                 : $"N/A";
 
-            if (ImGui.BeginTable("Bones", 6, ImGuiTableFlags.Borders | ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.ScrollY,
+            if (ImGui.BeginTable("Bones", 6, ImGuiTableFlags.BordersOuterH | ImGuiTableFlags.BordersV | ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.ScrollY,
                 new Vector2(0, ImGui.GetFrameHeightWithSpacing() - 56)))
             {
-                ImGui.TableSetupColumn("Bones", ImGuiTableColumnFlags.NoReorder | ImGuiTableColumnFlags.WidthFixed);
+                ImGui.TableSetupColumn("\tBones", ImGuiTableColumnFlags.NoReorder | ImGuiTableColumnFlags.WidthFixed, 3 * CtrlHelper.IconButtonWidth);
 
-                ImGui.TableSetupColumn(col1Label, ImGuiTableColumnFlags.NoReorder | ImGuiTableColumnFlags.WidthStretch);
-                ImGui.TableSetupColumn(col2Label, ImGuiTableColumnFlags.NoReorder | ImGuiTableColumnFlags.WidthStretch);
-                ImGui.TableSetupColumn(col3Label, ImGuiTableColumnFlags.NoReorder | ImGuiTableColumnFlags.WidthStretch);
-                ImGui.TableSetupColumn(col4Label, ImGuiTableColumnFlags.NoReorder | ImGuiTableColumnFlags.WidthStretch);
-
+                ImGui.TableSetupColumn($"\t{col1Label}", ImGuiTableColumnFlags.NoReorder | ImGuiTableColumnFlags.WidthStretch);
+                ImGui.TableSetupColumn($"\t{col2Label}", ImGuiTableColumnFlags.NoReorder | ImGuiTableColumnFlags.WidthStretch);
+                ImGui.TableSetupColumn($"\t{col3Label}", ImGuiTableColumnFlags.NoReorder | ImGuiTableColumnFlags.WidthStretch);
+                ImGui.TableSetupColumn($"\t{col4Label}", ImGuiTableColumnFlags.NoReorder | ImGuiTableColumnFlags.WidthStretch);
                 ImGui.TableSetColumnEnabled(4, Settings.EditingAttribute == BoneAttribute.Scale);
 
-                ImGui.TableSetupColumn("Name", ImGuiTableColumnFlags.NoReorder | ImGuiTableColumnFlags.WidthStretch);
+                ImGui.TableSetupColumn("\tName", ImGuiTableColumnFlags.NoReorder | ImGuiTableColumnFlags.WidthStretch);
 
                 ImGui.TableSetupScrollFreeze(0, 1);
 
@@ -260,9 +267,6 @@ namespace CustomizePlus.UI.Windows
 	                if (boneGroup.Key == BoneData.BoneFamily.Root &&
 	                    !Plugin.ConfigurationManager.Configuration.RootPositionEditingEnabled)
 	                    continue;
-                                    
-                    ImGui.TableNextRow();
-                    ImGui.TableSetColumnIndex(0);
 
                     //create a dropdown entry for the family if one doesn't already exist
                     //mind that it'll only be rendered if bones exist to fill it
@@ -271,6 +275,17 @@ namespace CustomizePlus.UI.Windows
                         Settings.GroupExpandedState[boneGroup.Key] = false;
                         expanded = false;
                     }
+
+                    if (expanded)
+                    {
+                        //paint the row in header colors if it's expanded
+                        ImGui.TableNextRow(ImGuiTableRowFlags.Headers);
+                    }
+                    else
+                    {
+                        ImGui.TableNextRow();
+                    }
+                    ImGui.TableSetColumnIndex(0);
 
                     CtrlHelper.ArrowToggle($"##{boneGroup.Key}", ref expanded);
                     ImGui.SameLine();
@@ -284,6 +299,11 @@ namespace CustomizePlus.UI.Windows
                     {
                         foreach (var codename in boneGroup.OrderBy(BoneData.GetBoneIndex))
                         {
+                            if (BoneData.IsNewBone(codename))
+                            {
+                                BoneData.LogNewBones(codename);
+                            }
+
                             CompleteBoneEditor(codename);
                         }
                     }
@@ -298,60 +318,75 @@ namespace CustomizePlus.UI.Windows
 
             //----------------------------------
 
-            if (ImGui.Button("Save") && dirty)
+            if (ImGui.BeginTable("Save/Close", 3, ImGuiTableFlags.SizingFixedFit, new Vector2(ImGui.GetWindowWidth() - CtrlHelper.IconButtonWidth, 0)))
             {
-                if (dirty)
+                ImGui.TableSetupColumn("Save", ImGuiTableColumnFlags.WidthFixed);
+                ImGui.TableSetupColumn("Space", ImGuiTableColumnFlags.WidthStretch);
+                ImGui.TableSetupColumn("Close", ImGuiTableColumnFlags.WidthFixed);
+
+                ImGui.TableNextRow();
+                ImGui.TableSetColumnIndex(0);
+
+                if (ImGui.Button("Save") && dirty)
                 {
-                    Plugin.ProfileManager.SaveWorkingCopy(profileInProgress, false);
-                    SkeletonInProgress.RebuildSkeleton();
-                }
-            }
-            CtrlHelper.AddHoverText("Save changes and continue editing");
-
-            ImGui.SameLine();
-
-            if (ImGui.Button("Save and Close"))
-            {
-                if (dirty)
-                {
-                    Plugin.ProfileManager.SaveWorkingCopy(profileInProgress, true);
-                    //Plugin.RefreshPlugin();
-                }
-
-                Close();
-            }
-            CtrlHelper.AddHoverText("Save changes and stop editing");
-
-            ImGui.SameLine();
-            ImGui.Spacing();
-            ImGui.SameLine();
-
-            ImGui.Spacing();
-            ImGui.SameLine();
-
-            if (ImGui.Button("Revert") && dirty)
-            {
-                ConfirmationDialog.Show("Revert all unsaved work?",
-                    () =>
+                    if (dirty)
                     {
-                        Plugin.ProfileManager.RevertWorkingCopy(profileInProgress);
+                        Plugin.ProfileManager.SaveWorkingCopy(profileInProgress, false);
                         SkeletonInProgress.RebuildSkeleton();
-                    });
+                    }
+                }
+                CtrlHelper.AddHoverText("Save changes and continue editing");
 
+                ImGui.SameLine();
+
+                if (ImGui.Button("Save and Close"))
+                {
+                    if (dirty)
+                    {
+                        Plugin.ProfileManager.SaveWorkingCopy(profileInProgress, true);
+                        //Plugin.RefreshPlugin();
+                    }
+
+                    Close();
+                }
+                CtrlHelper.AddHoverText("Save changes and stop editing");
+
+                ImGui.TableNextColumn();
+                ImGui.Spacing();
+                ImGui.TableNextColumn();
+
+                if (ImGui.Button("Revert") && dirty)
+                {
+                    ConfirmationDialog.Show("Revert all unsaved work?",
+                        () =>
+                        {
+                            Plugin.ProfileManager.RevertWorkingCopy(profileInProgress);
+                            SkeletonInProgress.RebuildSkeleton();
+                        });
+
+                }
+                CtrlHelper.AddHoverText("Remove all pending changes, reverting to last save");
+
+                ImGui.SameLine();
+
+                if (ImGui.Button("Cancel"))
+                {
+                    //convenient data handling means we just drop it
+                    Plugin.ProfileManager.StopEditing(profileInProgress);
+                    Close();
+                }
+                CtrlHelper.AddHoverText("Close the editor without saving\n(reverting all unsaved changes)");
+
+                ImGui.Dummy(new Vector2(CtrlHelper.IconButtonWidth));
+
+                ImGui.EndTable();
             }
-            CtrlHelper.AddHoverText("Remove all pending changes, reverting to last save");
-
-            ImGui.SameLine();
-
-            if (ImGui.Button("Cancel"))
-            {
-                //convenient data handling means we just drop it
-                Plugin.ProfileManager.StopEditing(profileInProgress);
-                Close();
-            }
-            CtrlHelper.AddHoverText("Close the editor without saving\n(reverting all unsaved changes)");
         }
 
+        /// <summary>
+        /// Check that the target skeleton is present in game memory and that its profile is enabled.
+        /// If necessary, disable editing features that rely on either of these things.
+        /// </summary>
         public void ConfirmSkeletonConnection()
         {
             if (!SkeletonInProgress.TryLinkSkeleton())
@@ -547,7 +582,7 @@ namespace CustomizePlus.UI.Windows
             //----------------------------------
             ImGui.TableNextColumn();
 
-            CtrlHelper.StaticLabel(displayName, BoneData.IsIVCSBone(codename) ? $"(IVCS) {codename}" : codename);
+            CtrlHelper.StaticLabel(displayName, CtrlHelper.TextAlignment.Left, BoneData.IsIVCSBone(codename) ? $"(IVCS) {codename}" : codename);
 
             ImGui.PopID();
 
@@ -559,7 +594,7 @@ namespace CustomizePlus.UI.Windows
                 if (originalVector.Y != newVector.Y) whichValue = FrameStackManager.Axis.Y;
                 if (originalVector.Z != newVector.Z) whichValue = FrameStackManager.Axis.Z;
 
-                Settings.EditStack.Do(codename, Settings.EditingAttribute, whichValue, originalVector, newVector);
+                //Settings.EditStack.Do(codename, Settings.EditingAttribute, whichValue, originalVector, newVector);
 
                 transform.UpdateAttribute(Settings.EditingAttribute, newVector);
 
@@ -615,6 +650,8 @@ namespace CustomizePlus.UI.Windows
             ImGui.TableSetColumnIndex(0);
 
             //----------------------------------
+            ImGui.Dummy(new Vector2(CtrlHelper.IconButtonWidth * 0.75f, 0));
+            ImGui.SameLine();
             flagUpdate |= ResetBoneButton(codename, ref newVector);
             ImGui.SameLine();
             flagUpdate |= RevertBoneButton(codename, ref newVector);
@@ -643,7 +680,7 @@ namespace CustomizePlus.UI.Windows
 
             //----------------------------------
             ImGui.TableNextColumn();
-            CtrlHelper.StaticLabel(displayName, BoneData.IsIVCSBone(codename) ? $"(IVCS) {codename}" : codename);
+            CtrlHelper.StaticLabel(displayName, CtrlHelper.TextAlignment.Left, BoneData.IsIVCSBone(codename) ? $"(IVCS) {codename}" : codename);
 
             ImGui.PopID();
 
@@ -655,7 +692,7 @@ namespace CustomizePlus.UI.Windows
                 if (originalVector.Y != newVector.Y) whichValue = FrameStackManager.Axis.Y;
                 if (originalVector.Z != newVector.Z) whichValue = FrameStackManager.Axis.Z;
 
-                Settings.EditStack.Do(codename, Settings.EditingAttribute, whichValue, originalVector, newVector);
+                //Settings.EditStack.Do(codename, Settings.EditingAttribute, whichValue, originalVector, newVector);
 
                 transform.UpdateAttribute(Settings.EditingAttribute, newVector);
 
@@ -690,7 +727,8 @@ namespace CustomizePlus.UI.Windows
 
         public EditorSessionSettings(Armature armRef)
         {
-            EditStack = new FrameStackManager(armRef);
+            //EditStack = new FrameStackManager(armRef);
+            ShowLiveBones = armRef.Profile.Enabled;
         }
     }
 
