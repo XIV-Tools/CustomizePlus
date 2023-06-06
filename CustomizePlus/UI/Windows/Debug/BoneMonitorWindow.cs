@@ -18,7 +18,7 @@ using Dalamud.Utility;
 
 using ImGuiNET;
 
-namespace CustomizePlus.UI.Windows
+namespace CustomizePlus.UI.Windows.Debug
 {
     internal class BoneMonitorWindow : WindowBase
     {
