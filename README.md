@@ -4,6 +4,8 @@ Customize+ is a plugin for Dalamud that allows you to create and apply [Anamnesi
 ### Installing
 Add the following URL to the Dalamud Custom Plugin Repositories list:  
 `https://raw.githubusercontent.com/XIV-Tools/DalamudPlugins/main/repo.json`  
+Alternatively use the Collective repo Sea of Stars which you can get from here:
+https://github.com/Ottermandias/SeaOfStars  
 Then search for Customize+ in the plugin manager.
 
 ### How do I report an issue with Customize+?
