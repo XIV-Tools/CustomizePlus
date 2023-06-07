@@ -21,11 +21,15 @@ namespace CustomizePlus.UI.Dialogs
         private Action _doAfterConfirmed = () => { };
         private string _negativeResponse = "Cancel";
         private string _titleBar = "Confirmation";
+        /// <inheritdoc/>
         protected override string Title => _titleBar;
 
+        /// <inheritdoc/>
         protected override Vector2 MinSize => new(100, 100);
+        /// <inheritdoc/>
         protected override ImGuiWindowFlags WindowFlags => ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.AlwaysAutoResize;
 
+        /// <inheritdoc/>
         protected override bool LockCloseButton => true;
 
         /// <summary>
@@ -61,6 +65,7 @@ namespace CustomizePlus.UI.Dialogs
             window.Focus();
         }
 
+        /// <inheritdoc/>
         protected override void DrawContents()
         {
             CtrlHelper.StaticLabel(_confirmationPrompt, CtrlHelper.TextAlignment.Center);
