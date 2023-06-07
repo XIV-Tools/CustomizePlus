@@ -79,21 +79,21 @@ namespace CustomizePlus.UI.Windows
 
                 CtrlHelper.StaticLabel("Character Name", CtrlHelper.TextAlignment.Center);
                 CtrlHelper.TextPropertyBox("##Character Name",
-                    () => profileInProgress.CharacterName,
-                    (s) => profileInProgress.CharacterName = s);
+                    () => _profileInProgress.CharacterName,
+                    (s) => _profileInProgress.CharacterName = s);
 
                 ImGui.TableNextColumn();
 
                 CtrlHelper.StaticLabel("Profile Name", CtrlHelper.TextAlignment.Center);
                 CtrlHelper.TextPropertyBox("##Profile Name",
-                    () => profileInProgress.ProfileName,
-                    (s) => profileInProgress.ProfileName = s);
+                    () => _profileInProgress.ProfileName,
+                    (s) => _profileInProgress.ProfileName = s);
 
                 ImGui.TableNextColumn();
 
                 CtrlHelper.StaticLabel("Decimal Precision", CtrlHelper.TextAlignment.Left);
                 ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
-                ImGui.SliderInt("##Precision", ref precision, 1, 6, $"{precision} Places");
+                ImGui.SliderInt("##Precision", ref _precision, 1, 6, $"{_precision} Places");
                 CtrlHelper.AddHoverText("Level of precision to display while editing values");
 
                 //I don't know why it does what it does
@@ -115,17 +115,17 @@ namespace CustomizePlus.UI.Windows
                 ImGui.TableNextRow();
                 ImGui.TableSetColumnIndex(0);
 
-                var tempEnabled = profileInProgress.Enabled;
+                var tempEnabled = _profileInProgress.Enabled;
                 if (CtrlHelper.Checkbox("Enable Preview", ref tempEnabled))
                 {
-                    profileInProgress.Enabled = tempEnabled;
+                    _profileInProgress.Enabled = tempEnabled;
                     ConfirmSkeletonConnection();
                 }
                 CtrlHelper.AddHoverText($"Hook the editor into the game to edit and preview live bone data");
 
                 ImGui.TableNextColumn();
 
-                if (!profileInProgress.Enabled) ImGui.BeginDisabled();
+                if (!_profileInProgress.Enabled) ImGui.BeginDisabled();
 
                 if (CtrlHelper.Checkbox("Show Live Bones", ref Settings.ShowLiveBones))
                 {
@@ -159,7 +159,7 @@ namespace CustomizePlus.UI.Windows
                 //}
                 //CtrlHelper.AddHoverText($"Changes will propagate \"outward\" from edited bones");
 
-                if (!profileInProgress.Enabled) ImGui.EndDisabled();
+                if (!_profileInProgress.Enabled) ImGui.EndDisabled();
                 ImGui.EndTable();
             }
 
@@ -196,13 +196,13 @@ namespace CustomizePlus.UI.Windows
                 ImGui.TableNextColumn();
                 ImGui.TableNextColumn();
 
-                if (!profileInProgress.Enabled) ImGui.BeginDisabled();
+                if (!_profileInProgress.Enabled) ImGui.BeginDisabled();
                 if (ImGui.Button("Reload Bone Data"))
                 {
                     SkeletonInProgress.RebuildSkeleton();
                 }
                 CtrlHelper.AddHoverText("Refresh the skeleton data obtained from in-game");
-                if (!profileInProgress.Enabled) ImGui.EndDisabled();
+                if (!_profileInProgress.Enabled) ImGui.EndDisabled();
 
                 ImGui.EndTable();
             }
@@ -330,11 +330,11 @@ namespace CustomizePlus.UI.Windows
                 ImGui.TableNextRow();
                 ImGui.TableSetColumnIndex(0);
 
-                if (ImGui.Button("Save") && dirty)
+                if (ImGui.Button("Save") && _dirty)
                 {
-                    if (dirty)
+                    if (_dirty)
                     {
-                        Plugin.ProfileManager.SaveWorkingCopy(profileInProgress, false);
+                        Plugin.ProfileManager.SaveWorkingCopy(_profileInProgress, false);
                         SkeletonInProgress.RebuildSkeleton();
                     }
                 }
@@ -376,7 +376,7 @@ namespace CustomizePlus.UI.Windows
                 if (ImGui.Button("Cancel"))
                 {
                     //convenient data handling means we just drop it
-                    Plugin.ProfileManager.StopEditing(profileInProgress);
+                    Plugin.ProfileManager.StopEditing(_profileInProgress);
                     Close();
                 }
                 CtrlHelper.AddHoverText("Close the editor without saving\n(reverting all unsaved changes)");
