@@ -11,13 +11,7 @@ namespace CustomizePlus.Core
     {
         private static T? _instance;
 
-        public static T Instance
-        {
-            get
-            {
-                return _instance ?? throw new Exception($"No service found: {typeof(T)}");
-            }
-        }
+        public static T Instance => _instance ?? throw new Exception($"No service found: {typeof(T)}");
 
         public void AssignInstance()
         {

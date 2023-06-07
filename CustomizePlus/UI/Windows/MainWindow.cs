@@ -16,7 +16,6 @@ using Dalamud.Interface.Components;
 using Dalamud.Interface.ImGuiFileDialog;
 using Dalamud.Logging;
 using ImGuiNET;
-using ImGuizmoNET;
 using Newtonsoft.Json;
 
 namespace CustomizePlus.UI.Windows
@@ -186,14 +185,19 @@ namespace CustomizePlus.UI.Windows
             //TODO there's probably some imgui functionality to sort the table when you click on the headers
 
             var fontScale = ImGui.GetIO().FontGlobalScale;
-            if (ImGui.BeginTable("Config", 5, ImGuiTableFlags.Borders | ImGuiTableFlags.Resizable | ImGuiTableFlags.ScrollY | ImGuiTableFlags.Sortable,
-                new Vector2(0, ImGui.GetFrameHeightWithSpacing() - (70 * fontScale))))
+            if (ImGui.BeginTable("Config", 5,
+                    ImGuiTableFlags.Borders | ImGuiTableFlags.Resizable | ImGuiTableFlags.ScrollY |
+                    ImGuiTableFlags.Sortable,
+                    new Vector2(0, ImGui.GetFrameHeightWithSpacing() - 70 * fontScale)))
             {
                 ImGui.TableSetupColumn("Enabled", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize);
-                ImGui.TableSetupColumn("Character", ImGuiTableColumnFlags.WidthStretch | ImGuiTableColumnFlags.DefaultSort);
+                ImGui.TableSetupColumn("Character",
+                    ImGuiTableColumnFlags.WidthStretch | ImGuiTableColumnFlags.DefaultSort);
                 ImGui.TableSetupColumn("Profile Name", ImGuiTableColumnFlags.WidthStretch);
-                ImGui.TableSetupColumn("Info", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize | ImGuiTableColumnFlags.NoSort);
-                ImGui.TableSetupColumn("Options", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize | ImGuiTableColumnFlags.NoSort);
+                ImGui.TableSetupColumn("Info",
+                    ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize | ImGuiTableColumnFlags.NoSort);
+                ImGui.TableSetupColumn("Options",
+                    ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize | ImGuiTableColumnFlags.NoSort);
 
                 ImGui.TableSetupScrollFreeze(0, 1);
                 ImGui.TableHeadersRow();
@@ -266,14 +270,16 @@ namespace CustomizePlus.UI.Windows
                     ImGui.TableNextColumn();
                     ImGui.PushItemWidth(-1);
                     var inputProfName = prof.ProfileName ?? string.Empty;
-                    if (ImGui.InputText("##Profile Name", ref inputProfName, 64, ImGuiInputTextFlags.NoHorizontalScroll))
+                    if (ImGui.InputText("##Profile Name", ref inputProfName, 64,
+                            ImGuiInputTextFlags.NoHorizontalScroll))
                     {
                         if (ImGui.IsItemDeactivatedAfterEdit())
                         {
                             var newProfileName = ValidateProfileName(characterName, inputProfName);
                             if (newProfileName != inputProfName)
                             {
-                                MessageDialog.Show($"Profile '{inputProfName}' already exists for {characterName}. Renamed to '{newProfileName}'.");
+                                MessageDialog.Show(
+                                    $"Profile '{inputProfName}' already exists for {characterName}. Renamed to '{newProfileName}'.");
                             }
 
                             prof.ProfileName = newProfileName;
@@ -293,6 +299,7 @@ namespace CustomizePlus.UI.Windows
                     {
                         BoneMonitorWindow.Show(prof);
                     }
+
                     CtrlHelper.AddHoverText(string.Join('\n',
                         $"Profile '{prof.ProfileName}'",
                         $"for {prof.CharacterName}",
@@ -328,6 +335,7 @@ namespace CustomizePlus.UI.Windows
                         Plugin.ProfileManager.StopEditing(dupe);
                         Plugin.ProfileManager.AddAndSaveProfile(dupe, true);
                     }
+
                     CtrlHelper.AddHoverText("Duplicate Profile");
 
                     // Export to Clipboard
@@ -389,8 +397,8 @@ namespace CustomizePlus.UI.Windows
             var tryIndex = 2;
 
             while (Plugin.ProfileManager.Profiles
-                .Where(x => x.CharacterName == charName)
-                .Any(x => x.ProfileName == newProfileName))
+                   .Where(x => x.CharacterName == charName)
+                   .Any(x => x.ProfileName == newProfileName))
             {
                 newProfileName = $"{profName}-{tryIndex}";
                 tryIndex++;

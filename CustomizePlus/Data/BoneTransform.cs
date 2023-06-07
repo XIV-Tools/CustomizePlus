@@ -4,9 +4,7 @@
 using System;
 using System.Numerics;
 using System.Runtime.Serialization;
-
 using CustomizePlus.Extensions;
-
 using FFXIVClientStructs.Havok;
 
 namespace CustomizePlus.Data
@@ -24,9 +22,21 @@ namespace CustomizePlus.Data
     public class BoneTransform
     {
         //TODO if if ever becomes a point of concern, I might be able to marginally speed things up
-        // by natively storing translation and scaling values as their own vector4s
+        //by natively storing translation and scaling values as their own vector4s
         //that way the cost of translating back and forth to vector3s would be frontloaded
-        //	to when the user is updating things instead of during the render loop
+        //to when the user is updating things instead of during the render loop
+
+        public BoneTransform()
+        {
+            Translation = Vector3.Zero;
+            Rotation = Vector3.Zero;
+            Scaling = Vector3.One;
+        }
+
+        public BoneTransform(BoneTransform original)
+        {
+            UpdateToMatch(original);
+        }
 
         private Vector3 _translation;
         public Vector3 Translation
@@ -47,18 +57,6 @@ namespace CustomizePlus.Data
         {
             get => _scaling;
             set => _scaling = ClampVector(value);
-        }
-
-        public BoneTransform()
-        {
-            Translation = Vector3.Zero;
-            Rotation = Vector3.Zero;
-            Scaling = Vector3.One;
-        }
-
-        public BoneTransform(BoneTransform original)
-        {
-            UpdateToMatch(original);
         }
 
         [OnDeserialized]
@@ -153,7 +151,7 @@ namespace CustomizePlus.Data
         /// </summary>
         private Vector3 ClampVector(Vector3 vector)
         {
-            return new Vector3()
+            return new Vector3
             {
                 X = Math.Clamp(vector.X, Constants.MinVectorValueLimit, Constants.MaxVectorValueLimit),
                 Y = Math.Clamp(vector.Y, Constants.MinVectorValueLimit, Constants.MaxVectorValueLimit),
@@ -165,9 +163,11 @@ namespace CustomizePlus.Data
         {
             static float Clamp(float angle)
             {
-                if (angle > 180) angle -= 360;
-                else if (angle < -180) angle += 360;
-
+                if (angle > 180)
+                    angle -= 360;
+                else if (angle < -180)
+                    angle += 360;
+                
                 return angle;
             }
 
@@ -177,7 +177,6 @@ namespace CustomizePlus.Data
 
             return rotVec;
         }
-
 
 
         /// <summary>

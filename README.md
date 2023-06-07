@@ -16,3 +16,10 @@ Most of the things should be self-explanatory, if you do need help you can join 
 
 ### When will it be updated?
 Release dates cannot be forecast, as this is a project worked on in the developers' free time. Real life and paid employment take priority over development of free tools for a subscription MMO for which the developers receive no compensation.
+
+### Contributing
+Customize+ has been able to become what it is today only thanks to work of many different people. Every single contribution counts and we are more than happy to accept new merge requests.
+
+Since this is a project many different people are working on, we expect contributed code to adhere to the code style of already existing code. All pull requests will be checked for being in line with it and you will be expected to fix any issues related to it before your pull request will be allowed to be merged into this repository.
+
+We also expect contributors to provide us reasonably well tested code which does not conflict with existing features.

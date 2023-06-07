@@ -11,10 +11,10 @@ namespace CustomizePlus.Data.Profile
         public override bool Equals(CharacterProfile? x, CharacterProfile? y)
         {
             return x != null && y != null
-&& x.UniqueId == y.UniqueId
-                   && x.CreationDate == y.CreationDate
-                   && x.CharacterName == y.CharacterName
-                   && x.ProfileName == y.ProfileName;
+                             && x.UniqueId == y.UniqueId
+                             && x.CreationDate == y.CreationDate
+                             && x.CharacterName == y.CharacterName
+                             && x.ProfileName == y.ProfileName;
         }
 
         public override int GetHashCode([DisallowNull] CharacterProfile obj)

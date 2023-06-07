@@ -4,16 +4,10 @@
 using System;
 using System.Linq;
 using System.Runtime.InteropServices;
-using System.Xml.Linq;
-
 using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Component.GUI;
-
 using Penumbra.String;
-
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.ToolTip;
-
 using DalamudObject = Dalamud.Game.ClientState.Objects.Types.GameObject;
 using DalamudObjectKind = Dalamud.Game.ClientState.Objects.Enums.ObjectKind;
 //using Dalamud.Game.ClientState.Objects.Types;
@@ -40,10 +34,10 @@ namespace CustomizePlus.Helpers
         public static unsafe CharacterBase* ToCharacterBase(this DalamudObject obj)
         {
             return obj.Address != IntPtr.Zero
-                && Marshal.ReadIntPtr(obj.Address, 0x0100) is IntPtr drawObj
-                && drawObj != IntPtr.Zero
+                   && Marshal.ReadIntPtr(obj.Address, 0x0100) is IntPtr drawObj
+                   && drawObj != IntPtr.Zero
                 ? (CharacterBase*)drawObj
-                : (CharacterBase*)null;
+                : null;
         }
 
         public static unsafe bool TryLookupCharacterBase(string name, out CharacterBase* cBase)

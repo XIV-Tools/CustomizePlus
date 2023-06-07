@@ -4,11 +4,8 @@
 using System;
 using System.Linq;
 using System.IO;
-
 using CustomizePlus.Helpers;
-
 using Dalamud.Logging;
-
 using Newtonsoft.Json;
 
 namespace CustomizePlus.Data.Profile

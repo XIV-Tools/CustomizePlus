@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Linq;
-
 using Dalamud.Game.ClientState.Objects.Enums;
 
 namespace CustomizePlus.Data.Profile

@@ -5,12 +5,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-
 using CustomizePlus.Data.Profile;
 using CustomizePlus.Extensions;
-
+using CustomizePlus.Helpers;
 using Dalamud.Logging;
-
 using FFXIVClientStructs.FFXIV.Client.Graphics.Render;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
 using FFXIVClientStructs.Havok;
@@ -23,28 +21,30 @@ namespace CustomizePlus.Data.Armature
     /// </summary>
     public unsafe class Armature
     {
-        private static int _nextGlobalId;
+        public readonly Dictionary<string, ModelBone> Bones;
+        public CharacterBase* CharacterBaseRef;
 
-        public bool Visible { get; set; }
+        public CharacterProfile Profile;
+
+        public bool IsVisible { get; set; }
+
+
+        private static int _nextGlobalId;
+        private readonly int _localId;
 
         private bool _snapToReference;
 
-        public readonly Dictionary<string, ModelBone> Bones;
-        private readonly int _localId;
-
-        public CharacterBase* CharacterBaseRef;
         private Skeleton* Skeleton => CharacterBaseRef->Skeleton;
 
-        public CharacterProfile Profile;
 
         public Armature(CharacterProfile prof)
         {
             _localId = _nextGlobalId++;
 
             Profile = prof;
-            Visible = false;
+            IsVisible = false;
             CharacterBaseRef = null;
-            Bones = new();
+            Bones = new Dictionary<string, ModelBone>();
 
             Profile.Armature = this;
 
@@ -68,24 +68,22 @@ namespace CustomizePlus.Data.Armature
         public bool GetReferenceSnap()
         {
             if (Profile != Plugin.ProfileManager.ProfileOpenInEditor)
-            {
                 _snapToReference = false;
-            }
+
             return _snapToReference;
         }
 
         public void SetReferenceSnap(bool value)
         {
             if (value && Profile == Plugin.ProfileManager.ProfileOpenInEditor)
-            {
                 _snapToReference = false;
-            }
+
             _snapToReference = value;
         }
 
         public bool TryLinkSkeleton()
         {
-            if (Helpers.GameDataHelper.TryLookupCharacterBase(Profile.CharacterName, out var cBase)
+            if (GameDataHelper.TryLookupCharacterBase(Profile.CharacterName, out var cBase)
                 && cBase != null)
             {
                 if (cBase != CharacterBaseRef || !Bones.Any())
@@ -96,19 +94,15 @@ namespace CustomizePlus.Data.Armature
 
                 return true;
             }
-            else
-            {
-                CharacterBaseRef = null;
-                return false;
-            }
+
+            CharacterBaseRef = null;
+            return false;
         }
 
-        public void RebuildSkeleton(/*CharacterBase* cbase*/)
+        public void RebuildSkeleton( /*CharacterBase* cbase*/)
         {
-            if (CharacterBaseRef == null)
-            {
+            if (CharacterBaseRef == null) 
                 return;
-            }
 
             Bones.Clear();
 
@@ -121,15 +115,18 @@ namespace CustomizePlus.Data.Armature
                     {
                         var currentPose = Skeleton->PartialSkeletons[pSkeleIndex].GetHavokPose(poseIndex);
 
-                        if (currentPose == null) continue;
-
+                        if (currentPose == null)
+                            continue;
+                        
                         for (var boneIndex = 0; boneIndex < currentPose->Skeleton->Bones.Length; ++boneIndex)
                         {
-                            if (currentPose->Skeleton->Bones[boneIndex].Name.String is string boneName && boneName != null)
+                            if (currentPose->Skeleton->Bones[boneIndex].Name.String is string boneName &&
+                                boneName != null)
                             {
                                 if (Bones.TryGetValue(boneName, out var dummy) && dummy != null)
                                 {
-                                    Bones[boneName].TripleIndices.Add(new Tuple<int, int, int>(pSkeleIndex, poseIndex, boneIndex));
+                                    Bones[boneName].TripleIndices
+                                        .Add(new Tuple<int, int, int>(pSkeleIndex, poseIndex, boneIndex));
                                 }
                                 else
                                 {
@@ -145,9 +142,13 @@ namespace CustomizePlus.Data.Armature
                                         parentBone = outParentBone;
                                     }
 
-                                    Bones[boneName] = new ModelBone(this, boneName, parentBone ?? string.Empty, pSkeleIndex, poseIndex, boneIndex)
+                                    Bones[boneName] = new ModelBone(this, boneName, parentBone ?? string.Empty,
+                                        pSkeleIndex, poseIndex, boneIndex)
                                     {
-                                        PluginTransform = Profile.Bones.TryGetValue(boneName, out var bt) && bt.IsEdited() ? bt : new BoneTransform()
+                                        PluginTransform =
+                                            Profile.Bones.TryGetValue(boneName, out var bt) && bt.IsEdited()
+                                                ? bt
+                                                : new BoneTransform()
                                     };
                                 }
                             }
@@ -168,27 +169,22 @@ namespace CustomizePlus.Data.Armature
             }
             catch (Exception ex)
             {
-                Dalamud.Logging.PluginLog.LogError($"Error rebuilding armature skeleton: {ex}");
+                PluginLog.LogError($"Error rebuilding armature skeleton: {ex}");
             }
         }
 
         public void UpdateBoneTransform(string boneName, BoneTransform bt, bool mirror = false, bool propagate = false)
         {
             if (Bones.TryGetValue(boneName, out var mb) && mb != null)
-            {
                 mb.UpdateModel(bt, mirror, propagate);
-            }
             else
-            {
                 PluginLog.LogError($"{boneName} doesn't exist in armature {this}");
-            }
 
             Bones[boneName].UpdateModel(bt, mirror, propagate);
         }
 
         public void ApplyTransformation()
         {
-
             foreach (var kvp in Bones.Where(x => x.Value.PluginTransform.IsEdited()))
             {
                 kvp.Value.ApplyModelTransform();
@@ -235,15 +231,18 @@ namespace CustomizePlus.Data.Armature
 
                         for (var i = 0; i < currentPose->Skeleton->Bones.Length; ++i)
                         {
-                            currentPose->ModelPose[i] = ApplyPropagatedTransform(currentPose->ModelPose[i], transB, transA->Translation, transB->Rotation);
-                            currentPose->ModelPose[i] = ApplyPropagatedTransform(currentPose->ModelPose[i], transB, transB->Translation, transA->Rotation);
+                            currentPose->ModelPose[i] = ApplyPropagatedTransform(currentPose->ModelPose[i], transB,
+                                transA->Translation, transB->Rotation);
+                            currentPose->ModelPose[i] = ApplyPropagatedTransform(currentPose->ModelPose[i], transB,
+                                transB->Translation, transA->Rotation);
                         }
                     }
                 }
             }
         }
 
-        private hkQsTransformf ApplyPropagatedTransform(hkQsTransformf init, hkQsTransformf* propTrans, hkVector4f initialPos, hkQuaternionf initialRot)
+        private hkQsTransformf ApplyPropagatedTransform(hkQsTransformf init, hkQsTransformf* propTrans,
+            hkVector4f initialPos, hkQuaternionf initialRot)
         {
             var sourcePosition = propTrans->Translation.GetAsNumericsVector().RemoveWTerm();
             var deltaRot = propTrans->Rotation.ToQuaternion() / initialRot.ToQuaternion();
@@ -251,14 +250,15 @@ namespace CustomizePlus.Data.Armature
 
             hkQsTransformf output = new()
             {
-                Translation = Vector3.Transform(init.Translation.GetAsNumericsVector().RemoveWTerm() - sourcePosition, deltaRot).ToHavokTranslation(),
+                Translation = Vector3
+                    .Transform(init.Translation.GetAsNumericsVector().RemoveWTerm() - sourcePosition, deltaRot)
+                    .ToHavokTranslation(),
                 Rotation = deltaRot.ToHavokRotation(),
                 Scale = init.Scale
             };
 
             return output;
         }
-
 
 
         private void DiscoverParentage()
@@ -282,7 +282,7 @@ namespace CustomizePlus.Data.Armature
             {
                 foreach (var potentialRighty in Bones.Where(x => x.Key[^1] == 'r'))
                 {
-                    if (potentialLefty.Key[0..^1] == potentialRighty.Key[0..^1])
+                    if (potentialLefty.Key[..^1] == potentialRighty.Key[..^1])
                     {
                         potentialLefty.Value.Sibling = potentialRighty.Value;
                         potentialRighty.Value.Sibling = potentialLefty.Value;

@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-
 using Newtonsoft.Json;
 
 namespace CustomizePlus.Data.Profile
@@ -77,8 +76,8 @@ namespace CustomizePlus.Data.Profile
         {
             return obj is CharacterProfile other
                 ? UniqueId == other.UniqueId
-                       && CharacterName == other.CharacterName
-                       && ProfileName == other.ProfileName
+                  && CharacterName == other.CharacterName
+                  && ProfileName == other.ProfileName
                 : base.Equals(obj);
         }
 
