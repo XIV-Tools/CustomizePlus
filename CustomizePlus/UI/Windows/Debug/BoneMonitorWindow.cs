@@ -31,6 +31,8 @@ namespace CustomizePlus.UI.Windows.Debug
         protected override string Title => $"Bone Monitor: {_targetProfile.ToDebugString()}";
         protected override string DrawTitle => $"{Title}###bone_monitor_window{Index}";
 
+        protected override bool LockCloseButton => false;
+        protected override bool SingleInstance => true;
         protected override ImGuiWindowFlags WindowFlags =>
             ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse;
 

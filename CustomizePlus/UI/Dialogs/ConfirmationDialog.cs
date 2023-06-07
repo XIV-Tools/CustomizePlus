@@ -1,6 +1,7 @@
 ﻿// © Customize+.
 // Licensed under the MIT license.
 
+using CustomizePlus.Helpers;
 using System;
 using System.Numerics;
 using Dalamud.Utility;
@@ -20,11 +21,15 @@ namespace CustomizePlus.UI.Dialogs
         private Action _doAfterConfirmed = () => { };
         private string _negativeResponse = "Cancel";
         private string _titleBar = "Confirmation";
+        /// <inheritdoc/>
         protected override string Title => _titleBar;
 
-        protected override ImGuiWindowFlags WindowFlags =>
-            ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoCollapse;
+        /// <inheritdoc/>
+        protected override Vector2 MinSize => new(100, 100);
+        /// <inheritdoc/>
+        protected override ImGuiWindowFlags WindowFlags => ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.AlwaysAutoResize;
 
+        /// <inheritdoc/>
         protected override bool LockCloseButton => true;
 
         /// <summary>
@@ -56,44 +61,52 @@ namespace CustomizePlus.UI.Dialogs
             {
                 window._negativeResponse = cancel;
             }
+
+            window.Focus();
         }
 
+        /// <inheritdoc/>
         protected override void DrawContents()
         {
-            RenderTextCentered(_confirmationPrompt);
+            CtrlHelper.StaticLabel(_confirmationPrompt, CtrlHelper.TextAlignment.Center);
 
-            RenderTextCentered("---");
+            ImGui.Spacing();
+            ImGui.Separator();
+            ImGui.Spacing();
 
-            var buttonSize = new Vector2(100, 0);
-            ImGui.SetCursorPosX(CenterMultiple(buttonSize.X, 2));
+            var buttonSize = new Vector2(100, CtrlHelper.IconButtonWidth);
 
-            if (ImGui.Button(_affirmativeResponse))
+            if (ImGui.BeginTable("Options", 3, ImGuiTableFlags.SizingFixedFit,
+                    new Vector2(ImGui.GetContentRegionAvail().X, CtrlHelper.IconButtonWidth)))
             {
-                _doAfterConfirmed();
-                Close();
+                ImGui.TableSetupColumn("##Space1", ImGuiTableColumnFlags.WidthStretch);
+                ImGui.TableSetupColumn("##Buttons", ImGuiTableColumnFlags.WidthFixed);
+                ImGui.TableSetupColumn("##Space 2", ImGuiTableColumnFlags.WidthStretch);
+
+                ImGui.TableNextRow();
+                ImGui.TableSetColumnIndex(0);
+
+                ImGui.TableNextColumn();
+
+                if (ImGui.Button(_affirmativeResponse))
+                {
+                    _doAfterConfirmed();
+                    Close();
+                }
+
+                ImGui.SameLine();
+                ImGui.Dummy(new Vector2(CtrlHelper.IconButtonWidth));
+                ImGui.SameLine();
+
+                if (ImGui.Button(_negativeResponse))
+                {
+                    Close();
+                }
+
+                ImGui.TableNextColumn();
+
+                ImGui.EndTable();
             }
-
-            ImGui.SameLine();
-
-            if (ImGui.Button(_negativeResponse))
-            {
-                Close();
-            }
-        }
-
-        private static void RenderTextCentered(string text)
-        {
-            var windowHorz = ImGui.GetWindowWidth();
-            var textHorz = ImGui.CalcTextSize(text).X;
-
-            ImGui.SetCursorPosX((windowHorz - textHorz) * 0.5f);
-            ImGui.Text(text);
-        }
-
-        private static float CenterMultiple(float width, int count)
-        {
-            var avail = ImGui.GetWindowWidth();
-            return (avail - width * count - ImGui.GetStyle().ItemSpacing.X) / count;
         }
     }
 }
