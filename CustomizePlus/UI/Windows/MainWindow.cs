@@ -158,6 +158,14 @@ namespace CustomizePlus.UI.Windows
 
                 ImGui.TableNextColumn();
 
+                if (ImGuiComponents.IconButton(FontAwesomeIcon.MagnifyingGlassArrowRight))
+                {
+                    Plugin.ProfileManager.CheckForNewProfiles();
+                }
+                CtrlHelper.AddHoverText("Check directory for new files");
+
+                ImGui.SameLine();
+
                 //Settings
                 //ImGui.SameLine(ImGui.GetWindowWidth() - CtrlHelper.IconButtonWidth);
                 if (ImGuiComponents.IconButton(FontAwesomeIcon.Cog))

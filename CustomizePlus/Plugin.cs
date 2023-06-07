@@ -247,7 +247,7 @@ namespace CustomizePlus
         private static void Framework_Update(Framework framework)
         {
             ServiceManager.Tick();
-            ProfileManager.CheckForNewProfiles();
+            //ProfileManager.CheckForNewProfiles();
         }
 
         private void ApplyByCommand(string args)

@@ -58,6 +58,9 @@ namespace CustomizePlus.Data.Profile
 
         public void CheckForNewProfiles()
         {
+            Dalamud.Logging.PluginLog.LogInformation($"Seeking new profiles in {ProfileReaderWriter.ConfigDirectory}...");
+            bool foundAny = false;
+
             foreach (var path in ProfileReaderWriter.GetProfilePaths())
             {
                 if (ProfileReaderWriter.TryLoadProfile(path, out var prof)
@@ -65,11 +68,17 @@ namespace CustomizePlus.Data.Profile
                     && !Profiles.Contains(prof))
                 {
                     Dalamud.Logging.PluginLog.LogInformation($"Found new profile {prof}. Loading...");
+                    foundAny = true;
 
                     PruneIdempotentTransforms(prof);
 
                     Profiles.Add(prof);
                 }
+            }
+
+            if (!foundAny)
+            {
+                Dalamud.Logging.PluginLog.LogInformation($"No new profiles detected");
             }
         }
 

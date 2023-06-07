@@ -19,6 +19,11 @@ namespace CustomizePlus.Data.Profile
     /// </summary>
     public static class ProfileReaderWriter
     {
+        /// <summary>
+        /// Gets Dalamud's pre-determined location for storing files related to Customize+.
+        /// </summary>
+        public static string ConfigDirectory => DalamudServices.PluginInterface.GetPluginConfigDirectory();
+
         #region Save/Load
 
         private static string CreateFileName(CharacterProfile prof)
@@ -32,11 +37,9 @@ namespace CustomizePlus.Data.Profile
 
         private static string CreatePath(string fileName)
         {
-            var dir = DalamudServices.PluginInterface.GetPluginConfigDirectory();
+            Directory.CreateDirectory(ConfigDirectory);
 
-            Directory.CreateDirectory(dir);
-
-            return Path.GetFullPath($"{dir}\\{fileName}");
+            return Path.GetFullPath($"{ConfigDirectory}\\{fileName}");
         }
 
         public static void SaveProfile(CharacterProfile prof, bool archival = false)
