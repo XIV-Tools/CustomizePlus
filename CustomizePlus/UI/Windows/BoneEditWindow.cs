@@ -24,8 +24,6 @@ namespace CustomizePlus.UI.Windows
 
         private CharacterProfile? _profileInProgress;
 
-        protected override bool LockCloseButton => this.dirty;
-
         public EditorSessionSettings Settings;
 
         private float _windowHorz; //for formatting :V
@@ -40,7 +38,7 @@ namespace CustomizePlus.UI.Windows
                                                                ? ImGuiWindowFlags.UnsavedDocument
                                                                : ImGuiWindowFlags.None);
 
-        protected override bool LockCloseButton => true;
+        protected override bool LockCloseButton => _dirty;
         private Armature? SkeletonInProgress => _profileInProgress.Armature;
 
         public static void Show(CharacterProfile prof)
