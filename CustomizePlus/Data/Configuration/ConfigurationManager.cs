@@ -25,6 +25,10 @@ namespace CustomizePlus.Data.Configuration
 
         public PluginConfiguration Configuration { get; private set; }
         private static string ConfigFilePath => DalamudServices.PluginInterface.ConfigFile.FullName;
+        /// <summary>
+        /// Gets Dalamud's pre-determined location for storing files related to Customize+.
+        /// </summary>
+        public static string ConfigDirectory => DalamudServices.PluginInterface.GetPluginConfigDirectory();
 
         public void SaveConfiguration()
         {

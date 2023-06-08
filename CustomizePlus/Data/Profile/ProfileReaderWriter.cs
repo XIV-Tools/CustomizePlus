@@ -4,6 +4,7 @@
 using System;
 using System.Linq;
 using System.IO;
+using CustomizePlus.Data;
 using CustomizePlus.Helpers;
 using Dalamud.Logging;
 using Newtonsoft.Json;
@@ -16,10 +17,6 @@ namespace CustomizePlus.Data.Profile
     /// </summary>
     public static class ProfileReaderWriter
     {
-        /// <summary>
-        /// Gets Dalamud's pre-determined location for storing files related to Customize+.
-        /// </summary>
-        public static string ConfigDirectory => DalamudServices.PluginInterface.GetPluginConfigDirectory();
 
         #region Save/Load
 
@@ -34,9 +31,9 @@ namespace CustomizePlus.Data.Profile
 
         private static string CreatePath(string fileName)
         {
-            Directory.CreateDirectory(ConfigDirectory);
+            Directory.CreateDirectory(Configuration.ConfigurationManager.ConfigDirectory);
 
-            return Path.GetFullPath($"{ConfigDirectory}\\{fileName}");
+            return Path.GetFullPath($"{Configuration.ConfigurationManager.ConfigDirectory}\\{fileName}");
         }
 
         public static void SaveProfile(CharacterProfile prof, bool archival = false)

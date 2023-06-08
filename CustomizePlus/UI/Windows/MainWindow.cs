@@ -85,7 +85,6 @@ namespace CustomizePlus.UI.Windows
                         };
 
                         Plugin.ProfileManager.AddAndSaveProfile(newProf);
-                        Plugin.RefreshPlugin(true);
 
                         ImGui.CloseCurrentPopup();
                         _newCharacterName = GameDataHelper.GetPlayerName() ?? string.Empty;
@@ -123,9 +122,6 @@ namespace CustomizePlus.UI.Windows
                     ImGui.OpenPopup("Add");
                 }
                 CtrlHelper.AddHoverText("Create a new character profile for your current target");
-
-                //ImGui.SameLine();
-                //ImGui.Dummy(new Vector2(CtrlHelper.IconButtonWidth, 0));
 
                 ImGui.TableNextColumn();
 
@@ -166,7 +162,6 @@ namespace CustomizePlus.UI.Windows
                 ImGui.SameLine();
 
                 //Settings
-                //ImGui.SameLine(ImGui.GetWindowWidth() - CtrlHelper.IconButtonWidth);
                 if (ImGuiComponents.IconButton(FontAwesomeIcon.Cog))
                 {
                     SettingsWindow.Show();
@@ -235,7 +230,6 @@ namespace CustomizePlus.UI.Windows
                             Plugin.ProfileManager.AssertEnabledProfile(prof);
                         }
 
-                        Plugin.RefreshPlugin(true);
                         prof.Enabled = tempEnabled;
                     }
 
@@ -427,7 +421,6 @@ namespace CustomizePlus.UI.Windows
                 {
                     importedProfile.Enabled = false;
                     Plugin.ProfileManager.AddAndSaveProfile(importedProfile);
-                    Plugin.RefreshPlugin();
                 }
 
                 if (importedProfile == null)
@@ -495,73 +488,5 @@ namespace CustomizePlus.UI.Windows
                 "Due to technical limitations, Customize+ is only able to import scale values from *.pose files.\nPosition and rotation information will be ignored.",
                 new Vector2(570, 100), ImportAction, "ana_import_pos_rot_warning");
         }
-
-        // TODO: Finish feature. May require additional skeleton code from Anamnesis
-        // Process only works properly in that when in GPose as it is.
-
-        //private unsafe BodyScale BuildFromName(BodyScale scale, string characterName)
-        //{
-        //	if (characterName == null)
-        //	{
-        //		scale = BodyScale.BuildDefault();
-        //		return scale;
-        //	}
-        //	else
-        //	{
-        //		GameObject? obj = Plugin.FindModelByName(characterName);
-        //		if (obj == null)
-        //		{
-        //			scale = BodyScale.BuildDefault();
-        //			return scale;
-        //		}
-
-        //		try
-        //		{
-        //			List<string> boneNameList = new();
-
-        //			RenderSkeleton* skele = RenderSkeleton.FromActor(obj);
-
-        //			// IEnumerator<HkaBone> realBones = skele->PartialSkeletons->Pose1->Skeleton->Bones.GetEnumerator();
-        //			// HkaPose* pose = skele->PartialSkeletons->Pose1;
-        //			// skele
-
-        //			// PluginLog.Information(skele->ToString());
-
-        //			//while (realBones.MoveNext())
-        //			//{
-        //			//	string? boneName = realBones.Current.GetName();
-        //			//	if (boneName == null)
-        //			//	{
-        //			//		PluginLog.Error($"Null bone found: {realBones.ToString()}");
-        //			//	}
-        //			//	else
-        //			//	{
-        //			//		boneNameList.Add(boneName);
-        //			//	}
-        //			//}
-
-        //			scale.ScaleName = $"Built from real bones of {scale.CharacterName}";
-        //		}
-        //		catch (Exception ex)
-        //		{
-        //			PluginLog.Error($"Failed to get bones from skeleton by name: {ex}");
-        //		}
-        //	}
-        //	scale.ScaleName = $"Default";
-        //	scale = BodyScale.BuildDefault();
-        //	return scale;
-        //}
-
-        // Scale returns as null if it fails.
-        //public static BodyScale BuildFromCustomizeJSON(string json)
-        //{
-        //	BodyScale scale = null;
-
-        //	JsonSerializerSettings settings = new();
-        //	settings.NullValueHandling = NullValueHandling.Ignore;
-        //	settings.Converters.Add(new PoseFile.VectorConverter());
-        //	scale = JsonConvert.DeserializeObject<BodyScale>(json, settings);
-        //	return scale;
-        //}
     }
 }

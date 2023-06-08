@@ -57,7 +57,7 @@ namespace CustomizePlus.Data.Profile
 
         public void CheckForNewProfiles()
         {
-            Dalamud.Logging.PluginLog.LogInformation($"Seeking new profiles in {ProfileReaderWriter.ConfigDirectory}...");
+            Dalamud.Logging.PluginLog.LogInformation($"Seeking new profiles in {Configuration.ConfigurationManager.ConfigDirectory}...");
             bool foundAny = false;
 
             foreach (var path in ProfileReaderWriter.GetProfilePaths())
@@ -282,9 +282,17 @@ namespace CustomizePlus.Data.Profile
             return Profiles.FirstOrDefault(x => x.UniqueId == id);
         }
 
-        //public void UpdateDefaults(ObjectKind kind, CharacterProfile prof)
-        //{
-        //	this.defaultProfiles[kind] = prof;
-        //}
+        public unsafe CharacterProfile? GetProfileByObject(FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject obj)
+        {
+            string name = new Penumbra.String.ByteString(obj.Name).ToString();
+            if (!String.IsNullOrWhiteSpace(name)
+                && GetProfileByCharacterName(name) is CharacterProfile prof
+                && prof != null)
+            {
+                return prof;
+            }
+
+            return null;
+        }
     }
 }

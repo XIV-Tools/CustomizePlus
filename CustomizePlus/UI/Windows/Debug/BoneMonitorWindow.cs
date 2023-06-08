@@ -242,23 +242,6 @@ namespace CustomizePlus.UI.Windows.Debug
             return output;
         }
 
-        //private bool ResetButton(string codename, ref Vector3 value)
-        //{
-        //	bool output = ImGuiComponents.IconButton(this.TargetSkeleton.Bones[codename].BoneName, FontAwesomeIcon.Recycle);
-        //	CtrlHelper.AddHoverText($"Reset values");
-
-        //	if (output)
-        //	{
-        //		value = this.targetAttribute switch
-        //		{
-        //			BoneAttribute.Scale => Vector3.One,
-        //			_ => Vector3.Zero
-        //		};
-        //	}
-
-        //	return output;
-        //}
-
         private void TransformationInfo(string codename, int triplexIndex)
         {
             if (_targetProfile.Enabled
