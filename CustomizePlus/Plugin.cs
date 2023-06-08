@@ -84,6 +84,8 @@ namespace CustomizePlus
 
                 DalamudServices.CommandManager.AddCommand((s, t) => MainWindow.Toggle(), "/customize",
                     "Toggles the Customize+ configuration window.");
+                DalamudServices.CommandManager.AddCommand((s, t) => MainWindow.Toggle(), "/c+",
+                    "Toggles the Customize+ configuration window.");
                 DalamudServices.CommandManager.AddCommand((s, t) => ApplyByCommand(t), "/customize-apply",
                     "Apply a specific Scale (usage: /customize-apply {Character Name},{Scale Name})");
                 DalamudServices.CommandManager.AddCommand((s, t) => ApplyByCommand(t), "/capply",
