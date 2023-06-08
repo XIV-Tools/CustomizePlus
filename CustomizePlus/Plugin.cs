@@ -238,12 +238,12 @@ namespace CustomizePlus
 
         private void UpdatePlayerIpc()
         {
-            //Get player's body scale string and send IPC message
+            //Get player's body profile string and send IPC message
             if (GameDataHelper.GetPlayerName() is string name && name != null)
             {
                 if (ProfileManager.GetProfileByCharacterName(name) is CharacterProfile prof && prof != null)
                 {
-                    _ipcManager.OnScaleUpdate(JsonConvert.SerializeObject(prof));
+                    _ipcManager.OnProfileUpdate(JsonConvert.SerializeObject(prof));
                 }
             }
         }
