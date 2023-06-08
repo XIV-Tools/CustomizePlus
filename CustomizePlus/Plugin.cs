@@ -143,7 +143,6 @@ namespace CustomizePlus
                 //ProfileManager.SaveAllProfiles(); //?
                 //ProfileManager.LoadProfiles();
 
-
                 //NameToScale.Clear();
 
                 //defaultScale = null;
@@ -239,12 +238,12 @@ namespace CustomizePlus
 
         private void UpdatePlayerIpc()
         {
-            //Get player's body scale string and send IPC message
+            //Get player's body profile string and send IPC message
             if (GameDataHelper.GetPlayerName() is string name && name != null)
             {
                 if (ProfileManager.GetProfileByCharacterName(name) is CharacterProfile prof && prof != null)
                 {
-                    _ipcManager.OnScaleUpdate(JsonConvert.SerializeObject(prof));
+                    _ipcManager.OnProfileUpdate(JsonConvert.SerializeObject(prof));
                 }
             }
         }
@@ -252,6 +251,7 @@ namespace CustomizePlus
         private static void Framework_Update(Framework framework)
         {
             ServiceManager.Tick();
+            //ProfileManager.CheckForNewProfiles();
         }
 
         private void ApplyByCommand(string args)
@@ -325,8 +325,6 @@ namespace CustomizePlus
 
             try
             {
-                ProfileManager.CheckForNewProfiles();
-
                 var activeProfiles = ProfileManager.GetEnabledProfiles();
                 ArmatureManager.RenderCharacterProfiles(activeProfiles);
 

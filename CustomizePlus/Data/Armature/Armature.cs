@@ -158,14 +158,7 @@ namespace CustomizePlus.Data.Armature
 
                 BoneData.LogNewBones(Bones.Keys.Where(BoneData.IsNewBone).ToArray());
 
-                DiscoverParentage();
-                DiscoverSiblings();
-
-                PluginLog.LogDebug($"Rebuilt {this}:");
-                foreach (var kvp in Bones)
-                {
-                    PluginLog.LogDebug($"\t- {kvp.Value}");
-                }
+                Dalamud.Logging.PluginLog.LogDebug($"Rebuilt {this}:");
             }
             catch (Exception ex)
             {
@@ -258,37 +251,6 @@ namespace CustomizePlus.Data.Armature
             };
 
             return output;
-        }
-
-
-        private void DiscoverParentage()
-        {
-            foreach (var potentialParent in Bones)
-            {
-                foreach (var potentialChild in Bones)
-                {
-                    if (potentialChild.Value.ParentBoneName == potentialParent.Value.BoneName)
-                    {
-                        potentialParent.Value.Children.Add(potentialChild.Value);
-                        potentialChild.Value.Parent = potentialParent.Value;
-                    }
-                }
-            }
-        }
-
-        private void DiscoverSiblings()
-        {
-            foreach (var potentialLefty in Bones.Where(x => x.Key[^1] == 'l'))
-            {
-                foreach (var potentialRighty in Bones.Where(x => x.Key[^1] == 'r'))
-                {
-                    if (potentialLefty.Key[..^1] == potentialRighty.Key[..^1])
-                    {
-                        potentialLefty.Value.Sibling = potentialRighty.Value;
-                        potentialRighty.Value.Sibling = potentialLefty.Value;
-                    }
-                }
-            }
         }
     }
 }

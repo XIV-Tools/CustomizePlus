@@ -2,7 +2,9 @@
 // Licensed under the MIT license.
 
 using System;
+using System.Linq;
 using System.IO;
+using CustomizePlus.Data;
 using CustomizePlus.Helpers;
 using Dalamud.Logging;
 using Newtonsoft.Json;
@@ -15,6 +17,7 @@ namespace CustomizePlus.Data.Profile
     /// </summary>
     public static class ProfileReaderWriter
     {
+
         #region Save/Load
 
         private static string CreateFileName(CharacterProfile prof)
@@ -28,11 +31,9 @@ namespace CustomizePlus.Data.Profile
 
         private static string CreatePath(string fileName)
         {
-            var dir = DalamudServices.PluginInterface.GetPluginConfigDirectory();
+            Directory.CreateDirectory(Configuration.ConfigurationManager.ConfigDirectory);
 
-            Directory.CreateDirectory(dir);
-
-            return Path.GetFullPath($"{dir}\\{fileName}");
+            return Path.GetFullPath($"{Configuration.ConfigurationManager.ConfigDirectory}\\{fileName}");
         }
 
         public static void SaveProfile(CharacterProfile prof, bool archival = false)
@@ -81,9 +82,17 @@ namespace CustomizePlus.Data.Profile
         public static string[] GetProfilePaths()
         {
             var dir = DalamudServices.PluginInterface.GetPluginConfigDirectory();
-            if (Directory.Exists(dir))
+
+            try
             {
-                return Directory.GetFiles(dir, "*.profile");
+                if (Directory.Exists(dir))
+                {
+                    return Directory.GetFiles(dir, "*.profile");
+                }
+            }
+            catch (Exception ex)
+            {
+                PluginLog.LogError($"Error retrieving profile paths from {dir}: {ex}");
             }
 
             Directory.CreateDirectory(dir);
@@ -102,6 +111,9 @@ namespace CustomizePlus.Data.Profile
                     {
                         prof = file;
                         prof.OriginalFilePath = path;
+
+                        BoneData.LogNewBones(prof.Bones.Keys.Where(BoneData.IsNewBone).ToArray());
+
                         return true;
                     }
                 }

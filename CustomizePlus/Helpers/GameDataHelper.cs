@@ -296,6 +296,32 @@ namespace CustomizePlus.Helpers
             return DalamudServices.ObjectTable[0]?.Name.ToString();
         }
 
+        public unsafe static string? GetPlayerTargetName()
+        {
+            DalamudObject? target = DalamudServices.ObjectTable[0]?.TargetObject;
+
+            //make sure that the player is actually targeting something
+            //and then make sure that the target in question is actually something with a skeleton
+
+            if (target != null
+                && target.Address is IntPtr tgtPtr
+                && tgtPtr != IntPtr.Zero)
+            {
+                var clientObj = (FFXIVClientObject*)tgtPtr;
+                if (clientObj != null)
+                {
+                    var cBase = (CharacterBase*)clientObj->DrawObject;
+                    
+                    if (cBase != null)
+                    {
+                        return new ByteString(clientObj->Name).ToString();
+                    }
+                }
+            }
+
+            return null;
+        }
+
         /*
 		public static void SetTemporaryCharacterScale(string characterName, BodyScale scale)
 		{

@@ -10,8 +10,15 @@ namespace CustomizePlus.Helpers
 {
     public static class CtrlHelper
     {
+        /// <summary>
+        /// Gets the width of an icon button, checkbox, etc...
+        /// </summary>
+        /// per https://github.com/ocornut/imgui/issues/3714#issuecomment-759319268
+        public static float IconButtonWidth => ImGui.GetFrameHeight() + (2 * ImGui.GetStyle().ItemInnerSpacing.X);
+
         public static bool TextBox(string label, ref string value)
         {
+            ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
             return ImGui.InputText(label, ref value, 1024);
         }
 
@@ -81,13 +88,31 @@ namespace CustomizePlus.Helpers
             }
         }
 
-
-        public static void StaticLabel(string? text, string tooltip = "")
+        public enum TextAlignment { Left, Center, Right };
+        public static void StaticLabel(string? text, TextAlignment align = TextAlignment.Left, string tooltip = "")
         {
-            ImGui.Text(text ?? "Unknown Bone");
-            if (!tooltip.IsNullOrWhitespace())
+            if (text != null)
             {
-                AddHoverText(tooltip);
+                if (align == TextAlignment.Center)
+                {
+                    ImGui.Dummy(new System.Numerics.Vector2((ImGui.GetContentRegionAvail().X - ImGui.CalcTextSize(text).X) / 2, ImGui.CalcTextSize(text).Y));
+                    ImGui.SameLine();
+                }
+                else if (align == TextAlignment.Right)
+                {
+                    ImGui.Dummy(new System.Numerics.Vector2(ImGui.GetContentRegionAvail().X - ImGui.CalcTextSize(text).X, ImGui.CalcTextSize(text).Y));
+                    ImGui.SameLine();
+                }
+
+                ImGui.Text(text);
+                if (!tooltip.IsNullOrWhitespace())
+                {
+                    AddHoverText(tooltip);
+                }
+            }
+            else
+            {
+                ImGui.Spacing();
             }
         }
 

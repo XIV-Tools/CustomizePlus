@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Linq;
 using Dalamud.Game.ClientState.Objects.Enums;
 
@@ -31,23 +32,8 @@ namespace CustomizePlus.Data.Profile
 
         public void LoadProfiles()
         {
-            foreach (var path in ProfileReaderWriter.GetProfilePaths())
-            {
-                if (ProfileReaderWriter.TryLoadProfile(path, out var prof) && prof != null)
-                {
-                    PruneIdempotentTransforms(prof);
+            Dalamud.Logging.PluginLog.LogInformation("Loading profiles from directory...");
 
-                    Profiles.Add(prof);
-                    if (prof.Enabled)
-                    {
-                        AssertEnabledProfile(prof);
-                    }
-                }
-            }
-        }
-
-        public void CheckForNewProfiles()
-        {
             foreach (var path in ProfileReaderWriter.GetProfilePaths())
             {
                 if (ProfileReaderWriter.TryLoadProfile(path, out var prof)
@@ -57,7 +43,41 @@ namespace CustomizePlus.Data.Profile
                     PruneIdempotentTransforms(prof);
 
                     Profiles.Add(prof);
+                    Dalamud.Logging.PluginLog.LogDebug($"Loading {prof}");
+
+                    if (prof.Enabled)
+                    {
+                        AssertEnabledProfile(prof);
+                    }
                 }
+            }
+
+            Dalamud.Logging.PluginLog.LogInformation("Directory load complete");
+        }
+
+        public void CheckForNewProfiles()
+        {
+            Dalamud.Logging.PluginLog.LogInformation($"Seeking new profiles in {Configuration.ConfigurationManager.ConfigDirectory}...");
+            bool foundAny = false;
+
+            foreach (var path in ProfileReaderWriter.GetProfilePaths())
+            {
+                if (ProfileReaderWriter.TryLoadProfile(path, out var prof)
+                    && prof != null
+                    && !Profiles.Contains(prof))
+                {
+                    Dalamud.Logging.PluginLog.LogInformation($"Found new profile {prof}. Loading...");
+                    foundAny = true;
+
+                    PruneIdempotentTransforms(prof);
+
+                    Profiles.Add(prof);
+                }
+            }
+
+            if (!foundAny)
+            {
+                Dalamud.Logging.PluginLog.LogInformation($"No new profiles detected");
             }
         }
 
@@ -120,11 +140,13 @@ namespace CustomizePlus.Data.Profile
 
         public void AssertEnabledProfile(CharacterProfile activeProfile)
         {
+            Dalamud.Logging.PluginLog.LogInformation($"Asserting that {activeProfile} is enabled...");
             activeProfile.Enabled = true;
 
             foreach (var profile in Profiles
-                         .Where(x => x.CharacterName == activeProfile.CharacterName && x != activeProfile))
+                         .Where(x => x.CharacterName == activeProfile.CharacterName && x != activeProfile && x.Enabled))
             {
+                Dalamud.Logging.PluginLog.LogInformation($"\t-> {profile} disabled");
                 profile.Enabled = false;
             }
         }
@@ -211,13 +233,23 @@ namespace CustomizePlus.Data.Profile
 
         public void ProcessConvertedProfiles()
         {
+            Dalamud.Logging.PluginLog.LogInformation("Loading and converting legacy profiles...");
+
             foreach (var prof in ConvertedProfiles)
             {
                 if (ConvertedProfiles.Remove(prof))
                 {
                     AddAndSaveProfile(prof);
+                    Dalamud.Logging.PluginLog.LogDebug($"Loaded/Converted {prof}");
+
+                    if (prof.Enabled)
+                    {
+                        AssertEnabledProfile(prof);
+                    }
                 }
             }
+
+            Dalamud.Logging.PluginLog.LogInformation("Legacy load complete");
         }
 
         /// <summary>
@@ -250,9 +282,17 @@ namespace CustomizePlus.Data.Profile
             return Profiles.FirstOrDefault(x => x.UniqueId == id);
         }
 
-        //public void UpdateDefaults(ObjectKind kind, CharacterProfile prof)
-        //{
-        //	this.defaultProfiles[kind] = prof;
-        //}
+        public unsafe CharacterProfile? GetProfileByObject(FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject obj)
+        {
+            string name = new Penumbra.String.ByteString(obj.Name).ToString();
+            if (!String.IsNullOrWhiteSpace(name)
+                && GetProfileByCharacterName(name) is CharacterProfile prof
+                && prof != null)
+            {
+                return prof;
+            }
+
+            return null;
+        }
     }
 }

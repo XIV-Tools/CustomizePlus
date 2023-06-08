@@ -23,7 +23,7 @@ namespace CustomizePlus.UI.Windows
     public class MainWindow : WindowBase
     {
         private static string _newCharacterName = GameDataHelper.GetPlayerName() ?? string.Empty;
-        private static string _newProfileName = "Default";
+        private static string _newProfileName = "New Profile";
         private readonly FileDialogManager _importFilePicker = new();
         private static string? PlayerCharacterName => GameDataHelper.GetPlayerName();
 
@@ -58,127 +58,118 @@ namespace CustomizePlus.UI.Windows
             // Draw the File Picker
             _importFilePicker.Draw();
 
-            if (ImGui.BeginPopup("Add"))
+            if (ImGui.BeginTable("##NewProfiles", 4, ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.NoClip))
             {
-                ImGui.Text("Character Name:");
-                ImGui.InputText("##newProfCharName", ref _newCharacterName, 1024);
-                ImGui.Text("Profile Name:");
-                ImGui.InputText("##newProfName", ref _newProfileName, 1024);
+                ImGui.TableSetupColumn("##NewProf", ImGuiTableColumnFlags.WidthStretch);
+                ImGui.TableSetupColumn("##NewImport", ImGuiTableColumnFlags.WidthStretch);
+                ImGui.TableSetupColumn("##Space", ImGuiTableColumnFlags.WidthStretch);
+                ImGui.TableSetupColumn("##Settings", ImGuiTableColumnFlags.WidthFixed);
 
-                if (ImGui.Button("OK") && _newCharacterName != string.Empty)
+                ImGui.TableNextRow();
+                ImGui.TableSetColumnIndex(0);
+
+                if (ImGui.BeginPopup("Add"))
                 {
-                    CharacterProfile newProf = new()
+                    ImGui.Text("Character Name:");
+                    ImGui.InputText("##newProfCharName", ref _newCharacterName, 1024);
+                    ImGui.Text("Profile Name:");
+                    ImGui.InputText("##newProfName", ref _newProfileName, 1024);
+
+                    if (ImGui.Button("OK") && _newCharacterName != string.Empty)
                     {
-                        CharacterName = _newCharacterName,
-                        ProfileName = _newProfileName,
-                        Enabled = false
-                    };
+                        CharacterProfile newProf = new()
+                        {
+                            CharacterName = _newCharacterName,
+                            ProfileName = _newProfileName,
+                            Enabled = false
+                        };
 
-                    Plugin.ProfileManager.AddAndSaveProfile(newProf);
-                    Plugin.RefreshPlugin(true);
+                        Plugin.ProfileManager.AddAndSaveProfile(newProf);
 
-                    ImGui.CloseCurrentPopup();
+                        ImGui.CloseCurrentPopup();
+                        _newCharacterName = GameDataHelper.GetPlayerName() ?? string.Empty;
+                        _newProfileName = "Default";
+                    }
+
+                    ImGui.SameLine();
+                    ImGui.Spacing();
+                    ImGui.SameLine();
+
+                    if (ImGui.Button("Cancel"))
+                    {
+                        ImGui.CloseCurrentPopup();
+                        _newCharacterName = GameDataHelper.GetPlayerName() ?? string.Empty;
+                        _newProfileName = "Default";
+                    }
+
+                    ImGui.EndPopup();
+                }
+
+                if (ImGui.Button("New Profile"))
+                {
                     _newCharacterName = GameDataHelper.GetPlayerName() ?? string.Empty;
-                    _newProfileName = "Default";
+                    _newProfileName = "New Profile";
+                    ImGui.OpenPopup("Add");
                 }
+                CtrlHelper.AddHoverText("Create a new character profile");
 
                 ImGui.SameLine();
-                ImGui.Spacing();
+
+                if (ImGui.Button("New on Target"))
+                {
+                    _newCharacterName = GameDataHelper.GetPlayerTargetName() ?? string.Empty;
+                    _newProfileName = "New Profile";
+                    ImGui.OpenPopup("Add");
+                }
+                CtrlHelper.AddHoverText("Create a new character profile for your current target");
+
+                ImGui.TableNextColumn();
+
+                if (ImGui.Button("Add from Clipboard"))
+                {
+                    ImportFromClipboard();
+                }
+                CtrlHelper.AddHoverText("Add a character from your Clipboard");
+
                 ImGui.SameLine();
 
-                if (ImGui.Button("Cancel"))
+                if (ImGui.Button("Add from Pose File"))
                 {
-                    ImGui.CloseCurrentPopup();
-                    _newCharacterName = GameDataHelper.GetPlayerName() ?? string.Empty;
-                    _newProfileName = "Default";
+                    ImportWithImgui();
+                }
+                CtrlHelper.AddHoverText("Import one or more profiles from Anamnesis*.pose files");
+
+                ImGui.TableNextColumn();
+
+                // IPC Testing Window - Hidden unless enabled in json.
+                if (Plugin.ConfigurationManager.Configuration.DebuggingModeEnabled)
+                {
+                    ImGui.SameLine();
+                    if (ImGuiComponents.IconButton(FontAwesomeIcon.Pen))
+                    {
+                        IPCTestWindow.Show(DalamudServices.PluginInterface);
+                    }
                 }
 
-                ImGui.EndPopup();
-            }
+                ImGui.TableNextColumn();
 
-            // if (ImGuiComponents.IconButton(FontAwesomeIcon.Plus))
-            // ImGui.SetNextItemWidth(ImGui.GetWindowSize().X - 623);
-            if (ImGui.Button("New Profile"))
-            {
-                ImGui.OpenPopup("Add");
-            }
-
-            CtrlHelper.AddHoverText("Create a new character profile");
-
-            ImGui.SameLine();
-            if (ImGui.Button("Add from Clipboard"))
-            {
-                CharacterProfile importedProfile = null;
-
-                try
+                if (ImGuiComponents.IconButton(FontAwesomeIcon.MagnifyingGlassArrowRight))
                 {
-                    var importVer = Base64Helper.ImportFromBase64(Clipboard.GetText(), out var json);
-
-                    importedProfile = Convert.ToInt32(importVer) switch
-                    {
-                        0 => ProfileConverter.ConvertFromConfigV0(json),
-                        2 => ProfileConverter.ConvertFromConfigV2(json),
-                        3 => JsonConvert.DeserializeObject<CharacterProfile>(json),
-                        _ => null
-                    };
-
-                    void AddNewProfile(CharacterProfile newProf)
-                    {
-                        importedProfile.Enabled = false;
-                        Plugin.ProfileManager.AddAndSaveProfile(importedProfile);
-                        Plugin.RefreshPlugin();
-                    }
-
-                    if (importedProfile == null)
-                    {
-                        MessageDialog.Show("Error importing information from clipboard.");
-                    }
-                    else if (Plugin.ProfileManager.Profiles.Contains(importedProfile))
-                    {
-                        ConfirmationDialog.Show(
-                            $"Customize+ already contains profile '{importedProfile.ProfileName}' for {importedProfile.CharacterName}.\nDo you want to replace it?",
-                            () => AddNewProfile(importedProfile),
-                            "Overwrite Profile?");
-                    }
-                    else
-                    {
-                        AddNewProfile(importedProfile);
-                    }
+                    Plugin.ProfileManager.CheckForNewProfiles();
                 }
-                catch (Exception e)
-                {
-                    PluginLog.Error(e, "An error occured during import conversion");
-                }
-            }
+                CtrlHelper.AddHoverText("Check directory for new files");
 
-            CtrlHelper.AddHoverText("Add a character from your Clipboard");
-
-            ImGui.SameLine();
-            if (ImGui.Button("Add from Pose"))
-            {
-                ImportWithImgui();
-            }
-
-            CtrlHelper.AddHoverText("Import one or more profiles from Anamnesis*.pose files");
-
-            // IPC Testing Window - Hidden unless enabled in json.
-            if (Plugin.ConfigurationManager.Configuration.DebuggingModeEnabled)
-            {
                 ImGui.SameLine();
-                if (ImGuiComponents.IconButton(FontAwesomeIcon.Pen))
+
+                //Settings
+                if (ImGuiComponents.IconButton(FontAwesomeIcon.Cog))
                 {
-                    IPCTestWindow.Show(DalamudServices.PluginInterface);
+                    SettingsWindow.Show();
                 }
-            }
+                CtrlHelper.AddHoverText("Customize+ Settings");
 
-            //Settings
-            ImGui.SameLine(ImGui.GetWindowWidth() - 30);
-            if (ImGuiComponents.IconButton(FontAwesomeIcon.Cog))
-            {
-                SettingsWindow.Show();
+                ImGui.EndTable();
             }
-
-            CtrlHelper.AddHoverText("Customize+ Settings");
 
             ImGui.Spacing();
             ImGui.Separator();
@@ -230,7 +221,8 @@ namespace CustomizePlus.UI.Windows
 
                     // Enable
                     var tempEnabled = prof.Enabled;
-                    ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 12 * fontScale);
+                    ImGui.Dummy(new Vector2((ImGui.GetContentRegionAvail().X - (ImGui.GetStyle().CellPadding.X * 2) - CtrlHelper.IconButtonWidth) / 2, 0));
+                    ImGui.SameLine();
                     if (ImGui.Checkbox("##Enable", ref tempEnabled))
                     {
                         if (tempEnabled)
@@ -238,7 +230,6 @@ namespace CustomizePlus.UI.Windows
                             Plugin.ProfileManager.AssertEnabledProfile(prof);
                         }
 
-                        Plugin.RefreshPlugin(true);
                         prof.Enabled = tempEnabled;
                     }
 
@@ -298,7 +289,7 @@ namespace CustomizePlus.UI.Windows
                     // ---
 
                     ImGui.TableNextColumn();
-                    if (ImGuiComponents.IconButton(FontAwesomeIcon.InfoCircle))
+                    if (ImGuiComponents.IconButton(FontAwesomeIcon.InfoCircle) && Plugin.ConfigurationManager.Configuration.DebuggingModeEnabled)
                     {
                         BoneMonitorWindow.Show(prof);
                     }
@@ -410,6 +401,50 @@ namespace CustomizePlus.UI.Windows
             return newProfileName;
         }
 
+        private void ImportFromClipboard()
+        {
+            CharacterProfile? importedProfile = null;
+
+            try
+            {
+                var importVer = Base64Helper.ImportFromBase64(Clipboard.GetText(), out var json);
+
+                importedProfile = Convert.ToInt32(importVer) switch
+                {
+                    0 => ProfileConverter.ConvertFromConfigV0(json),
+                    2 => ProfileConverter.ConvertFromConfigV2(json),
+                    3 => JsonConvert.DeserializeObject<CharacterProfile>(json),
+                    _ => null
+                };
+
+                void AddNewProfile(CharacterProfile newProf)
+                {
+                    importedProfile.Enabled = false;
+                    Plugin.ProfileManager.AddAndSaveProfile(importedProfile);
+                }
+
+                if (importedProfile == null)
+                {
+                    MessageDialog.Show("Error importing information from clipboard.");
+                }
+                else if (Plugin.ProfileManager.Profiles.Contains(importedProfile))
+                {
+                    ConfirmationDialog.Show(
+                        $"Customize+ already contains profile '{importedProfile.ProfileName}' for {importedProfile.CharacterName}.\nDo you want to replace it?",
+                        () => AddNewProfile(importedProfile),
+                        "Overwrite Profile?");
+                }
+                else
+                {
+                    AddNewProfile(importedProfile);
+                }
+            }
+            catch (Exception e)
+            {
+                PluginLog.Error(e, "An error occured during import conversion");
+            }
+        }
+
         /// <summary>
         ///     Imports a BodyScale using Dalamuds Imgui FileDialog.
         /// </summary>
@@ -453,73 +488,5 @@ namespace CustomizePlus.UI.Windows
                 "Due to technical limitations, Customize+ is only able to import scale values from *.pose files.\nPosition and rotation information will be ignored.",
                 new Vector2(570, 100), ImportAction, "ana_import_pos_rot_warning");
         }
-
-        // TODO: Finish feature. May require additional skeleton code from Anamnesis
-        // Process only works properly in that when in GPose as it is.
-
-        //private unsafe BodyScale BuildFromName(BodyScale scale, string characterName)
-        //{
-        //	if (characterName == null)
-        //	{
-        //		scale = BodyScale.BuildDefault();
-        //		return scale;
-        //	}
-        //	else
-        //	{
-        //		GameObject? obj = Plugin.FindModelByName(characterName);
-        //		if (obj == null)
-        //		{
-        //			scale = BodyScale.BuildDefault();
-        //			return scale;
-        //		}
-
-        //		try
-        //		{
-        //			List<string> boneNameList = new();
-
-        //			RenderSkeleton* skele = RenderSkeleton.FromActor(obj);
-
-        //			// IEnumerator<HkaBone> realBones = skele->PartialSkeletons->Pose1->Skeleton->Bones.GetEnumerator();
-        //			// HkaPose* pose = skele->PartialSkeletons->Pose1;
-        //			// skele
-
-        //			// PluginLog.Information(skele->ToString());
-
-        //			//while (realBones.MoveNext())
-        //			//{
-        //			//	string? boneName = realBones.Current.GetName();
-        //			//	if (boneName == null)
-        //			//	{
-        //			//		PluginLog.Error($"Null bone found: {realBones.ToString()}");
-        //			//	}
-        //			//	else
-        //			//	{
-        //			//		boneNameList.Add(boneName);
-        //			//	}
-        //			//}
-
-        //			scale.ScaleName = $"Built from real bones of {scale.CharacterName}";
-        //		}
-        //		catch (Exception ex)
-        //		{
-        //			PluginLog.Error($"Failed to get bones from skeleton by name: {ex}");
-        //		}
-        //	}
-        //	scale.ScaleName = $"Default";
-        //	scale = BodyScale.BuildDefault();
-        //	return scale;
-        //}
-
-        // Scale returns as null if it fails.
-        //public static BodyScale BuildFromCustomizeJSON(string json)
-        //{
-        //	BodyScale scale = null;
-
-        //	JsonSerializerSettings settings = new();
-        //	settings.NullValueHandling = NullValueHandling.Ignore;
-        //	settings.Converters.Add(new PoseFile.VectorConverter());
-        //	scale = JsonConvert.DeserializeObject<BodyScale>(json, settings);
-        //	return scale;
-        //}
     }
 }

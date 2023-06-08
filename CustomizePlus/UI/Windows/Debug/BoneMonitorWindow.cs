@@ -15,7 +15,7 @@ using Dalamud.Interface;
 using Dalamud.Interface.Components;
 using ImGuiNET;
 
-namespace CustomizePlus.UI.Windows
+namespace CustomizePlus.UI.Windows.Debug
 {
     internal class BoneMonitorWindow : WindowBase
     {
@@ -31,6 +31,8 @@ namespace CustomizePlus.UI.Windows
         protected override string Title => $"Bone Monitor: {_targetProfile.ToDebugString()}";
         protected override string DrawTitle => $"{Title}###bone_monitor_window{Index}";
 
+        protected override bool LockCloseButton => false;
+        protected override bool SingleInstance => true;
         protected override ImGuiWindowFlags WindowFlags =>
             ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse;
 
@@ -240,23 +242,6 @@ namespace CustomizePlus.UI.Windows
             return output;
         }
 
-        //private bool ResetButton(string codename, ref Vector3 value)
-        //{
-        //	bool output = ImGuiComponents.IconButton(this.TargetSkeleton.Bones[codename].BoneName, FontAwesomeIcon.Recycle);
-        //	CtrlHelper.AddHoverText($"Reset values");
-
-        //	if (output)
-        //	{
-        //		value = this.targetAttribute switch
-        //		{
-        //			BoneAttribute.Scale => Vector3.One,
-        //			_ => Vector3.Zero
-        //		};
-        //	}
-
-        //	return output;
-        //}
-
         private void TransformationInfo(string codename, int triplexIndex)
         {
             if (_targetProfile.Enabled
@@ -330,7 +315,7 @@ namespace CustomizePlus.UI.Windows
                 //----------------------------------
 
                 ImGui.TableNextColumn();
-                CtrlHelper.StaticLabel(mb.BoneName, displayName);
+                CtrlHelper.StaticLabel(mb.BoneName, CtrlHelper.TextAlignment.Left, displayName);
 
                 ImGui.TableNextColumn();
                 CtrlHelper.StaticLabel(BoneData.GetBoneDisplayName(mb.BoneName));
