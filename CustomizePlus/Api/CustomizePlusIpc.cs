@@ -3,9 +3,12 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using CustomizePlus.Data;
 using Dalamud.Game.ClientState;
 using Dalamud.Game.ClientState.Objects;
 using Dalamud.Game.ClientState.Objects.Types;
@@ -176,9 +179,21 @@ namespace CustomizePlus.Api
 		private void SetBodyScale(string bodyScaleString, string characterName)
 		{
 			//Character? character = FindCharacterByName(characterName);
-			BodyScale? bodyScale = JsonConvert.DeserializeObject<BodyScale?>(bodyScaleString);
-			if (bodyScale != null)
-				Plugin.SetTemporaryCharacterScale(characterName, bodyScale);
+			try
+			{
+				BodyScale? bodyScale = JsonConvert.DeserializeObject<BodyScale?>(bodyScaleString);
+				if (bodyScale != null)
+				{
+					if (bodyScale.ConfigVersion != Constants.ConfigurationVersion)
+						throw new Exception("Incompatible version");
+
+					Plugin.SetTemporaryCharacterScale(characterName, bodyScale);
+                }
+			}
+			catch (Exception ex)
+			{
+                PluginLog.Warning($"Unable to set body scale. Character: {characterName}, exception: {ex}, debug data: {GetBase64String(bodyScaleString)}");
+			}
 		}
 
 		private void SetBodyScaleToCharacter(string bodyScaleString, Character? character)
@@ -211,6 +226,17 @@ namespace CustomizePlus.Api
 				return null;
 
 			return objectTable.FirstOrDefault(gameObject => gameObject.Name.ToString() == characterName) as Character;
+		}
+
+		private string GetBase64String(string data)
+		{
+			var json = JsonConvert.SerializeObject(data, Formatting.None);
+			var bytes = Encoding.UTF8.GetBytes(json);
+			using var compressedStream = new MemoryStream();
+			using (var zipStream = new GZipStream(compressedStream, CompressionMode.Compress))
+				zipStream.Write(bytes, 0, bytes.Length);
+
+			return Convert.ToBase64String(compressedStream.ToArray());
 		}
 	}
 }

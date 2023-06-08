@@ -29,6 +29,7 @@ namespace CustomizePlus
 		public string CharacterName;
 		public string ScaleName;
 		public bool BodyScaleEnabled;
+		public int ConfigVersion { get; set; } = Constants.ConfigurationVersion;
 
 		public Dictionary<string, BoneEditsContainer> Bones { get; private set; } = new();
 
