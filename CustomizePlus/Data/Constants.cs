@@ -18,6 +18,11 @@ namespace CustomizePlus.Data
         public const string RootBoneName = "n_root";
 
         /// <summary>
+        /// The profile name that tells C+ to apply it to everything it can.
+        /// </summary>
+        public const string DefaultProfileCharacterName = "Default";
+
+        /// <summary>
         /// How many state changes the editor interface will track before forgetting old ones.
         /// This is a pretty arbitrary number -- it's not like it's so much data that performance
         /// would take a hit either way, probably.

@@ -25,12 +25,6 @@ using Dalamud.Logging;
 using Dalamud.Plugin;
 using Newtonsoft.Json;
 
-//using Dalamud.Game.ClientState.Objects.Types;
-//using CharacterStruct = FFXIVClientStructs.FFXIV.Client.Game.Character.Character;
-//using ObjectKind = Dalamud.Game.ClientState.Objects.Enums.ObjectKind;
-//using ObjectStruct = FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject;
-//using Dalamud.Game.ClientState.Objects.Enums;
-
 namespace CustomizePlus
 {
     public sealed class Plugin : IDalamudPlugin
@@ -43,10 +37,6 @@ namespace CustomizePlus
         public static ArmatureManager ArmatureManager { get; } = new();
         public static ConfigurationManager ConfigurationManager { get; set; } = new();
 
-        //private static readonly Dictionary<string, BodyScale> NameToScale = new();
-        //private static Dictionary<GameObject, BodyScale> scaleByObject = new();
-        //private static ConcurrentDictionary<string, BodyScale> scaleOverride = new();
-
         private static CustomizePlusIpc _ipcManager = null!;
 
         private static Hook<RenderDelegate>? _renderManagerHook;
@@ -56,10 +46,6 @@ namespace CustomizePlus
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate void GameObjectMovementDelegate(IntPtr gameObject);
-
-        //private static BodyScale? defaultScale;
-        //private static BodyScale? defaultRetainerScale;
-        //private static BodyScale? defaultCutsceneScale;
 
 
         public Plugin(DalamudPluginInterface pluginInterface)
@@ -130,60 +116,6 @@ namespace CustomizePlus
             DalamudServices.PluginInterface.UiBuilder.Draw -= InterfaceManager.Draw;
             DalamudServices.PluginInterface.UiBuilder.OpenConfigUi -= MainWindow.Show;
         }
-
-
-        /// <summary>
-        ///     The function that basically tells the plugin to get all its ducks in a row.
-        ///     Making sure the profiles are loaded up and squared away and the armature's
-        ///     are up to date.
-        /// </summary>
-        public static void RefreshPlugin(bool autoModeUpdate = false)
-        {
-            try
-            {
-                //ConfigurationManager.
-                //ProfileManager.SaveAllProfiles(); //?
-                //ProfileManager.LoadProfiles();
-
-                //NameToScale.Clear();
-
-                //defaultScale = null;
-                //defaultRetainerScale = null;
-                //defaultCutsceneScale = null;
-
-                //foreach (BodyScale bodyScale in ConfigurationManager.Configuration.BodyScales)
-                //{
-                //	bodyScale.ClearCache();
-                //	if (bodyScale.CharacterName == "Default" && bodyScale.BodyScaleEnabled)
-                //	{
-                //		defaultScale = bodyScale;
-                //		PluginLog.Debug($"Default scale with name {defaultScale.ScaleName} being used.");
-                //		continue;
-                //	}
-                //	else if (bodyScale.CharacterName == "DefaultRetainer" && bodyScale.BodyScaleEnabled)
-                //	{
-                //		defaultRetainerScale = bodyScale;
-                //		PluginLog.Debug($"Default retainer scale with name {defaultRetainerScale.ScaleName} being used.");
-                //	}
-                //	else if (bodyScale.CharacterName == "DefaultCutscene" && bodyScale.BodyScaleEnabled)
-                //	{
-                //		defaultCutsceneScale = bodyScale;
-                //		PluginLog.Debug($"Default cutscene scale with name {defaultCutsceneScale.ScaleName} being used.");
-                //	}
-
-                //	if (NameToScale.ContainsKey(bodyScale.CharacterName))
-                //		continue;
-
-                //	if (bodyScale.BodyScaleEnabled)
-                //		NameToScale.Add(bodyScale.CharacterName, bodyScale);
-                //}
-            }
-            catch (Exception ex)
-            {
-                PluginLog.Error(ex, "Error loading config");
-            }
-        }
-
         public static void ReloadHooks()
         {
             try
@@ -192,7 +124,6 @@ namespace CustomizePlus
                 {
                     if (_renderManagerHook == null)
                     {
-                        // "Render::Manager::Render"
                         var renderAddress =
                             DalamudServices.SigScanner.ScanText(
                                 "E8 ?? ?? ?? ?? 48 81 C3 ?? ?? ?? ?? BF ?? ?? ?? ?? 33 ED");
@@ -214,14 +145,6 @@ namespace CustomizePlus
 
                     PluginLog.Debug("Hooking render manager");
                     _renderManagerHook.Enable();
-
-                    //Get player's body scale string and send IPC message (only when saving manually to spare server)
-                    //string? playerName = GetPlayerName();
-                    //if (playerName != null && !autoModeUpdate) {
-                    //	BodyScale? playerScale = GetBodyScale(playerName);
-                    //	ipcManager.OnScaleUpdate(JsonConvert.SerializeObject(playerScale));
-                    //	legacyIpcManager.OnScaleUpdate(playerScale);
-                    //}
                 }
                 else
                 {
@@ -253,7 +176,6 @@ namespace CustomizePlus
         private static void Framework_Update(Framework framework)
         {
             ServiceManager.Tick();
-            //ProfileManager.CheckForNewProfiles();
         }
 
         private void ApplyByCommand(string args)
@@ -300,11 +222,8 @@ namespace CustomizePlus
                 ProfileManager.AssertEnabledProfile(outProf);
                 outProf.Enabled = true;
 
-                //ConfigurationManager.SaveConfiguration(); //???
-                RefreshPlugin(true);
-
                 PluginLog.Debug(
-                    $"Scale \"{outProf.ProfileName}\" were successfully applied to Character \"{outProf.CharacterName}\" by command");
+                    $"{outProf.ProfileName} were successfully applied to {outProf.CharacterName} by command");
             }
             catch (Exception e)
             {
@@ -329,44 +248,6 @@ namespace CustomizePlus
             {
                 var activeProfiles = ProfileManager.GetEnabledProfiles();
                 ArmatureManager.RenderCharacterProfiles(activeProfiles);
-
-                //then I guess if we've got any global settings re: npcs or whatever
-                //THEN we can scrape the object table for applications?
-
-                //for (var i = 0; i < DalamudServices.ObjectTable.Length; i++)
-                //{
-                //	// Always filler Event obj
-                //	if (i == 245)
-                //		continue;
-
-                //	// Removed setting until new UI is done
-                //	// Don't affect EventNPCs when they are given an index above the player range, like in big cities, by config
-                //	// if (i > 245 && !Configuration.ApplyToNpcsInBusyAreas) 
-                //	//	continue;
-
-                //	// Don't affect the cutscene object range, by configuration.
-                //	// 202 gives leeway as player is not always put in 200 like they should be.
-                //	if (i >= 202 && i < 240 && !Config.DefaultRenderingRules.For(EntityType.NPC).ApplyInCutscenes)
-                //		continue;
-
-                //	var obj = DalamudServices.ObjectTable[i];
-
-                //	if (obj == null)
-                //		continue;
-
-                //	try
-                //	{
-                //		(BodyScale? scale, bool applyRootScale) = GameDataHelper.FindScale(i);
-                //		if (scale == null)
-                //			continue;
-                //		scale.ApplyNonRootBonesAndRootScale(obj, applyRootScale);
-                //	}
-                //	catch (Exception ex)
-                //	{
-                //		PluginLog.LogError($"Error during update:{ex}");
-                //		continue;
-                //	}
-                //}
             }
             catch (Exception e)
             {
@@ -396,10 +277,7 @@ namespace CustomizePlus
 
                 var isForbiddenFiller = objIndex == Constants.ObjectTableFillerIndex;
                 var isForbiddenCutsceneNPC = Constants.IsInObjectTableCutsceneNPCRange(objIndex)
-                                             && !ConfigurationManager.Configuration.ApplyToNPCsInCutscenes;
-
-                //TODO none of this should really be necessary? the armature should already be
-                //keeping track of its own visibility wrt rules and such
+                                             || !ConfigurationManager.Configuration.ApplyToNPCsInCutscenes;
 
                 if (!isForbiddenFiller && !isForbiddenCutsceneNPC)
                 {
