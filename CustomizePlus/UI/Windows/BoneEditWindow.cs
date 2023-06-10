@@ -53,7 +53,7 @@ namespace CustomizePlus.UI.Windows
 
         /// <inheritdoc/>
         protected override bool LockCloseButton => _dirty;
-        private Armature? _skeletonInProgress => _profileInProgress.Armature;
+        private Armature? _skeletonInProgress => _settings.BasisArmature;
 
         /// <summary>
         /// Show the editing menu for the given character profile.
@@ -424,7 +424,7 @@ namespace CustomizePlus.UI.Windows
         /// </summary>
         public void ConfirmSkeletonConnection()
         {
-            if (!_skeletonInProgress.TryLinkSkeleton())
+            if (_skeletonInProgress == null || !_skeletonInProgress.TryLinkSkeleton())
             {
                 _profileInProgress.Enabled = false;
 
@@ -658,9 +658,12 @@ namespace CustomizePlus.UI.Windows
         public Dictionary<BoneData.BoneFamily, bool> GroupExpandedState = new();
         public FrameStackManager EditStack;
 
+        public Armature? BasisArmature;
+
         public EditorSessionSettings(Armature armRef)
         {
             //EditStack = new FrameStackManager(armRef);
+            BasisArmature = armRef;
             ShowLiveBones = armRef.Profile.Enabled;
         }
     }

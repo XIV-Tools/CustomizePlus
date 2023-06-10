@@ -90,5 +90,10 @@ namespace CustomizePlus.Data
             Rotation = NullQuaternion,
             Scale = NullVector
         };
+
+        /// <summary>
+        /// The number of havok poses contained in an ordinary humanoid skeleton model.
+        /// </summary>
+        public const int PosesPerSkeleton = 5;
     }
 }
