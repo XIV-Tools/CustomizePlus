@@ -122,13 +122,15 @@ namespace CustomizePlus.UI.Windows
 
             ImGui.Separator();
 
-            if (ImGui.BeginTable("Checkboxes", 3, ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.NoClip))
+            int numColumns = Plugin.ConfigurationManager.Configuration.DebuggingModeEnabled ? 3 : 5;
+
+            if (ImGui.BeginTable("Checkboxes", numColumns, ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.NoClip))
             {
                 ImGui.TableSetupColumn("CheckEnabled", ImGuiTableColumnFlags.WidthStretch);
                 ImGui.TableSetupColumn("CheckLive", ImGuiTableColumnFlags.WidthStretch);
-                //ImGui.TableSetupColumn("CheckAPose", ImGuiTableColumnFlags.WidthStretch);
+                if (Plugin.ConfigurationManager.Configuration.DebuggingModeEnabled) ImGui.TableSetupColumn("CheckAPose", ImGuiTableColumnFlags.WidthStretch);
                 ImGui.TableSetupColumn("CheckMirrored", ImGuiTableColumnFlags.WidthStretch);
-                //ImGui.TableSetupColumn("CheckParented", ImGuiTableColumnFlags.WidthStretch);
+                if (Plugin.ConfigurationManager.Configuration.DebuggingModeEnabled) ImGui.TableSetupColumn("CheckParented", ImGuiTableColumnFlags.WidthStretch);
 
                 ImGui.TableNextRow();
                 ImGui.TableSetColumnIndex(0);
@@ -151,15 +153,18 @@ namespace CustomizePlus.UI.Windows
                 }
                 CtrlHelper.AddHoverText($"If selected, present for editing all bones found in the game data,\nelse show only bones for which the profile already contains edits.");
 
-                //ImGui.TableNextColumn();
+                if (Plugin.ConfigurationManager.Configuration.DebuggingModeEnabled)
+                {
+                    ImGui.TableNextColumn();
 
-                //var tempRefSnap = profileInProgress.Armature.GetReferenceSnap();
-                //if (CtrlHelper.Checkbox("A-Pose", ref tempRefSnap))
-                //{
-                //    ConfirmSkeletonConnection();
-                //    profileInProgress.Armature.SetReferenceSnap(tempRefSnap);
-                //}
-                //CtrlHelper.AddHoverText($"Force character into their default reference pose");
+                    var tempRefSnap = _settings.BasisArmature.GetReferenceSnap();
+                    if (CtrlHelper.Checkbox("A-Pose", ref tempRefSnap))
+                    {
+                        ConfirmSkeletonConnection();
+                        _settings.BasisArmature.SetReferenceSnap(tempRefSnap);
+                    }
+                    CtrlHelper.AddHoverText($"Force character into their default reference pose");
+                }
 
                 ImGui.TableNextColumn();
 
@@ -169,13 +174,16 @@ namespace CustomizePlus.UI.Windows
                 }
                 CtrlHelper.AddHoverText($"Bone changes will be reflected from left to right and vice versa");
 
-                //ImGui.TableNextColumn();
+                if (Plugin.ConfigurationManager.Configuration.DebuggingModeEnabled)
+                {
+                    ImGui.TableNextColumn();
 
-                //if (CtrlHelper.Checkbox("Parenting Mode", ref Settings.ParentingEnabled))
-                //{
-                //    ConfirmSkeletonConnection();
-                //}
-                //CtrlHelper.AddHoverText($"Changes will propagate \"outward\" from edited bones");
+                    if (CtrlHelper.Checkbox("Parenting Mode", ref _settings.ParentingEnabled))
+                    {
+                        ConfirmSkeletonConnection();
+                    }
+                    CtrlHelper.AddHoverText($"Changes will propagate \"outward\" from edited bones");
+                }
 
                 if (!_profileInProgress.Enabled) ImGui.EndDisabled();
                 ImGui.EndTable();

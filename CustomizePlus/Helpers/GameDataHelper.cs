@@ -55,6 +55,10 @@ namespace CustomizePlus.Helpers
                 && objPtr != IntPtr.Zero)
             {
                 var clientObj = (FFXIVClientObject*)objPtr;
+
+                //var plainObject = (FFXIVClientStructs.FFXIV.Client.Graphics.Scene.Object*)clientObj;
+                //var weapon = plainObject->ChildObject;
+
                 if (clientObj != null)
                 {
                     cBase = (CharacterBase*)clientObj->DrawObject;
