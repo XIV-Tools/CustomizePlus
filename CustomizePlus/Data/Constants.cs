@@ -92,8 +92,8 @@ namespace CustomizePlus.Data
         };
 
         /// <summary>
-        /// The number of havok poses contained in an ordinary humanoid skeleton model.
+        /// The pose at index 0 is the only one we apparently need to care about.
         /// </summary>
-        public const int PosesPerSkeleton = 5;
+        public const int TruePoseIndex = 0;
     }
 }
