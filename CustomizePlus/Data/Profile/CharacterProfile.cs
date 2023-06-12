@@ -60,6 +60,16 @@ namespace CustomizePlus.Data.Profile
 
         public Dictionary<string, BoneTransform> Bones { get; init; } = new();
 
+        /// <summary>
+        /// Returns whether or not this profile applies to the object with the indicated name.
+        /// </summary>
+        public bool AppliesTo(string objectName) => objectName == CharacterName;
+
+        /// <summary>
+        /// Returns whether or not this profile applies to the indicated GameObject.
+        /// </summary>
+        public bool AppliesTo(Dalamud.Game.ClientState.Objects.Types.GameObject obj) => AppliesTo(obj.Name.TextValue);
+
         public override string ToString()
         {
             return $"Profile '{ProfileName}' on {CharacterName}";
