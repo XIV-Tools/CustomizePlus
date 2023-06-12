@@ -45,7 +45,17 @@ namespace CustomizePlus.Helpers
 
         public static unsafe CharacterBase* ToCharacterBase(this DalamudObject obj)
         {
-            return (CharacterBase*)ToClientObject(obj);
+            if (obj.Address is nint objPtr && objPtr != nint.Zero)
+            {
+                FFXIVClientObject* clientObj = (FFXIVClientObject*)objPtr;
+
+                if (clientObj != null)
+                {
+                    return (CharacterBase*)clientObj->DrawObject;
+                }
+            }
+
+            return (CharacterBase*)nint.Zero;
         }
 
         public static unsafe bool TryLookupCharacterBase(string name, out CharacterBase* cBase)
