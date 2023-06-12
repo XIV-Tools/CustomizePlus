@@ -11,6 +11,7 @@ using CustomizePlus.Helpers;
 using Dalamud.Logging;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Render;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
+using Dalamud.Game.ClientState.Objects.Types;
 using FFXIVClientStructs.Havok;
 
 namespace CustomizePlus.Data.Armature
@@ -102,6 +103,11 @@ namespace CustomizePlus.Data.Armature
             }
         }
 
+        /// <summary>
+        /// Gets a value indicating whether this armature has yet built its skeleton.
+        /// </summary>
+        public bool Built => _partialSkeletons.Any();
+
         //----------------------------------------------------------------------------------------------------
         #endregion
 
@@ -128,13 +134,21 @@ namespace CustomizePlus.Data.Armature
             //cross-link the two, though I'm not positive the profile ever needs to refer back
             Profile.Armature = this;
 
+            TryLinkSkeleton();
+
             PluginLog.LogDebug($"Instantiated {this}, attached to {Profile}");
+
         }
+
+        /// <summary>
+        /// Returns whether or not this armature was designed to apply to an object with the given name.
+        /// </summary>
+        public bool AppliesTo(string objectName) => Profile.AppliesTo(objectName);
 
         /// <inheritdoc/>
         public override string ToString()
         {
-            return _partialSkeletons.Any()
+            return Built
                 ? $"Armature (#{_localId}) on {Profile.CharacterName} with {TotalBoneCount} bone/s"
                 : $"Armature (#{_localId}) on {Profile.CharacterName} with no skeleton reference";
         }
@@ -156,9 +170,35 @@ namespace CustomizePlus.Data.Armature
         }
 
         /// <summary>
+        /// Returns whether or not a link can be established between the armature and an in-game object.
+        /// If unbuilt, the armature will use this opportunity to rebuild itself.
+        /// </summary>
+        public bool TryLinkSkeleton(bool forceRebuild = false)
+        {
+            try
+            {
+                if (DalamudServices.ObjectTable.FirstOrDefault(Profile.AppliesTo) is GameObject obj
+                    && obj != null)
+                {
+                    if (!Built || forceRebuild)
+                    {
+                        RebuildSkeleton(obj.ToCharacterBase());
+                    }
+                    return true;
+                }
+            }
+            catch
+            {
+                PluginLog.LogError($"Error occured while attempting to link skeleton: {this}");
+            }
+
+            return false;
+        }
+
+        /// <summary>
         /// Rebuild the armature using the provided character base as a reference.
         /// </summary>
-        public void RebuildSkeleton( CharacterBase* cbase)
+        public void RebuildSkeleton(CharacterBase* cbase)
         {
             if (cbase == null) 
                 return;
@@ -200,11 +240,11 @@ namespace CustomizePlus.Data.Armature
                             //time to build a new bone
                             ModelBone newBone = new(this, boneName, pSkeleIndex, boneIndex);
 
-                            if (currentPose->Skeleton->ParentIndices[boneIndex] is short parentIndex
-                                && parentIndex >= 0)
-                            {
-                                newBone.AddParent(0, parentIndex);
-                            }
+                            //if (currentPose->Skeleton->ParentIndices[boneIndex] is short parentIndex
+                            //    && parentIndex >= 0)
+                            //{
+                            //    newBone.AddParent(0, parentIndex);
+                            //}
 
                             if (Profile.Bones.TryGetValue(boneName, out BoneTransform? bt)
                                 && bt != null)
@@ -226,6 +266,8 @@ namespace CustomizePlus.Data.Armature
                     }
                 }
 
+                _partialSkeletons = newPartials.Select(x => x.ToArray()).ToArray();
+
                 BoneData.LogNewBones(GetAllBones().Select(x => x.BoneName).ToArray());
 
                 PluginLog.LogDebug($"Rebuilt {this}:");
@@ -243,9 +285,12 @@ namespace CustomizePlus.Data.Armature
 
         public void ApplyTransformation(CharacterBase* cBase)
         {
-            foreach (ModelBone mb in GetAllBones())
+            if (cBase != null)
             {
-                mb.ApplyModelTransform(cBase);
+                foreach (ModelBone mb in GetAllBones())
+                {
+                    mb.ApplyModelTransform(cBase);
+                }
             }
         }
 
