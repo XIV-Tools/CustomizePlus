@@ -124,16 +124,14 @@ namespace CustomizePlus
                 {
                     if (_renderManagerHook == null)
                     {
-                        var renderAddress =
-                            DalamudServices.SigScanner.ScanText(
-                                "E8 ?? ?? ?? ?? 48 81 C3 ?? ?? ?? ?? BF ?? ?? ?? ?? 33 ED");
+                        var renderAddress = DalamudServices.SigScanner.ScanText(Constants.RenderHookAddress);
                         _renderManagerHook = Hook<RenderDelegate>.FromAddress(renderAddress, OnRender);
                         PluginLog.Debug("Render hook established");
                     }
 
                     if (_gameObjectMovementHook == null)
                     {
-                        var movementAddress = DalamudServices.SigScanner.ScanText("E8 ?? ?? ?? ?? EB 29 48 8B 5F 08");
+                        var movementAddress = DalamudServices.SigScanner.ScanText(Constants.MovementHookAddress);
                         _gameObjectMovementHook =
                             Hook<GameObjectMovementDelegate>.FromAddress(movementAddress, OnGameObjectMove);
                         PluginLog.Debug("Movement hook established");
@@ -264,26 +262,33 @@ namespace CustomizePlus
             // Call the original function.
             _gameObjectMovementHook.Original(gameObjectPtr);
 
-            //If GPose and a 3rd-party posing service are active simultneously, abort
-            if (GPoseService.Instance.GPoseState == GPoseState.Inside
-                && PosingModeDetectService.Instance.IsInPosingMode)
-            {
-                return;
-            }
+            ////If GPose and a 3rd-party posing service are active simultneously, abort
+            //if (GPoseService.Instance.GPoseState == GPoseState.Inside
+            //    && PosingModeDetectService.Instance.IsInPosingMode)
+            //{
+            //    return;
+            //}
 
-            if (DalamudServices.ObjectTable.CreateObjectReference(gameObjectPtr) is var obj && obj != null)
-            {
-                var objIndex = obj.ObjectIndex;
+            //if (DalamudServices.ObjectTable.CreateObjectReference(gameObjectPtr) is var obj
+            //    && obj != null
+            //    && ProfileManager.GetProfileByObject(obj) is CharacterProfile prof
+            //    && prof != null)
+            //{
 
-                var isForbiddenFiller = objIndex == Constants.ObjectTableFillerIndex;
-                var isForbiddenCutsceneNPC = Constants.IsInObjectTableCutsceneNPCRange(objIndex)
-                                             || !ConfigurationManager.Configuration.ApplyToNPCsInCutscenes;
 
-                if (!isForbiddenFiller && !isForbiddenCutsceneNPC)
-                {
-                    ArmatureManager.RenderArmatureByObject(obj);
-                }
-            }
+            //    prof.Enabled = true;
+
+            //    //var objIndex = obj.ObjectIndex;
+
+            //    //var isForbiddenFiller = objIndex == Constants.ObjectTableFillerIndex;
+            //    //var isForbiddenCutsceneNPC = Constants.IsInObjectTableCutsceneNPCRange(objIndex)
+            //    //                             || !ConfigurationManager.Configuration.ApplyToNPCsInCutscenes;
+
+            //    //if (!isForbiddenFiller && !isForbiddenCutsceneNPC)
+            //    //{
+            //    //    ArmatureManager.RenderArmatureByObject(obj);
+            //    //}
+            //}
         }
     }
 }

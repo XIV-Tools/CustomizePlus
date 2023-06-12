@@ -95,5 +95,9 @@ namespace CustomizePlus.Data
         /// The pose at index 0 is the only one we apparently need to care about.
         /// </summary>
         public const int TruePoseIndex = 0;
+
+        public const string RenderHookAddress = "E8 ?? ?? ?? ?? 48 81 C3 ?? ?? ?? ?? BF ?? ?? ?? ?? 33 ED";
+
+        public const string MovementHookAddress = "E8 ?? ?? ?? ?? EB 29 48 8B 5F 08";
     }
 }
