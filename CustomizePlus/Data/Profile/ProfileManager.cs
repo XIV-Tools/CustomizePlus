@@ -281,18 +281,5 @@ namespace CustomizePlus.Data.Profile
         {
             return Profiles.FirstOrDefault(x => x.UniqueId == id);
         }
-
-        public unsafe CharacterProfile? GetProfileByObject(FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject obj)
-        {
-            string name = new Penumbra.String.ByteString(obj.Name).ToString();
-            if (!String.IsNullOrWhiteSpace(name)
-                && GetProfileByCharacterName(name) is CharacterProfile prof
-                && prof != null)
-            {
-                return prof;
-            }
-
-            return null;
-        }
     }
 }
