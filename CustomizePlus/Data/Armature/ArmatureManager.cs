@@ -8,10 +8,13 @@ using CustomizePlus.Helpers;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Logging;
 
+using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
+
 namespace CustomizePlus.Data.Armature
 {
     public sealed class ArmatureManager
     {
+        private Armature? _defaultArmature = null;
         private readonly HashSet<Armature> _armatures = new();
 
         public void RenderCharacterProfiles(params CharacterProfile[] profiles)
@@ -19,18 +22,6 @@ namespace CustomizePlus.Data.Armature
             RefreshActiveArmatures(profiles);
             RefreshArmatureVisibility();
             ApplyArmatureTransforms();
-        }
-
-        public unsafe void RenderArmatureByObject(GameObject obj)
-        {
-            if (_armatures.FirstOrDefault(x => x.CharacterBaseRef == obj.ToCharacterBase()) is Armature arm &&
-                arm != null)
-            {
-                if (arm.IsVisible)
-                {
-                    arm.ApplyTransformation();
-                }
-            }
         }
 
         private void RefreshActiveArmatures(params CharacterProfile[] profiles)
@@ -44,16 +35,8 @@ namespace CustomizePlus.Data.Armature
                     PluginLog.LogDebug($"Added '{newArm}' to cache");
                 }
             }
-
-            foreach (var arm in _armatures.Except(profiles.Select(x => x.Armature)))
-            {
-                if (arm != null)
-                {
-                    _armatures.Remove(arm);
-                    PluginLog.LogDebug($"Removed '{arm}' from cache");
-                }
-            }
         }
+
 
         private void RefreshArmatureVisibility()
         {
@@ -63,21 +46,26 @@ namespace CustomizePlus.Data.Armature
             }
         }
 
-        private void ApplyArmatureTransforms()
+        private unsafe void ApplyArmatureTransforms()
         {
-            foreach (var arm in _armatures.Where(x => x.IsVisible))
+            foreach(GameObject obj in DalamudServices.ObjectTable)
             {
-                if (arm.GetReferenceSnap())
+                CharacterBase* cBase = obj.ToCharacterBase();
+
+                if (cBase == null || cBase->Skeleton == null) continue;
+
+                Armature? arm = _armatures
+                    .Where(x => x.IsVisible)
+                    .FirstOrDefault(x => x.AppliesTo(obj.Name.TextValue));
+
+                if (arm != null)
                 {
-                    arm.OverrideWithReferencePose();
+                    arm.ApplyTransformation(cBase);
                 }
-
-                arm.ApplyTransformation();
-
-                //if (arm.GetReferenceSnap())
-                //{
-                //	arm.OverrideRootParenting();
-                //}
+                else if (_defaultArmature != null)
+                {
+                    _defaultArmature.ApplyTransformation(cBase);
+                }
             }
         }
     }
