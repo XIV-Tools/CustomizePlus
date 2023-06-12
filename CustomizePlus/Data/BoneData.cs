@@ -371,7 +371,7 @@ namespace CustomizePlus.Data
             return BoneTable.TryGetValue(codename, out var row) && row.IsDefault;
         }
 
-        public static int GetBoneIndex(string codename)
+        public static int GetBoneRanking(string codename)
         {
             return BoneTable.TryGetValue(codename, out var row) ? row.RowIndex : 0;
         }
