@@ -26,6 +26,8 @@ namespace CustomizePlus.UI.Windows
         private string? _originalCharName;
         private string? _originalProfName;
         private int _precision = 3;
+        private bool _showing_Dialog;
+
         private Armature _targetArmature => _profileInProgress.Armature;
 
         /// <summary>
@@ -60,6 +62,7 @@ namespace CustomizePlus.UI.Windows
         public static void Show(CharacterProfile prof)
         {
             var editWnd = Plugin.InterfaceManager.Show<BoneEditWindow>();
+            editWnd._showing_Dialog = false;
 
             editWnd._profileInProgress = prof;
             editWnd._originalCharName = prof.CharacterName;
@@ -77,7 +80,8 @@ namespace CustomizePlus.UI.Windows
         /// <inheritdoc/>
         protected unsafe override void DrawContents()
         {
-            if (!GameDataHelper.TryLookupCharacterBase(_profileInProgress.CharacterName, out CharacterBase* targetObject))
+            if (!GameDataHelper.TryLookupCharacterBase(_profileInProgress.CharacterName, out CharacterBase* targetObject)
+                && !_showing_Dialog)
             {
                 _profileInProgress.Enabled = false;
                 DisplayNoLinkMsg();
@@ -293,7 +297,7 @@ namespace CustomizePlus.UI.Windows
 
                 if (_targetArmature != null && targetObject != null)
                 {
-                    IEnumerable<ModelBone> relevantModelBones = _targetArmature.GetAllBones();//.DistinctBy(x => x.BoneName);
+                    IEnumerable<ModelBone> relevantModelBones = _targetArmature.GetAllBones().DistinctBy(x => x.BoneName);
 
                     var groupedBones = relevantModelBones.GroupBy(x => BoneData.GetBoneFamily(x.BoneName));
 
@@ -463,9 +467,12 @@ namespace CustomizePlus.UI.Windows
 
         public void DisplayNoLinkMsg()
         {
+            if (_showing_Dialog) return;
+
             var msg =
                 $"The editor can't find {_profileInProgress.CharacterName} or their bone data in the game's memory.\nCertain editing features will be unavailable.";
             MessageDialog.Show(msg);
+            _showing_Dialog = false;
         }
 
         #region ImGui helper functions
@@ -566,7 +573,7 @@ namespace CustomizePlus.UI.Windows
 
             if (_settings.ShowLiveBones)
             {
-                transform = bone.CustomizedTransform;
+                transform.UpdateToMatch(bone.CustomizedTransform);
             }
             else if (!_profileInProgress.Bones.TryGetValue(codename, out transform) || transform == null)
             {
