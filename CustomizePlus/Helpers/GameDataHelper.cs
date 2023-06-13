@@ -45,7 +45,14 @@ namespace CustomizePlus.Helpers
 
         public static unsafe bool TryLookupCharacterBase(string name, out CharacterBase* cBase)
         {
-            if (FindModelByName(name) is DalamudObject obj
+            if (name == Data.Constants.DefaultProfileCharacterName
+                && DalamudServices.ObjectTable.FirstOrDefault(Plugin.ProfileManager.DefaultOnly) is DalamudObject anyObj
+                && anyObj != null)
+            {
+                cBase = anyObj.ToCharacterBase();
+                return true;
+            }
+            else if (FindModelByName(name) is DalamudObject obj
                 && obj.Address is IntPtr objPtr
                 && objPtr != IntPtr.Zero)
             {
