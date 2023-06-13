@@ -28,21 +28,6 @@ namespace CustomizePlus.Helpers
             return DalamudServices.ObjectTable.FirstOrDefault(x => x.Name.ToString() == name);
         }
 
-        public static unsafe FFXIVClientObject* ToClientObject(this DalamudObject obj)
-        {
-            if (obj.Address is IntPtr objPtr
-                && objPtr != IntPtr.Zero)
-            {
-                var clientObj = (FFXIVClientObject*)objPtr;
-                if (clientObj != null)
-                {
-                    return clientObj;
-                }
-            }
-
-            return null;
-        }
-
         public static unsafe CharacterBase* ToCharacterBase(this DalamudObject obj)
         {
             if (obj.Address is nint objPtr && objPtr != nint.Zero)
@@ -78,6 +63,45 @@ namespace CustomizePlus.Helpers
 
             cBase = null;
             return false;
+        }
+
+        public unsafe static bool HasScalableRoot(this DalamudObject obj)
+        {
+            return !Data.Constants.IsInObjectTableBusyNPCRange(obj.ObjectIndex)
+                && (obj.ObjectKind != DalamudObjectKind.BattleNpc
+                    || obj.ObjectId == DalamudServices.ObjectTable[0]?.ObjectId);
+        }
+
+        public unsafe static string GetObjectName(DalamudObject obj)
+        {
+            if (obj == null)
+            {
+                return String.Empty;
+            }
+
+            string? actualName = null;
+
+            if (DalamudServices.GameGui.GetAddonByName("PvPMKSIntroduction", 1) != nint.Zero)
+            {
+                actualName = obj.ObjectIndex == 240
+                    ? GetPlayerName()
+                    : obj.Name.TextValue;
+            }
+            else
+            {
+                actualName = obj.ObjectIndex switch
+                {
+                    240 => GetPlayerName(),
+                    241 => GetInspectName() ?? GetGlamourName(),
+                    242 => GetPlayerName(),
+                    243 => GetPlayerName(),
+                    244 => GetPlayerName(),
+                    //? cutscene name is obsolete?
+                    _ => obj.Name.TextValue
+                };
+            }
+
+            return actualName ?? string.Empty;
         }
 
         //public static unsafe (CharacterProfile, bool) FindScale(int objectIndex)
@@ -218,7 +242,7 @@ namespace CustomizePlus.Helpers
 
         //    return prof;
         //}
-        
+
 
         // Checks Customization (not ours) of the cutscene model vs the player model to see if
         // the player name should be used.
