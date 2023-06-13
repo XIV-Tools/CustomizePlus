@@ -24,15 +24,28 @@ namespace CustomizePlus.Data.Armature
             ApplyArmatureTransforms();
         }
 
+        public void ConstructArmatureForProfile(CharacterProfile newProfile)
+        {
+            if (!_armatures.Any(x => x.Profile == newProfile))
+            {
+                var newArm = new Armature(newProfile);
+                _armatures.Add(newArm);
+                PluginLog.LogDebug($"Added '{newArm}' to cache");
+            }
+        }
+
         private void RefreshActiveArmatures(params CharacterProfile[] profiles)
         {
             foreach (var prof in profiles)
             {
-                if (!_armatures.Any(x => x.Profile == prof))
+                ConstructArmatureForProfile(prof);
+            }
+
+            foreach(var arm in _armatures.Except(profiles.Select(x => x.Armature)))
+            {
+                if (arm != null && _armatures.Remove(arm))
                 {
-                    var newArm = new Armature(prof);
-                    _armatures.Add(newArm);
-                    PluginLog.LogDebug($"Added '{newArm}' to cache");
+                    PluginLog.LogDebug($"Removed '{arm}' from cache");
                 }
             }
         }
@@ -51,19 +64,22 @@ namespace CustomizePlus.Data.Armature
             foreach(GameObject obj in DalamudServices.ObjectTable)
             {
                 CharacterBase* cBase = obj.ToCharacterBase();
+                CharacterProfile? prof = Plugin.ProfileManager
+                    .GetProfilesByGameObject(obj)
+                    .FirstOrDefault(x => x.Enabled);
 
-                if (cBase == null || cBase->Skeleton == null) continue;
-
-                Armature? arm = _armatures
-                    .Where(x => x.IsVisible)
-                    .FirstOrDefault(x => x.AppliesTo(obj.Name.TextValue));
-
-                if (arm != null)
+                if (prof != null
+                    && prof.Armature != null
+                    && prof.Armature.IsVisible
+                    && cBase != null
+                    && cBase->Skeleton != null)
                 {
-                    arm.ApplyTransformation(cBase);
+                    prof.Armature.ApplyTransformation(cBase);
                 }
                 else if (_defaultArmature != null)
                 {
+                    //TODO idk if this is the right way of going about this
+                    //just throw stuff at the wall and see what sticks?
                     _defaultArmature.ApplyTransformation(cBase);
                 }
             }

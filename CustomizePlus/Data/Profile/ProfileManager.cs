@@ -27,8 +27,12 @@ namespace CustomizePlus.Data.Profile
 
         public readonly Dictionary<string, CharacterProfile> TempLocalProfiles = new();
 
+        private bool _initializationComplete = false;
+
         //public readonly HashSet<CharacterProfile> ProfilesOpenInEditor = new(new ProfileEquality());
         public CharacterProfile? ProfileOpenInEditor { get; private set; }
+
+        public void CompleteInitialization() => _initializationComplete = true;
 
         public void LoadProfiles()
         {
@@ -89,6 +93,7 @@ namespace CustomizePlus.Data.Profile
         public void AddAndSaveProfile(CharacterProfile prof, bool forceNew = false)
         {
             PruneIdempotentTransforms(prof);
+            prof.Armature = null;
 
             //if the profile is already in the list, simply replace it
             if (!forceNew && Profiles.Remove(prof))
@@ -159,6 +164,8 @@ namespace CustomizePlus.Data.Profile
         {
             if (prof != null && ProfileOpenInEditor != prof)
             {
+                Dalamud.Logging.PluginLog.LogInformation($"Creating new copy of {prof} for editing...");
+
                 copy = new CharacterProfile(prof);
 
                 PruneIdempotentTransforms(copy);
@@ -174,7 +181,9 @@ namespace CustomizePlus.Data.Profile
         {
             if (ProfileOpenInEditor == prof)
             {
-                AddAndSaveProfile(prof);
+                Dalamud.Logging.PluginLog.LogInformation($"Saving changes to {prof} to manager...");
+
+                AddAndSaveProfile(new CharacterProfile(prof));
 
                 if (editingComplete)
                 {
@@ -186,6 +195,7 @@ namespace CustomizePlus.Data.Profile
         public void RevertWorkingCopy(CharacterProfile prof)
         {
             var original = GetProfileByUniqueId(prof.UniqueId);
+            Dalamud.Logging.PluginLog.LogInformation($"Reverting {prof} to its original state...");
 
             if (original != null
                 && Profiles.Contains(prof)
@@ -207,6 +217,7 @@ namespace CustomizePlus.Data.Profile
 
         public void StopEditing(CharacterProfile prof)
         {
+            Dalamud.Logging.PluginLog.LogInformation($"{prof} deleted");
             ProfileOpenInEditor = null;
         }
 
@@ -257,16 +268,20 @@ namespace CustomizePlus.Data.Profile
         /// </summary>
         public CharacterProfile[] GetEnabledProfiles()
         {
-            //if a profile is being edited it's defacto considered disabled
-            var enabledProfiles = Profiles.Where(x => x.Enabled && x.UniqueId != (ProfileOpenInEditor?.UniqueId ?? 0));
+            if (!_initializationComplete) return Array.Empty<CharacterProfile>();
+
+            var enabledProfiles = Profiles.Where(x => x.Enabled);
 
             //add any temp profiles from mare
             enabledProfiles = enabledProfiles.Concat(TempLocalProfiles.Values);
 
-            //add any being-edited profiles that are enabled, though
+            //if the being-edited profile is individually enabled, then pass it along
+            //potentially replacing a profile already in the list
             if (ProfileOpenInEditor?.Enabled ?? false)
             {
-                enabledProfiles = enabledProfiles.Append(ProfileOpenInEditor);
+                enabledProfiles = enabledProfiles
+                    .Where(x => x.UniqueId != ProfileOpenInEditor.UniqueId)
+                    .Append(ProfileOpenInEditor);
             }
 
             return enabledProfiles.ToArray();
@@ -280,6 +295,12 @@ namespace CustomizePlus.Data.Profile
         public CharacterProfile? GetProfileByUniqueId(int id)
         {
             return Profiles.FirstOrDefault(x => x.UniqueId == id);
+        }
+
+        public IEnumerable<CharacterProfile> GetProfilesByGameObject(Dalamud.Game.ClientState.Objects.Types.GameObject obj)
+        {
+            string name = Helpers.GameDataHelper.GetObjectName(obj);
+            return Profiles.Where(x => x.CharacterName == name);
         }
     }
 }
