@@ -192,6 +192,20 @@ namespace CustomizePlus.Data.Armature
             }
 
             UpdateTransformation(newTransform);
+            UpdateClones(newTransform);
+        }
+
+        /// <summary>
+        /// For each OTHER bone that shares the name of this one, direct
+        /// it to update its transform to match the one provided
+        /// </summary>
+        private void UpdateClones(BoneTransform newTransform)
+        {
+            foreach(ModelBone mb in MasterArmature.GetAllBones()
+                .Where(x => x.BoneName == this.BoneName && x != this))
+            {
+                mb.UpdateTransformation(newTransform);
+            }
         }
 
         /// <summary>
@@ -217,7 +231,7 @@ namespace CustomizePlus.Data.Armature
             };
         }
 
-        public void SetGameTransform(CharacterBase* cBase, hkQsTransformf transform, PoseType refFrame)
+        private void SetGameTransform(CharacterBase* cBase, hkQsTransformf transform, PoseType refFrame)
         {
             SetGameTransform(cBase, transform, PartialSkeletonIndex, BoneIndex, refFrame);
         }
