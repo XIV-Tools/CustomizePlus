@@ -55,6 +55,10 @@ namespace CustomizePlus
                 DalamudServices.Initialize(pluginInterface);
                 DalamudServices.PluginInterface.UiBuilder.DisableGposeUiHide = true;
 
+                ProfileManager.ProcessConvertedProfiles();
+                ProfileManager.LoadProfiles();
+                ProfileManager.CompleteInitialization();
+
                 ReloadHooks();
 
                 DalamudServices.Framework.RunOnFrameworkThread(() =>
@@ -62,9 +66,6 @@ namespace CustomizePlus
                     ServiceManager.Start();
                     DalamudServices.Framework.Update += Framework_Update;
                 });
-
-                ProfileManager.ProcessConvertedProfiles();
-                ProfileManager.LoadProfiles();
 
                 _ipcManager = new CustomizePlusIpc(DalamudServices.ObjectTable, DalamudServices.PluginInterface);
 
@@ -257,38 +258,37 @@ namespace CustomizePlus
         }
 
         //todo: doesn't work in cutscenes, something getting called after this and resets changes
-        private static void OnGameObjectMove(IntPtr gameObjectPtr)
+        private unsafe static void OnGameObjectMove(IntPtr gameObjectPtr)
         {
             // Call the original function.
             _gameObjectMovementHook.Original(gameObjectPtr);
 
             ////If GPose and a 3rd-party posing service are active simultneously, abort
-            //if (GPoseService.Instance.GPoseState == GPoseState.Inside
-            //    && PosingModeDetectService.Instance.IsInPosingMode)
-            //{
-            //    return;
-            //}
+            if (GameStateHelper.GameInPosingMode())
+            {
+                return;
+            }
 
-            //if (DalamudServices.ObjectTable.CreateObjectReference(gameObjectPtr) is var obj
-            //    && obj != null
-            //    && ProfileManager.GetProfileByObject(obj) is CharacterProfile prof
-            //    && prof != null)
-            //{
+            if (DalamudServices.ObjectTable.CreateObjectReference(gameObjectPtr) is var obj
+                && obj != null
+                && ProfileManager.GetProfileByCharacterName(obj.Name.TextValue) is CharacterProfile prof
+                && prof != null
+                && prof.Enabled
+                && prof.Armature != null)
+            {
+                prof.Armature.ApplyRootTranslation(obj.ToCharacterBase());
 
+                //var objIndex = obj.ObjectIndex;
 
-            //    prof.Enabled = true;
+                //var isForbiddenFiller = objIndex == Constants.ObjectTableFillerIndex;
+                //var isForbiddenCutsceneNPC = Constants.IsInObjectTableCutsceneNPCRange(objIndex)
+                //                             || !ConfigurationManager.Configuration.ApplyToNPCsInCutscenes;
 
-            //    //var objIndex = obj.ObjectIndex;
-
-            //    //var isForbiddenFiller = objIndex == Constants.ObjectTableFillerIndex;
-            //    //var isForbiddenCutsceneNPC = Constants.IsInObjectTableCutsceneNPCRange(objIndex)
-            //    //                             || !ConfigurationManager.Configuration.ApplyToNPCsInCutscenes;
-
-            //    //if (!isForbiddenFiller && !isForbiddenCutsceneNPC)
-            //    //{
-            //    //    ArmatureManager.RenderArmatureByObject(obj);
-            //    //}
-            //}
+                //if (!isForbiddenFiller && !isForbiddenCutsceneNPC)
+                //{
+                //    ArmatureManager.RenderArmatureByObject(obj);
+                //}
+            }
         }
     }
 }
