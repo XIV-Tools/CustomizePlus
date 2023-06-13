@@ -13,6 +13,7 @@ using FFXIVClientStructs.FFXIV.Client.Graphics.Render;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
 using Dalamud.Game.ClientState.Objects.Types;
 using FFXIVClientStructs.Havok;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.ToolTip;
 
 namespace CustomizePlus.Data.Armature
 {
@@ -90,7 +91,7 @@ namespace CustomizePlus.Data.Armature
         /// </summary>
         // In exactly one partial skeleton will the root bone be an independent bone. In all others, it's a reference to a separate, real bone.
         // For that reason we must subtract the number of duplicate bones
-        public int TotalBoneCount => _partialSkeletons.Sum(x => x.Length) - (_partialSkeletons.Length - 1);
+        public int TotalBoneCount => _partialSkeletons.Sum(x => x.Length);
 
         public IEnumerable<ModelBone> GetAllBones()
         {
@@ -173,16 +174,24 @@ namespace CustomizePlus.Data.Armature
         /// Returns whether or not a link can be established between the armature and an in-game object.
         /// If unbuilt, the armature will use this opportunity to rebuild itself.
         /// </summary>
-        public bool TryLinkSkeleton(bool forceRebuild = false)
+        public unsafe bool TryLinkSkeleton(bool forceRebuild = false)
         {
+            if (this.Profile.CharacterName == Constants.DefaultProfileCharacterName) { }
+
             try
             {
                 if (DalamudServices.ObjectTable.FirstOrDefault(Profile.AppliesTo) is GameObject obj
                     && obj != null)
                 {
+                    CharacterBase* cBase = obj.ToCharacterBase();
+
                     if (!Built || forceRebuild)
                     {
-                        RebuildSkeleton(obj.ToCharacterBase());
+                        RebuildSkeleton(cBase);
+                    }
+                    else if (NewBonesAvailable(cBase))
+                    {
+                        AugmentSkeleton(cBase);
                     }
                     return true;
                 }
@@ -195,28 +204,84 @@ namespace CustomizePlus.Data.Armature
             return false;
         }
 
+        private bool NewBonesAvailable(CharacterBase* cBase)
+        {
+            if (cBase->Skeleton->PartialSkeletonCount > _partialSkeletons.Length)
+            {
+                return true;
+            }
+            else
+            {
+                for (int i = 0; i < cBase->Skeleton->PartialSkeletonCount; ++i)
+                {
+                    hkaPose* newPose = cBase->Skeleton->PartialSkeletons[i].GetHavokPose(Constants.TruePoseIndex);
+                    if (newPose != null
+                        && newPose->Skeleton->Bones.Length > _partialSkeletons[i].Length)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
         /// <summary>
         /// Rebuild the armature using the provided character base as a reference.
         /// </summary>
-        public void RebuildSkeleton(CharacterBase* cbase)
+        public void RebuildSkeleton(CharacterBase* cBase)
         {
-            if (cbase == null) 
+            if (cBase == null) 
                 return;
 
-            //List<List<ModelBone?>> newPartials = _partialSkeletons.Select(x => x.ToList()).ToList();
+            List<List<ModelBone>> newPartials = ParseBonesFromObject(this, cBase);
 
-            //for now, let's just rebuild the whole thing
-            //if that causes a performance problem we'll cross that bridge when we get to it
+            _partialSkeletons = newPartials.Select(x => x.ToArray()).ToArray();
 
+            PluginLog.LogDebug($"Rebuilt {this}");
+        }
+
+        public void AugmentSkeleton(CharacterBase* cBase)
+        {
+            if (cBase == null)
+                return;
+
+            List<List<ModelBone>> oldPartials = _partialSkeletons.Select(x => x.ToList()).ToList();
+            List<List<ModelBone>> newPartials = ParseBonesFromObject(this, cBase);
+
+            //for each of the new partial skeletons discovered...
+            for (int i = 0; i < newPartials.Count; ++i)
+            {
+                //if the old skeleton doesn't contain the new partial at all, add the whole thing
+                if (i > oldPartials.Count)
+                {
+                    oldPartials.Add(newPartials[i]);
+                }
+                //otherwise, add every model bone the new partial has that the old one doesn't
+                else
+                {
+                    for (int j = oldPartials[i].Count; j < newPartials[i].Count; ++j)
+                    {
+                        oldPartials[i].Add(newPartials[i][j]);
+                    }
+                }
+            }
+
+            _partialSkeletons = oldPartials.Select(x => x.ToArray()).ToArray();
+
+            PluginLog.LogDebug($"Augmented {this} with new bones");
+        }
+
+        private static unsafe List<List<ModelBone>> ParseBonesFromObject(Armature arm, CharacterBase* cBase)
+        {
             List<List<ModelBone>> newPartials = new();
-            List<int> newRoots = new();
 
             try
             {
                 //build the skeleton
-                for (var pSkeleIndex = 0; pSkeleIndex < cbase->Skeleton->PartialSkeletonCount; ++pSkeleIndex)
+                for (var pSkeleIndex = 0; pSkeleIndex < cBase->Skeleton->PartialSkeletonCount; ++pSkeleIndex)
                 {
-                    PartialSkeleton currentPartial = cbase->Skeleton->PartialSkeletons[pSkeleIndex];
+                    PartialSkeleton currentPartial = cBase->Skeleton->PartialSkeletons[pSkeleIndex];
                     hkaPose* currentPose = currentPartial.GetHavokPose(Constants.TruePoseIndex);
 
                     newPartials.Add(new());
@@ -230,7 +295,7 @@ namespace CustomizePlus.Data.Armature
                             boneName != null)
                         {
                             //time to build a new bone
-                            ModelBone newBone = new(this, boneName, pSkeleIndex, boneIndex);
+                            ModelBone newBone = new(arm, boneName, pSkeleIndex, boneIndex);
 
                             if (currentPose->Skeleton->ParentIndices[boneIndex] is short parentIndex
                                 && parentIndex >= 0)
@@ -239,7 +304,7 @@ namespace CustomizePlus.Data.Armature
                                 newPartials[pSkeleIndex][parentIndex].AddChild(pSkeleIndex, boneIndex);
                             }
 
-                            foreach(ModelBone mb in newPartials.SelectMany(x => x))
+                            foreach (ModelBone mb in newPartials.SelectMany(x => x))
                             {
                                 if (AreTwinnedNames(boneName, mb.BoneName))
                                 {
@@ -249,7 +314,7 @@ namespace CustomizePlus.Data.Armature
                                 }
                             }
 
-                            if (Profile.Bones.TryGetValue(boneName, out BoneTransform? bt)
+                            if (arm.Profile.Bones.TryGetValue(boneName, out BoneTransform? bt)
                                 && bt != null)
                             {
                                 newBone.UpdateModel(bt);
@@ -259,21 +324,19 @@ namespace CustomizePlus.Data.Armature
                         }
                         else
                         {
-                            PluginLog.LogError($"Failed to process bone @ <{pSkeleIndex}, {boneIndex}> while rebuilding {this}");
+                            PluginLog.LogError($"Failed to process bone @ <{pSkeleIndex}, {boneIndex}> while parsing bones from {cBase->ToString()}");
                         }
                     }
                 }
 
-                _partialSkeletons = newPartials.Select(x => x.ToArray()).ToArray();
-
-                BoneData.LogNewBones(GetAllBones().Select(x => x.BoneName).ToArray());
-
-                PluginLog.LogDebug($"Rebuilt {this}");
+                BoneData.LogNewBones(newPartials.SelectMany(x => x.Select(y => y.BoneName)).ToArray());
             }
             catch (Exception ex)
             {
-                PluginLog.LogError($"Error rebuilding armature skeleton: {ex}");
+                PluginLog.LogError($"Error parsing armature skeleton from {cBase->ToString()}:\n\t{ex}");
             }
+
+            return newPartials;
         }
 
         public void UpdateBoneTransform(int partialIdx, int boneIdx, BoneTransform bt, bool mirror = false, bool propagate = false)
