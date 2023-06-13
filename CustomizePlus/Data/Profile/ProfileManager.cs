@@ -297,18 +297,47 @@ namespace CustomizePlus.Data.Profile
             return Profiles.FirstOrDefault(x => x.UniqueId == id);
         }
 
+        /// <summary>
+        /// Returns all the profiles which might apply to the given object, prioritizing any open in the editor.
+        /// </summary>
         public IEnumerable<CharacterProfile> GetProfilesByGameObject(Dalamud.Game.ClientState.Objects.Types.GameObject obj)
         {
             string name = Helpers.GameDataHelper.GetObjectName(obj);
 
             List<CharacterProfile> output = new();
 
-            if (ProfileOpenInEditor != null && ProfileOpenInEditor.CharacterName == name)
+            if (ProfileOpenInEditor != null)
             {
-                output.Add(ProfileOpenInEditor);
+                if (ProfileOpenInEditor.CharacterName == name)
+                {
+                    output.Add(ProfileOpenInEditor);
+                }
+                else if (ProfileOpenInEditor.CharacterName == Constants.DefaultProfileCharacterName && DefaultOnly(obj))
+                {
+                    output.Add(ProfileOpenInEditor);
+                }
             }
 
-            return output.Concat(Profiles.Where(x => x.CharacterName == name));
+            if (Profiles.Any(x => x.CharacterName == name))
+            {
+                return output.Concat(Profiles.Where(x => x.CharacterName == name));
+            }
+            else
+            {
+                return output.Concat(Profiles.Where(x => x.CharacterName == Constants.DefaultProfileCharacterName));
+            }
+        }
+
+        /// <summary>
+        /// Returns true iff the profile manager contains at least one Default profile,
+        /// and there are zero non-Default profiles that could apply to the given object.
+        /// </summary>
+        public bool DefaultOnly(Dalamud.Game.ClientState.Objects.Types.GameObject obj)
+        {
+            string name = Helpers.GameDataHelper.GetObjectName(obj);
+
+            return Profiles.Any(x => x.CharacterName == Constants.DefaultProfileCharacterName)
+                && !Profiles.Any(x => x.CharacterName == name);
         }
     }
 }
