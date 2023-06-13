@@ -183,7 +183,7 @@ namespace CustomizePlus.Data.Profile
             {
                 Dalamud.Logging.PluginLog.LogInformation($"Saving changes to {prof} to manager...");
 
-                AddAndSaveProfile(new CharacterProfile(prof));
+                AddAndSaveProfile(prof);
 
                 if (editingComplete)
                 {
@@ -300,7 +300,15 @@ namespace CustomizePlus.Data.Profile
         public IEnumerable<CharacterProfile> GetProfilesByGameObject(Dalamud.Game.ClientState.Objects.Types.GameObject obj)
         {
             string name = Helpers.GameDataHelper.GetObjectName(obj);
-            return Profiles.Where(x => x.CharacterName == name);
+
+            List<CharacterProfile> output = new();
+
+            if (ProfileOpenInEditor != null && ProfileOpenInEditor.CharacterName == name)
+            {
+                output.Add(ProfileOpenInEditor);
+            }
+
+            return output.Concat(Profiles.Where(x => x.CharacterName == name));
         }
     }
 }
