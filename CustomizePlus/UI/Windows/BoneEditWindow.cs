@@ -67,7 +67,7 @@ namespace CustomizePlus.UI.Windows
 
             //By having the armature manager to do its checks on this profile,
             //	we force it to generate and track a new armature for it
-            Plugin.ArmatureManager.RenderCharacterProfiles(prof);
+            Plugin.ArmatureManager.ConstructArmatureForProfile(prof);
 
             editWnd._settings = new EditorSessionSettings(prof.Armature);
 
@@ -125,7 +125,7 @@ namespace CustomizePlus.UI.Windows
 
             ImGui.Separator();
 
-            int numColumns = Plugin.ConfigurationManager.Configuration.DebuggingModeEnabled ? 3 : 5;
+            int numColumns = Plugin.ConfigurationManager.Configuration.DebuggingModeEnabled ? 5 : 3;
 
             if (ImGui.BeginTable("Checkboxes", numColumns, ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.NoClip))
             {
@@ -293,7 +293,7 @@ namespace CustomizePlus.UI.Windows
 
                 if (_targetArmature != null && targetObject != null)
                 {
-                    IEnumerable<ModelBone> relevantModelBones = _targetArmature.GetAllBones();
+                    IEnumerable<ModelBone> relevantModelBones = _targetArmature.GetAllBones();//.DistinctBy(x => x.BoneName);
 
                     var groupedBones = relevantModelBones.GroupBy(x => BoneData.GetBoneFamily(x.BoneName));
 
@@ -369,6 +369,7 @@ namespace CustomizePlus.UI.Windows
                     {
                         Plugin.ProfileManager.SaveWorkingCopy(_profileInProgress, false);
                         _targetArmature.RebuildSkeleton(targetObject);
+                        _dirty = false;
                     }
                 }
                 CtrlHelper.AddHoverText("Save changes and continue editing");
@@ -380,7 +381,8 @@ namespace CustomizePlus.UI.Windows
                     if (_dirty)
                     {
                         Plugin.ProfileManager.SaveWorkingCopy(_profileInProgress, true);
-                        //Plugin.RefreshPlugin();
+                        Plugin.ProfileManager.StopEditing(_profileInProgress);
+                        _dirty = false;
                     }
 
                     Close();
@@ -399,6 +401,7 @@ namespace CustomizePlus.UI.Windows
                         {
                             Plugin.ProfileManager.RevertWorkingCopy(_profileInProgress);
                             _targetArmature.RebuildSkeleton(targetObject);
+                            _dirty = false;
                         });
                 }
 
@@ -415,6 +418,8 @@ namespace CustomizePlus.UI.Windows
                             {
                                 Plugin.ProfileManager.RevertWorkingCopy(_profileInProgress);
                                 _targetArmature.RebuildSkeleton(targetObject);
+                                Plugin.ProfileManager.StopEditing(_profileInProgress);
+                                _dirty = false;
                                 Close();
                             });
                     }
@@ -644,7 +649,7 @@ namespace CustomizePlus.UI.Windows
                 //as the bone information allows us to propagate them to siblings and children
                 //otherwise access them through the profile directly
 
-                if (_profileInProgress.Enabled)
+                if (_profileInProgress.Enabled && _settings.ShowLiveBones)
                 {
                     bone.UpdateModel(transform, _settings.MirrorModeEnabled, _settings.ParentingEnabled);
                 }

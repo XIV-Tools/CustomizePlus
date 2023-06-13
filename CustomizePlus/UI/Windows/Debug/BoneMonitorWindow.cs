@@ -126,7 +126,7 @@ namespace CustomizePlus.UI.Windows.Debug
 
             ImGui.Separator();
 
-            if (ImGui.BeginTable("Bones", 10,
+            if (ImGui.BeginTable("Bones", 9,
                     ImGuiTableFlags.Borders | ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.ScrollY,
                     new Vector2(0, ImGui.GetFrameHeightWithSpacing() - 56)))
             {
