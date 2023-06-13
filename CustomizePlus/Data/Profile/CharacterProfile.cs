@@ -63,7 +63,7 @@ namespace CustomizePlus.Data.Profile
         /// <summary>
         /// Returns whether or not this profile applies to the object with the indicated name.
         /// </summary>
-        public bool AppliesTo(string objectName) => objectName == CharacterName;
+        public bool AppliesTo(string objectName) => objectName == CharacterName || CharacterName == Constants.DefaultProfileCharacterName;
 
         /// <summary>
         /// Returns whether or not this profile applies to the indicated GameObject.
