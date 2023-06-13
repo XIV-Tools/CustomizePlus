@@ -88,11 +88,12 @@ namespace CustomizePlus.Data.Armature
 
             _parentPartialIndex = parentPartialIdx;
             _parentBoneIndex = parentBoneIdx;
-
-            MasterArmature[parentPartialIdx, parentBoneIdx]?.AddChild(PartialSkeletonIndex, BoneIndex);
         }
 
-        private void AddChild(int childPartialIdx, int childBoneIdx)
+        /// <summary>
+        /// Indicate that a bone is one of this model bone's "children".
+        /// </summary>
+        public void AddChild(int childPartialIdx, int childBoneIdx)
         {
             _childPartialIndices.Add(childPartialIdx);
             _childBoneIndices.Add(childBoneIdx);
@@ -105,8 +106,6 @@ namespace CustomizePlus.Data.Armature
         {
             _twinPartialIndex = twinPartialIdx;
             _twinBoneIndex = twinBoneIdx;
-
-            MasterArmature[twinPartialIdx, twinBoneIdx].AddTwin(PartialSkeletonIndex, BoneIndex);
         }
 
         private void UpdateTransformation(BoneTransform newTransform)
@@ -128,6 +127,7 @@ namespace CustomizePlus.Data.Armature
 
         public override string ToString()
         {
+            //string numCopies = _copyIndices.Count > 0 ? $" ({_copyIndices.Count} copies)" : string.Empty;
             return $"{BoneName} ({BoneData.GetBoneDisplayName(BoneName)}) @ <{PartialSkeletonIndex}, {BoneIndex}>";
         }
 
@@ -182,7 +182,7 @@ namespace CustomizePlus.Data.Armature
         /// </summary>
         public void UpdateModel(BoneTransform newTransform, bool mirror = false, bool propagate = false)
         {
-            if (TwinBone is ModelBone mb && mb != null)
+            if (mirror && TwinBone is ModelBone mb && mb != null)
             {
                 BoneTransform mirroredTransform = BoneData.IsIVCSBone(BoneName)
                     ? newTransform.GetSpecialReflection()
@@ -219,8 +219,13 @@ namespace CustomizePlus.Data.Armature
 
         public void SetGameTransform(CharacterBase* cBase, hkQsTransformf transform, PoseType refFrame)
         {
+            SetGameTransform(cBase, transform, PartialSkeletonIndex, BoneIndex, refFrame);
+        }
+
+        private static void SetGameTransform(CharacterBase* cBase, hkQsTransformf transform, int partialIndex, int boneIndex, PoseType refFrame)
+        {
             FFXIVClientStructs.FFXIV.Client.Graphics.Render.Skeleton* skelly = cBase->Skeleton;
-            FFXIVClientStructs.FFXIV.Client.Graphics.Render.PartialSkeleton pSkelly = skelly->PartialSkeletons[PartialSkeletonIndex];
+            FFXIVClientStructs.FFXIV.Client.Graphics.Render.PartialSkeleton pSkelly = skelly->PartialSkeletons[partialIndex];
             hkaPose* targetPose = pSkelly.GetHavokPose(Constants.TruePoseIndex);
             //hkaPose* targetPose = cBase->Skeleton->PartialSkeletons[PartialSkeletonIndex].GetHavokPose(Constants.TruePoseIndex);
 
@@ -229,11 +234,11 @@ namespace CustomizePlus.Data.Armature
             switch (refFrame)
             {
                 case PoseType.Local:
-                    targetPose->LocalPose[BoneIndex] = transform;
+                    targetPose->LocalPose.Data[boneIndex] = transform;
                     return;
 
                 case PoseType.Model:
-                    targetPose->ModelPose[BoneIndex] = transform;
+                    targetPose->ModelPose.Data[boneIndex] = transform;
                     return;
 
                 default:
@@ -250,48 +255,39 @@ namespace CustomizePlus.Data.Armature
         public void ApplyModelTransform(CharacterBase* cBase)
         {
             if (cBase != null
+                && CustomizedTransform.IsEdited()
                 && GetGameTransform(cBase, PoseType.Model) is hkQsTransformf gameTransform
                 && !gameTransform.Equals(Constants.NullTransform)
-                && CustomizedTransform.ModifyExistingTransformation(gameTransform) is hkQsTransformf modTransform
+                && CustomizedTransform.ModifyExistingTransform(gameTransform) is hkQsTransformf modTransform
                 && !modTransform.Equals(Constants.NullTransform))
             {
                 SetGameTransform(cBase, modTransform, PoseType.Model);
             }
+        }
 
-            //TODO set up the reference pose stuff
+        public void ApplyModelTransform(CharacterBase* cBase, BoneAttribute which)
+        {
+            if (cBase != null
+                && CustomizedTransform.IsEdited()
+                && GetGameTransform(cBase, PoseType.Model) is hkQsTransformf gameTransform
+                && !gameTransform.Equals(Constants.NullTransform))
+            {
+                hkQsTransformf modTransform = which switch
+                {
+                    BoneAttribute.Scale => CustomizedTransform.ModifyExistingScale(gameTransform),
+                    BoneAttribute.Rotation => Helpers.GameStateHelper.GameInPosingMode()
+                        ? gameTransform
+                        : CustomizedTransform.ModifyExistingRotation(gameTransform),
+                    BoneAttribute.Position => Helpers.GameStateHelper.GameInPosingMode()
+                        ? gameTransform
+                        : CustomizedTransform.ModifyExistingTranslation(gameTransform)
+                };
 
-            //if (MasterArmature.GetReferenceSnap())
-            //{
-            //    //Referencing from Ktisis, Function 'SetFromLocalPose' @ Line 39 in 'Havok.cs'
-
-            //    //hkQsTransformf tRef = currentPose->Skeleton->ReferencePose.Data[triplex.Item3];
-            //    var tRef = currentPose->LocalPose[triplex.Item3];
-
-            //    var tParent = currentPose->ModelPose[currentPose->Skeleton->ParentIndices[triplex.Item3]];
-            //    var tModel =
-            //        *currentPose->AccessBoneModelSpace(triplex.Item3, hkaPose.PropagateOrNot.DontPropagate);
-
-            //    tModel.Translation =
-            //    (
-            //        tParent.Translation.GetAsNumericsVector().RemoveWTerm()
-            //        + Vector3.Transform(tRef.Translation.GetAsNumericsVector().RemoveWTerm(),
-            //            tParent.Rotation.ToQuaternion())
-            //    ).ToHavokTranslation();
-
-            //    tModel.Rotation =
-            //        (tParent.Rotation.ToQuaternion() * tRef.Rotation.ToQuaternion()).ToHavokRotation();
-            //    tModel.Scale = tRef.Scale;
-
-            //    var t = tModel;
-            //    var tNew = _customizedTransform.ModifyExistingTransformation(t);
-            //    currentPose->ModelPose.Data[triplex.Item3] = tNew;
-            //}
-            //else
-            //{
-            //    var t = currentPose->ModelPose.Data[triplex.Item3];
-            //    var tNew = _customizedTransform.ModifyExistingTransformation(t);
-            //    currentPose->ModelPose.Data[triplex.Item3] = tNew;
-            //}
+                if (!modTransform.Equals(gameTransform) && !modTransform.Equals(Constants.NullTransform))
+                {
+                    SetGameTransform(cBase, modTransform, PoseType.Model);
+                }
+            }
         }
     }
 }

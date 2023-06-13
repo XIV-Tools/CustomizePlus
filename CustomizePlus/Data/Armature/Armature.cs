@@ -209,6 +209,7 @@ namespace CustomizePlus.Data.Armature
             //if that causes a performance problem we'll cross that bridge when we get to it
 
             List<List<ModelBone>> newPartials = new();
+            List<int> newRoots = new();
 
             try
             {
@@ -225,26 +226,28 @@ namespace CustomizePlus.Data.Armature
 
                     for (var boneIndex = 0; boneIndex < currentPose->Skeleton->Bones.Length; ++boneIndex)
                     {
-                        //bone index zero is always the root bone
-                        //check to see if it's THE root bone, or just a reference to another partial
-                        //all partials link back to partial 0, it turns out, so we can just base it on that
-
-                        if (boneIndex == 0 && pSkeleIndex != 0)
-                        {
-                            //no need to copy the bone when we can just reference it directly
-                            newPartials.Last().Add(newPartials[0][currentPartial.ConnectedParentBoneIndex]);
-                        }
-                        else if (currentPose->Skeleton->Bones[boneIndex].Name.String is string boneName &&
+                        if (currentPose->Skeleton->Bones[boneIndex].Name.String is string boneName &&
                             boneName != null)
                         {
                             //time to build a new bone
                             ModelBone newBone = new(this, boneName, pSkeleIndex, boneIndex);
 
-                            //if (currentPose->Skeleton->ParentIndices[boneIndex] is short parentIndex
-                            //    && parentIndex >= 0)
-                            //{
-                            //    newBone.AddParent(0, parentIndex);
-                            //}
+                            if (currentPose->Skeleton->ParentIndices[boneIndex] is short parentIndex
+                                && parentIndex >= 0)
+                            {
+                                newBone.AddParent(pSkeleIndex, parentIndex);
+                                newPartials[pSkeleIndex][parentIndex].AddChild(pSkeleIndex, boneIndex);
+                            }
+
+                            foreach(ModelBone mb in newPartials.SelectMany(x => x))
+                            {
+                                if (AreTwinnedNames(boneName, mb.BoneName))
+                                {
+                                    newBone.AddTwin(mb.PartialSkeletonIndex, mb.BoneIndex);
+                                    mb.AddTwin(pSkeleIndex, boneIndex);
+                                    break;
+                                }
+                            }
 
                             if (Profile.Bones.TryGetValue(boneName, out BoneTransform? bt)
                                 && bt != null)
@@ -256,12 +259,7 @@ namespace CustomizePlus.Data.Armature
                         }
                         else
                         {
-                            //I don't THINK this should happen? but the way the skeletons are constructed
-                            //it seems possible that there could be "empty" space between actual bones?
-
-                            ModelBone newBone = new ModelBone(this, "N/A", pSkeleIndex, boneIndex);
-                            PluginLog.LogDebug($"Encountered errant bone {newBone} while building {this}");
-                            newPartials.Last().Add(newBone);
+                            PluginLog.LogError($"Failed to process bone @ <{pSkeleIndex}, {boneIndex}> while rebuilding {this}");
                         }
                     }
                 }
@@ -270,7 +268,7 @@ namespace CustomizePlus.Data.Armature
 
                 BoneData.LogNewBones(GetAllBones().Select(x => x.BoneName).ToArray());
 
-                PluginLog.LogDebug($"Rebuilt {this}:");
+                PluginLog.LogDebug($"Rebuilt {this}");
             }
             catch (Exception ex)
             {
@@ -283,15 +281,46 @@ namespace CustomizePlus.Data.Armature
             this[partialIdx, boneIdx].UpdateModel(bt, mirror, propagate);
         }
 
-        public void ApplyTransformation(CharacterBase* cBase)
+        public unsafe void ApplyTransformation(CharacterBase* cBase)
         {
             if (cBase != null)
             {
-                foreach (ModelBone mb in GetAllBones())
+                foreach (ModelBone mb in GetAllBones().Where(x => x.CustomizedTransform.IsEdited()))
                 {
-                    mb.ApplyModelTransform(cBase);
+                    if (mb == MainRootBone)
+                    {
+                        //the main root bone's position information is handled by a different hook
+                        //so there's no point in trying to update it here
+                        //meanwhile root scaling has special rules
+
+                        if ((*(GameObject*)cBase).HasScalableRoot())
+                        {
+                            mb.ApplyModelTransform(cBase, BoneAttribute.Scale);
+                        }
+
+                        mb.ApplyModelTransform(cBase, BoneAttribute.Rotation);
+                    }
+                    else
+                    {
+                        mb.ApplyModelTransform(cBase);
+                    }
                 }
             }
+        }
+
+        public void ApplyRootTranslation(CharacterBase* cBase)
+        {
+            if (cBase != null)
+            {
+                _partialSkeletons[0][0].ApplyModelTransform(cBase, BoneAttribute.Position);
+            }
+        }
+
+        private static bool AreTwinnedNames(string name1, string name2)
+        {
+            return (name1[^1] == 'r' ^ name2[^1] == 'r')
+                && (name1[^1] == 'l' ^ name2[^1] == 'l')
+                && (name1[0..^1] == name2[0..^1]);
         }
 
         //public void OverrideWithReferencePose()
