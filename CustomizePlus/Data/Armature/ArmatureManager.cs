@@ -76,12 +76,6 @@ namespace CustomizePlus.Data.Armature
                 {
                     prof.Armature.ApplyTransformation(cBase);
                 }
-                else if (_defaultArmature != null)
-                {
-                    //TODO idk if this is the right way of going about this
-                    //just throw stuff at the wall and see what sticks?
-                    _defaultArmature.ApplyTransformation(cBase);
-                }
             }
         }
     }
