@@ -271,9 +271,8 @@ namespace CustomizePlus
 
             if (DalamudServices.ObjectTable.CreateObjectReference(gameObjectPtr) is var obj
                 && obj != null
-                && ProfileManager.GetProfileByCharacterName(obj.Name.TextValue) is CharacterProfile prof
+                && ProfileManager.GetProfilesByGameObject(obj) .FirstOrDefault(x => x.Enabled) is CharacterProfile prof
                 && prof != null
-                && prof.Enabled
                 && prof.Armature != null)
             {
                 prof.Armature.ApplyRootTranslation(obj.ToCharacterBase());
