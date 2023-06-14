@@ -336,9 +336,9 @@ namespace CustomizePlus.Data
             BoneTable[parentName] = parent;
         }
 
-        public static string? GetBoneDisplayName(string codename)
+        public static string GetBoneDisplayName(string codename)
         {
-            return BoneTable.TryGetValue(codename, out var row) ? row.DisplayName : null;
+            return BoneTable.TryGetValue(codename, out var row) ? row.DisplayName : codename;
         }
 
         public static string? GetBoneCodename(string boneDisplayName)
