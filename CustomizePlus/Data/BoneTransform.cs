@@ -49,7 +49,7 @@ namespace CustomizePlus.Data
         public Vector3 Rotation
         {
             get => _rotation;
-            set => _rotation = ClampRotation(value);
+            set => _rotation = ClampAngles(value);
         }
 
         private Vector3 _scaling;
@@ -64,7 +64,7 @@ namespace CustomizePlus.Data
         {
             //Sanitize all values on deserialization
             _translation = ClampToDefaultLimits(_translation);
-            _rotation = ClampRotation(_rotation);
+            _rotation = ClampAngles(_rotation);
             _scaling = ClampToDefaultLimits(_scaling);
         }
 
@@ -142,7 +142,7 @@ namespace CustomizePlus.Data
         private void Sanitize()
         {
             _translation = ClampVector(_translation);
-            _rotation = ClampRotation(_rotation);
+            _rotation = ClampAngles(_rotation);
             _scaling = ClampVector(_scaling);
         }
 
@@ -159,7 +159,7 @@ namespace CustomizePlus.Data
             };
         }
 
-        private static Vector3 ClampRotation(Vector3 rotVec)
+        private static Vector3 ClampAngles(Vector3 rotVec)
         {
             static float Clamp(float angle)
             {
@@ -178,28 +178,47 @@ namespace CustomizePlus.Data
             return rotVec;
         }
 
+        public hkQsTransformf ModifyExistingTransform(hkQsTransformf tr)
+        {
+            return ModifyExistingTranslationWithRotation(ModifyExistingRotation(ModifyExistingScale(tr)));
+        }
 
-        /// <summary>
-        ///     Given a transformation represented by the given parameters, apply this transform's
-        ///     operations to further modify them.
-        /// </summary>
-        public hkQsTransformf ModifyExistingTransformation(hkQsTransformf tr)
+        public hkQsTransformf ModifyExistingScale(hkQsTransformf tr)
         {
             tr.Scale.X *= Scaling.X;
             tr.Scale.Y *= Scaling.Y;
             tr.Scale.Z *= Scaling.Z;
 
+            return tr;
+        }
+
+        public hkQsTransformf ModifyExistingRotation(hkQsTransformf tr)
+        {
             var newRotation = Quaternion.Multiply(tr.Rotation.ToQuaternion(), Rotation.ToQuaternion());
             tr.Rotation.X = newRotation.X;
             tr.Rotation.Y = newRotation.Y;
             tr.Rotation.Z = newRotation.Z;
             tr.Rotation.W = newRotation.W;
 
-            var adjustedTranslation = Vector4.Transform(Translation, newRotation);
+            return tr;
+        }
+
+        public hkQsTransformf ModifyExistingTranslationWithRotation(hkQsTransformf tr)
+        {
+            var adjustedTranslation = Vector4.Transform(Translation, tr.Rotation.ToQuaternion());
             tr.Translation.X += adjustedTranslation.X;
             tr.Translation.Y += adjustedTranslation.Y;
             tr.Translation.Z += adjustedTranslation.Z;
             tr.Translation.W += adjustedTranslation.W;
+
+            return tr;
+        }
+
+        public hkQsTransformf ModifyExistingTranslation(hkQsTransformf tr)
+        {
+            tr.Translation.X += Translation.X;
+            tr.Translation.Y += Translation.Y;
+            tr.Translation.Z += Translation.Z;
 
             return tr;
         }

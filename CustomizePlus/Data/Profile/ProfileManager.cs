@@ -27,8 +27,12 @@ namespace CustomizePlus.Data.Profile
 
         public readonly Dictionary<string, CharacterProfile> TempLocalProfiles = new();
 
+        private bool _initializationComplete = false;
+
         //public readonly HashSet<CharacterProfile> ProfilesOpenInEditor = new(new ProfileEquality());
         public CharacterProfile? ProfileOpenInEditor { get; private set; }
+
+        public void CompleteInitialization() => _initializationComplete = true;
 
         public void LoadProfiles()
         {
@@ -89,6 +93,7 @@ namespace CustomizePlus.Data.Profile
         public void AddAndSaveProfile(CharacterProfile prof, bool forceNew = false)
         {
             PruneIdempotentTransforms(prof);
+            prof.Armature = null;
 
             //if the profile is already in the list, simply replace it
             if (!forceNew && Profiles.Remove(prof))
@@ -159,6 +164,8 @@ namespace CustomizePlus.Data.Profile
         {
             if (prof != null && ProfileOpenInEditor != prof)
             {
+                Dalamud.Logging.PluginLog.LogInformation($"Creating new copy of {prof} for editing...");
+
                 copy = new CharacterProfile(prof);
 
                 PruneIdempotentTransforms(copy);
@@ -174,6 +181,8 @@ namespace CustomizePlus.Data.Profile
         {
             if (ProfileOpenInEditor == prof)
             {
+                Dalamud.Logging.PluginLog.LogInformation($"Saving changes to {prof} to manager...");
+
                 AddAndSaveProfile(prof);
 
                 if (editingComplete)
@@ -186,6 +195,7 @@ namespace CustomizePlus.Data.Profile
         public void RevertWorkingCopy(CharacterProfile prof)
         {
             var original = GetProfileByUniqueId(prof.UniqueId);
+            Dalamud.Logging.PluginLog.LogInformation($"Reverting {prof} to its original state...");
 
             if (original != null
                 && Profiles.Contains(prof)
@@ -207,6 +217,7 @@ namespace CustomizePlus.Data.Profile
 
         public void StopEditing(CharacterProfile prof)
         {
+            Dalamud.Logging.PluginLog.LogInformation($"{prof} deleted");
             ProfileOpenInEditor = null;
         }
 
@@ -257,16 +268,20 @@ namespace CustomizePlus.Data.Profile
         /// </summary>
         public CharacterProfile[] GetEnabledProfiles()
         {
-            //if a profile is being edited it's defacto considered disabled
-            var enabledProfiles = Profiles.Where(x => x.Enabled && x.UniqueId != (ProfileOpenInEditor?.UniqueId ?? 0));
+            if (!_initializationComplete) return Array.Empty<CharacterProfile>();
+
+            var enabledProfiles = Profiles.Where(x => x.Enabled);
 
             //add any temp profiles from mare
             enabledProfiles = enabledProfiles.Concat(TempLocalProfiles.Values);
 
-            //add any being-edited profiles that are enabled, though
+            //if the being-edited profile is individually enabled, then pass it along
+            //potentially replacing a profile already in the list
             if (ProfileOpenInEditor?.Enabled ?? false)
             {
-                enabledProfiles = enabledProfiles.Append(ProfileOpenInEditor);
+                enabledProfiles = enabledProfiles
+                    .Where(x => x.UniqueId != ProfileOpenInEditor.UniqueId)
+                    .Append(ProfileOpenInEditor);
             }
 
             return enabledProfiles.ToArray();
@@ -282,17 +297,47 @@ namespace CustomizePlus.Data.Profile
             return Profiles.FirstOrDefault(x => x.UniqueId == id);
         }
 
-        public unsafe CharacterProfile? GetProfileByObject(FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject obj)
+        /// <summary>
+        /// Returns all the profiles which might apply to the given object, prioritizing any open in the editor.
+        /// </summary>
+        public IEnumerable<CharacterProfile> GetProfilesByGameObject(Dalamud.Game.ClientState.Objects.Types.GameObject obj)
         {
-            string name = new Penumbra.String.ByteString(obj.Name).ToString();
-            if (!String.IsNullOrWhiteSpace(name)
-                && GetProfileByCharacterName(name) is CharacterProfile prof
-                && prof != null)
+            string name = Helpers.GameDataHelper.GetObjectName(obj);
+
+            List<CharacterProfile> output = new();
+
+            if (ProfileOpenInEditor != null)
             {
-                return prof;
+                if (ProfileOpenInEditor.CharacterName == name)
+                {
+                    output.Add(ProfileOpenInEditor);
+                }
+                else if (ProfileOpenInEditor.CharacterName == Constants.DefaultProfileCharacterName && DefaultOnly(obj))
+                {
+                    output.Add(ProfileOpenInEditor);
+                }
             }
 
-            return null;
+            if (Profiles.Any(x => x.CharacterName == name))
+            {
+                return output.Concat(Profiles.Where(x => x.CharacterName == name));
+            }
+            else
+            {
+                return output.Concat(Profiles.Where(x => x.CharacterName == Constants.DefaultProfileCharacterName));
+            }
+        }
+
+        /// <summary>
+        /// Returns true iff the profile manager contains at least one Default profile,
+        /// and there are zero non-Default profiles that could apply to the given object.
+        /// </summary>
+        public bool DefaultOnly(Dalamud.Game.ClientState.Objects.Types.GameObject obj)
+        {
+            string name = Helpers.GameDataHelper.GetObjectName(obj);
+
+            return Profiles.Any(x => x.CharacterName == Constants.DefaultProfileCharacterName)
+                && !Profiles.Any(x => x.CharacterName == name);
         }
     }
 }

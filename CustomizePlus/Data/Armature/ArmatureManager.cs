@@ -8,10 +8,13 @@ using CustomizePlus.Helpers;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Logging;
 
+using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
+
 namespace CustomizePlus.Data.Armature
 {
     public sealed class ArmatureManager
     {
+        private Armature? _defaultArmature = null;
         private readonly HashSet<Armature> _armatures = new();
 
         public void RenderCharacterProfiles(params CharacterProfile[] profiles)
@@ -21,15 +24,13 @@ namespace CustomizePlus.Data.Armature
             ApplyArmatureTransforms();
         }
 
-        public unsafe void RenderArmatureByObject(GameObject obj)
+        public void ConstructArmatureForProfile(CharacterProfile newProfile)
         {
-            if (_armatures.FirstOrDefault(x => x.CharacterBaseRef == obj.ToCharacterBase()) is Armature arm &&
-                arm != null)
+            if (!_armatures.Any(x => x.Profile == newProfile))
             {
-                if (arm.IsVisible)
-                {
-                    arm.ApplyTransformation();
-                }
+                var newArm = new Armature(newProfile);
+                _armatures.Add(newArm);
+                PluginLog.LogDebug($"Added '{newArm}' to cache");
             }
         }
 
@@ -37,23 +38,18 @@ namespace CustomizePlus.Data.Armature
         {
             foreach (var prof in profiles)
             {
-                if (!_armatures.Any(x => x.Profile == prof))
-                {
-                    var newArm = new Armature(prof);
-                    _armatures.Add(newArm);
-                    PluginLog.LogDebug($"Added '{newArm}' to cache");
-                }
+                ConstructArmatureForProfile(prof);
             }
 
-            foreach (var arm in _armatures.Except(profiles.Select(x => x.Armature)))
+            foreach(var arm in _armatures.Except(profiles.Select(x => x.Armature)))
             {
-                if (arm != null)
+                if (arm != null && _armatures.Remove(arm))
                 {
-                    _armatures.Remove(arm);
                     PluginLog.LogDebug($"Removed '{arm}' from cache");
                 }
             }
         }
+
 
         private void RefreshArmatureVisibility()
         {
@@ -63,21 +59,20 @@ namespace CustomizePlus.Data.Armature
             }
         }
 
-        private void ApplyArmatureTransforms()
+        private unsafe void ApplyArmatureTransforms()
         {
-            foreach (var arm in _armatures.Where(x => x.IsVisible))
+            foreach(GameObject obj in DalamudServices.ObjectTable)
             {
-                if (arm.GetReferenceSnap())
+                CharacterProfile? prof = Plugin.ProfileManager
+                    .GetProfilesByGameObject(obj)
+                    .FirstOrDefault(x => x.Enabled);
+
+                if (prof != null
+                    && prof.Armature != null
+                    && prof.Armature.IsVisible)
                 {
-                    arm.OverrideWithReferencePose();
+                    prof.Armature.ApplyPiecewiseTransformation(obj);
                 }
-
-                arm.ApplyTransformation();
-
-                //if (arm.GetReferenceSnap())
-                //{
-                //	arm.OverrideRootParenting();
-                //}
             }
         }
     }

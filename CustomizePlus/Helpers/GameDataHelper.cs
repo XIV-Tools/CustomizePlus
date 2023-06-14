@@ -4,13 +4,18 @@
 using System;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Xml.Linq;
+
+using CustomizePlus.Data.Profile;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using Penumbra.String;
+
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.ToolTip;
+
 using DalamudObject = Dalamud.Game.ClientState.Objects.Types.GameObject;
 using DalamudObjectKind = Dalamud.Game.ClientState.Objects.Enums.ObjectKind;
-//using Dalamud.Game.ClientState.Objects.Types;
 using FFXIVClientCharacter = FFXIVClientStructs.FFXIV.Client.Game.Character.Character;
 using FFXIVClientObject = FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject;
 
@@ -21,32 +26,41 @@ namespace CustomizePlus.Helpers
         public static DalamudObject? FindModelByName(string name)
         {
             return DalamudServices.ObjectTable.FirstOrDefault(x => x.Name.ToString() == name);
-
-            //foreach (DalamudObject obj in DalamudServices.ObjectTable)
-            //{
-            //	if (obj.Name.ToString() == name)
-            //		return obj;
-            //}
-
-            //return null;
         }
 
         public static unsafe CharacterBase* ToCharacterBase(this DalamudObject obj)
         {
-            return obj.Address != IntPtr.Zero
-                   && Marshal.ReadIntPtr(obj.Address, 0x0100) is IntPtr drawObj
-                   && drawObj != IntPtr.Zero
-                ? (CharacterBase*)drawObj
-                : null;
+            if (obj.Address is nint objPtr && objPtr != nint.Zero)
+            {
+                FFXIVClientObject* clientObj = (FFXIVClientObject*)objPtr;
+
+                if (clientObj != null)
+                {
+                    return (CharacterBase*)clientObj->DrawObject;
+                }
+            }
+
+            return (CharacterBase*)nint.Zero;
         }
 
         public static unsafe bool TryLookupCharacterBase(string name, out CharacterBase* cBase)
         {
-            if (FindModelByName(name) is DalamudObject obj
+            if (name == Data.Constants.DefaultProfileCharacterName
+                && DalamudServices.ObjectTable.FirstOrDefault(Plugin.ProfileManager.DefaultOnly) is DalamudObject anyObj
+                && anyObj != null)
+            {
+                cBase = anyObj.ToCharacterBase();
+                return true;
+            }
+            else if (FindModelByName(name) is DalamudObject obj
                 && obj.Address is IntPtr objPtr
                 && objPtr != IntPtr.Zero)
             {
                 var clientObj = (FFXIVClientObject*)objPtr;
+
+                //var plainObject = (FFXIVClientStructs.FFXIV.Client.Graphics.Scene.Object*)clientObj;
+                //var weapon = plainObject->ChildObject;
+
                 if (clientObj != null)
                 {
                     cBase = (CharacterBase*)clientObj->DrawObject;
@@ -58,154 +72,184 @@ namespace CustomizePlus.Helpers
             return false;
         }
 
-        //public unsafe static FFXIVClientStructs.FFXIV.Client.Graphics.Scene.CharacterBase* FindRenderBaseByName(string name)
-        //{
-        //	foreach()
-        //}
-
-        //public static unsafe (BodyScale, bool) FindScale(int objectIndex)
-        //{
-        //	//Determine player object for root scale behavior later. Have to catch errors for zone transitions.
-        //	uint playerObjId = 0;
-        //	try
-        //	{
-        //		playerObjId = DalamudServices.ObjectTable[0].ObjectId;
-        //	}
-        //	catch (Exception ex) { }
-
-        //	var obj = DalamudServices.ObjectTable[objectIndex];
-
-        //	if (obj == null)
-        //		return (null, false);
-
-        //	BodyScale? scale = null;
-        //	// Mare Support: Bool check to see if override table from IPC can be used
-        //	FFXIVClientObject * objPtr = (FFXIVClientObject*)DalamudServices.ObjectTable.GetObjectAddress(objectIndex);
-        //	scale = IdentifyBodyScale(objPtr, playerObjId != obj.ObjectId);
-
-        //	bool isCutsceneNpc = false;
-        //	switch (obj.ObjectKind)
-        //	{
-        //		case DalamudObjectKind.Player:
-        //		case DalamudObjectKind.Companion:
-        //			scale = scale ?? Plugin.Config.DefaultRules.For(Data.Configuration.EntityType.NPC). ?? null;
-        //			break;
-        //		case DalamudObjectKind.Retainer:
-        //			scale = scale ?? defaultRetainerScale ?? defaultScale ?? null;
-        //			break;
-        //		case DalamudObjectKind.EventNpc:
-        //		case DalamudObjectKind.BattleNpc:
-        //			isCutsceneNpc = objectIndex >= 200 && objectIndex < 246;
-        //			// Stop if NPCs disabled by config. Have to double check cutscene range due to the 200/201 issue.
-        //			if (!ConfigurationManager.Configuration.ApplyToNpcs && !isCutsceneNpc)
-        //				return (null, false);
-        //			else if (isCutsceneNpc && !ConfigurationManager.Configuration.ApplyToNpcsInCutscenes)
-        //				return (null, false);
-        //			// Choose most appropriate default, or fallback to null.
-        //			if (isCutsceneNpc)
-        //				scale = scale ?? defaultCutsceneScale ?? defaultScale ?? null;
-        //			else
-        //				scale = scale ?? defaultScale ?? null;
-        //			break;
-        //		default:
-        //			return (null, false);
-        //	}
-
-        //	// No scale to apply, move on.
-        //	if (scale == null)
-        //		return (null, false);
-
-        //	// Don't apply root scales to NPCs in cutscenes or battle NPCs. Both cause animation or camera issues. Exception made for player pets
-        //	bool applyRootScale = !isCutsceneNpc && (obj.ObjectKind != DalamudObjectKind.BattleNpc || obj.OwnerId == playerObjId);
-        //		//!(isCutsceneNpc || (obj.ObjectKind == ObjectKind.BattleNpc && obj.OwnerId != playerObjId));
-
-        //	return (scale, applyRootScale);
-        //}
-
-        //// All functions related to this process for non-named objects adapted from Penumbra logic. Credit to Ottermandias et al.
-        //public static unsafe BodyScale? IdentifyBodyScale(FFXIVClientObject* obj, bool allowIPC)
-        //{
-        //	if (obj == null)
-        //	{
-        //		return null;
-        //	}
-
-        //	string? actorName = null;
-        //	BodyScale? scale = null;
-
-        //	try
-        //	{
-        //		actorName = new ByteString(obj->Name).ToString();
-
-        //		if (string.IsNullOrEmpty(actorName))
-        //		{
-        //			string? actualName = null;
-
-        //			// Check if in pvp intro sequence, which uses 240-244 for the 5 players, and only affect the first if so
-        //			// TODO: Ensure player side only. First group, where one of the node textures is blue. Alternately, look for hidden party list UI and get names from there.
-        //			if (DalamudServices.GameGui.GetAddonByName("PvPMKSIntroduction", 1) == IntPtr.Zero)
-        //			{
-        //				actualName = obj->ObjectIndex switch
-        //				{
-        //					240 => GetPlayerName(), // character window
-        //					241 => GetInspectName() ?? GetGlamourName(), // GetCardName() ?? // inspect, character card, glamour plate editor. - Card removed due to logic issues
-        //					242 => GetPlayerName(), // try-on
-        //					243 => GetPlayerName(), // dye preview
-        //					244 => GetPlayerName(), // portrait preview
-        //					>= 200 => GetCutsceneName(obj),
-        //					_ => null,
-        //				} ?? new ByteString(obj->Name).ToString();
-        //			}
-        //			else
-        //			{
-        //				actualName = obj->ObjectIndex switch
-        //				{
-        //					240 => GetPlayerName(), // character window
-        //					_ => null,
-        //				} ?? new ByteString(obj->Name).ToString();
-        //			}
-
-        //			if (actualName == null)
-        //			{
-        //				return null;
-        //			}
-
-        //			actorName = actualName;
-        //		}
-
-        //		scale = IdentifyBodyScaleByName(actorName, allowIPC);
-        //	}
-        //	catch (Exception e)
-        //	{
-        //		PluginLog.Error($"Error identifying bodyscale:\n{e}");
-        //		return null;
-        //	}
-
-        //	return scale;
-        //}
-
-        /*
-        private static BodyScale? IdentifyBodyScaleByName(string actorName, bool allowIPC = false, bool playerOnly = false)
+        public unsafe static bool HasScalableRoot(this DalamudObject obj)
         {
-            BodyScale? scale = null;
-            if (allowIPC)
+            return !Data.Constants.IsInObjectTableBusyNPCRange(obj.ObjectIndex)
+                && (obj.ObjectKind != DalamudObjectKind.BattleNpc
+                    || obj.ObjectId == DalamudServices.ObjectTable[0]?.ObjectId);
+        }
+
+        public unsafe static string GetObjectName(DalamudObject obj)
+        {
+            if (obj == null)
             {
-                if (!scaleOverride.TryGetValue(actorName, out scale))
-                    NameToScale.TryGetValue(actorName, out scale);
+                return String.Empty;
             }
-            else if (playerOnly && DalamudServices.ObjectTable[0] != null)
+
+            string? actualName = null;
+
+            if (DalamudServices.GameGui.GetAddonByName("PvPMKSIntroduction", 1) != nint.Zero)
             {
-                if (DalamudServices.ObjectTable[0].Name.TextValue == actorName)
-                    NameToScale.TryGetValue(actorName, out scale);
+                actualName = obj.ObjectIndex == 240
+                    ? GetPlayerName()
+                    : obj.Name.TextValue;
             }
             else
             {
-                NameToScale.TryGetValue(actorName, out scale);
+                actualName = obj.ObjectIndex switch
+                {
+                    240 => GetPlayerName(),
+                    241 => GetInspectName() ?? GetGlamourName(),
+                    242 => GetPlayerName(),
+                    243 => GetPlayerName(),
+                    244 => GetPlayerName(),
+                    //? cutscene name is obsolete?
+                    _ => obj.Name.TextValue
+                };
             }
 
-            return scale;
+            return actualName ?? string.Empty;
         }
-        */
+
+        //public static unsafe (CharacterProfile, bool) FindScale(int objectIndex)
+        //{
+        //    //Determine player object for root scale behavior later. Have to catch errors for zone transitions.
+        //    uint playerObjId = 0;
+        //    try
+        //    {
+        //        playerObjId = DalamudServices.ObjectTable[0].ObjectId;
+        //    }
+        //    catch (Exception ex) { }
+
+        //    var obj = DalamudServices.ObjectTable[objectIndex];
+
+        //    if (obj == null)
+        //        return (null, false);
+
+        //    CharacterProfile? scale = null;
+        //    // Mare Support: Bool check to see if override table from IPC can be used
+        //    FFXIVClientObject* objPtr = (FFXIVClientObject*)DalamudServices.ObjectTable.GetObjectAddress(objectIndex);
+        //    scale = IdentifyBodyScale(objPtr, playerObjId != obj.ObjectId);
+
+        //    bool isCutsceneNpc = false;
+        //    switch (obj.ObjectKind)
+        //    {
+        //        case DalamudObjectKind.Player:
+        //        //case DalamudObjectKind.Companion:
+        //        case DalamudObjectKind.Retainer:
+        //        case DalamudObjectKind.EventNpc:
+        //        case DalamudObjectKind.BattleNpc:
+        //            isCutsceneNpc = objectIndex >= 200 && objectIndex < 246;
+        //            // Stop if NPCs disabled by config. Have to double check cutscene range due to the 200/201 issue.
+        //            if (!ConfigurationManager.Configuration.ApplyToNpcs && !isCutsceneNpc)
+        //                return (null, false);
+        //            else if (isCutsceneNpc && !ConfigurationManager.Configuration.ApplyToNpcsInCutscenes)
+        //                return (null, false);
+        //            // Choose most appropriate default, or fallback to null.
+        //            if (isCutsceneNpc)
+        //                scale = scale ?? defaultCutsceneScale ?? defaultScale ?? null;
+        //            else
+        //                scale = scale ?? defaultScale ?? null;
+        //            break;
+        //        default:
+        //            return (null, false);
+        //    }
+
+        //    // No scale to apply, move on.
+        //    if (scale == null)
+        //        return (null, false);
+
+        //    // Don't apply root scales to NPCs in cutscenes or battle NPCs. Both cause animation or camera issues. Exception made for player pets
+        //    bool applyRootScale = !isCutsceneNpc && (obj.ObjectKind != DalamudObjectKind.BattleNpc || obj.OwnerId == playerObjId);
+        //    //!(isCutsceneNpc || (obj.ObjectKind == ObjectKind.BattleNpc && obj.OwnerId != playerObjId));
+
+        //    return (scale, applyRootScale);
+        //}
+
+        //// All functions related to this process for non-named objects adapted from Penumbra logic. Credit to Ottermandias et al.
+        //public static unsafe CharacterProfile? IdentifyBodyScale(FFXIVClientObject* obj, bool allowIPC)
+        //{
+        //    if (obj == null)
+        //    {
+        //        return null;
+        //    }
+
+        //    string? actorName = null;
+        //    CharacterProfile? scale = null;
+
+        //    try
+        //    {
+        //        actorName = new ByteString(obj->Name).ToString();
+
+        //        if (string.IsNullOrEmpty(actorName))
+        //        {
+        //            string? actualName = null;
+
+        //            // Check if in pvp intro sequence, which uses 240-244 for the 5 players, and only affect the first if so
+        //            // TODO: Ensure player side only. First group, where one of the node textures is blue. Alternately, look for hidden party list UI and get names from there.
+        //            if (DalamudServices.GameGui.GetAddonByName("PvPMKSIntroduction", 1) == IntPtr.Zero)
+        //            {
+        //                actualName = obj->ObjectIndex switch
+        //                {
+        //                    240 => GetPlayerName(), // character window
+        //                    241 => GetInspectName() ?? GetGlamourName(), // GetCardName() ?? // inspect, character card, glamour plate editor. - Card removed due to logic issues
+        //                    242 => GetPlayerName(), // try-on
+        //                    243 => GetPlayerName(), // dye preview
+        //                    244 => GetPlayerName(), // portrait preview
+        //                    >= 200 => GetCutsceneName(obj),
+        //                    _ => null,
+        //                } ?? new ByteString(obj->Name).ToString();
+        //            }
+        //            else
+        //            {
+        //                actualName = obj->ObjectIndex switch
+        //                {
+        //                    240 => GetPlayerName(), // character window
+        //                    _ => null,
+        //                } ?? new ByteString(obj->Name).ToString();
+        //            }
+
+        //            if (actualName == null)
+        //            {
+        //                return null;
+        //            }
+
+        //            actorName = actualName;
+        //        }
+
+        //        scale = IdentifyBodyScaleByName(actorName, allowIPC);
+        //    }
+        //    catch (Exception e)
+        //    {
+        //        Dalamud.Logging.PluginLog.LogError($"Error identifying CharacterProfile:\n{e}");
+        //        return null;
+        //    }
+
+        //    return scale;
+        //}
+
+
+        //private static CharacterProfile? IdentifyBodyScaleByName(string actorName, bool allowIPC = false, bool playerOnly = false)
+        //{
+        //    CharacterProfile? prof = null;
+        //    if (allowIPC)
+        //    {
+        //        if (!scaleOverride.TryGetValue(actorName, out prof))
+        //            NameToScale.TryGetValue(actorName, out prof);
+        //    }
+        //    else if (playerOnly && DalamudServices.ObjectTable[0] != null)
+        //    {
+        //        if (DalamudServices.ObjectTable[0].Name.TextValue == actorName)
+        //            NameToScale.TryGetValue(actorName, out prof);
+        //    }
+        //    else
+        //    {
+        //        NameToScale.TryGetValue(actorName, out prof);
+        //    }
+
+        //    return prof;
+        //}
+
 
         // Checks Customization (not ours) of the cutscene model vs the player model to see if
         // the player name should be used.
@@ -323,7 +367,7 @@ namespace CustomizePlus.Helpers
         }
 
         /*
-		public static void SetTemporaryCharacterScale(string characterName, BodyScale scale)
+		public static void SetTemporaryCharacterScale(string characterName, CharacterProfile scale)
 		{
 			if (string.IsNullOrEmpty(characterName))
 				return;
@@ -335,14 +379,14 @@ namespace CustomizePlus.Helpers
 			return scaleOverride.TryRemove(characterName, out _);
 		}
 
-		public static BodyScale? GetBodyScale(string characterName)
+		public static CharacterProfile? GetBodyScale(string characterName)
 		{
 			if (string.IsNullOrEmpty(characterName))
 				return null;
 			return IdentifyBodyScaleByName(characterName, true);
 		}
 
-		public static BodyScale? GetPlayerBodyScale(string characterName)
+		public static CharacterProfile? GetPlayerBodyScale(string characterName)
 		{
 			if (string.IsNullOrEmpty(characterName))
 				return null;

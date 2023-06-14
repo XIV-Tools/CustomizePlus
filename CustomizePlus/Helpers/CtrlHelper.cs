@@ -95,12 +95,12 @@ namespace CustomizePlus.Helpers
             {
                 if (align == TextAlignment.Center)
                 {
-                    ImGui.Dummy(new System.Numerics.Vector2((ImGui.GetContentRegionAvail().X - ImGui.CalcTextSize(text).X) / 2, ImGui.CalcTextSize(text).Y));
+                    ImGui.Dummy(new System.Numerics.Vector2((ImGui.GetContentRegionAvail().X - ImGui.CalcTextSize(text).X) / 2, 0));
                     ImGui.SameLine();
                 }
                 else if (align == TextAlignment.Right)
                 {
-                    ImGui.Dummy(new System.Numerics.Vector2(ImGui.GetContentRegionAvail().X - ImGui.CalcTextSize(text).X, ImGui.CalcTextSize(text).Y));
+                    ImGui.Dummy(new System.Numerics.Vector2(ImGui.GetContentRegionAvail().X - ImGui.CalcTextSize(text).X, 0));
                     ImGui.SameLine();
                 }
 
@@ -109,10 +109,6 @@ namespace CustomizePlus.Helpers
                 {
                     AddHoverText(tooltip);
                 }
-            }
-            else
-            {
-                ImGui.Spacing();
             }
         }
 

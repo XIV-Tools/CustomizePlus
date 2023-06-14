@@ -13,11 +13,13 @@ using CustomizePlus.Helpers;
 using CustomizePlus.UI.Dialogs;
 using Dalamud.Interface;
 using Dalamud.Interface.Components;
+
+using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
 using ImGuiNET;
 
 namespace CustomizePlus.UI.Windows.Debug
 {
-    internal class BoneMonitorWindow : WindowBase
+    internal unsafe class BoneMonitorWindow : WindowBase
     {
         private readonly Dictionary<BoneData.BoneFamily, bool> _groupExpandedState = new();
         private readonly bool _modelFrozen = false;
@@ -27,7 +29,7 @@ namespace CustomizePlus.UI.Windows.Debug
         private BoneAttribute _targetAttribute;
 
 
-        private CharacterProfile? _targetProfile;
+        private CharacterProfile _targetProfile;
         protected override string Title => $"Bone Monitor: {_targetProfile.ToDebugString()}";
         protected override string DrawTitle => $"{Title}###bone_monitor_window{Index}";
 
@@ -36,7 +38,8 @@ namespace CustomizePlus.UI.Windows.Debug
         protected override ImGuiWindowFlags WindowFlags =>
             ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse;
 
-        private Armature? TargetSkeleton => _targetProfile.Armature;
+        private Armature _targetArmature;
+        //private CharacterBase* _targetObject;
 
         public static void Show(CharacterProfile prof)
         {
@@ -45,12 +48,17 @@ namespace CustomizePlus.UI.Windows.Debug
             editWnd._targetProfile = prof;
 
             Plugin.ArmatureManager.RenderCharacterProfiles(prof);
-
-            editWnd.ConfirmSkeletonConnection();
+            editWnd._targetArmature = prof.Armature;
         }
 
         protected override void DrawContents()
         {
+            if (!GameDataHelper.TryLookupCharacterBase(_targetProfile.CharacterName, out CharacterBase* targetObject))
+            {
+                _targetProfile.Enabled = false;
+                DisplayNoLinkMsg();
+            }
+
             ImGui.TextUnformatted($"Character Name: {_targetProfile.CharacterName}");
 
             ImGui.SameLine();
@@ -67,7 +75,6 @@ namespace CustomizePlus.UI.Windows.Debug
             if (CtrlHelper.Checkbox("Live", ref tempEnabled))
             {
                 _targetProfile.Enabled = tempEnabled;
-                ConfirmSkeletonConnection();
             }
 
             CtrlHelper.AddHoverText("Hook the editor into the game to edit and preview live bone data");
@@ -102,36 +109,24 @@ namespace CustomizePlus.UI.Windows.Debug
             if (ImGui.RadioButton("Model", _targetPose == ModelBone.PoseType.Model))
                 _targetPose = ModelBone.PoseType.Model;
 
-            ImGui.SameLine();
-            if (ImGui.RadioButton("Reference", _targetPose == ModelBone.PoseType.Reference))
-                _targetPose = ModelBone.PoseType.Reference;
+            //ImGui.SameLine();
+            //if (ImGui.RadioButton("Reference", _targetPose == ModelBone.PoseType.Reference))
+            //    _targetPose = ModelBone.PoseType.Reference;
 
             //-------------
-
-            CtrlHelper.Checkbox("Aggregate Deforms", ref _aggregateDeforms);
-
-            ImGui.SameLine();
-            ImGui.Spacing();
-            ImGui.SameLine();
-
-            ImGui.TextUnformatted("|");
-
-            ImGui.SameLine();
-            ImGui.Spacing();
-            ImGui.SameLine();
 
             if (!_targetProfile.Enabled)
                 ImGui.BeginDisabled();
 
             if (ImGui.Button("Reload Bone Data"))
-                TargetSkeleton.RebuildSkeleton();
+                _targetArmature.RebuildSkeleton(targetObject);
 
             if (!_targetProfile.Enabled)
                 ImGui.EndDisabled();
 
             ImGui.Separator();
 
-            if (ImGui.BeginTable("Bones", 10,
+            if (ImGui.BeginTable("Bones", 9,
                     ImGuiTableFlags.Borders | ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.ScrollY,
                     new Vector2(0, ImGui.GetFrameHeightWithSpacing() - 56)))
             {
@@ -143,7 +138,6 @@ namespace CustomizePlus.UI.Windows.Debug
                 ImGui.TableSetupColumn("\tW", ImGuiTableColumnFlags.NoReorder | ImGuiTableColumnFlags.WidthStretch);
 
                 ImGui.TableSetupColumn("pSke", ImGuiTableColumnFlags.NoReorder | ImGuiTableColumnFlags.WidthFixed);
-                ImGui.TableSetupColumn("Pose", ImGuiTableColumnFlags.NoReorder | ImGuiTableColumnFlags.WidthFixed);
                 ImGui.TableSetupColumn("Bone", ImGuiTableColumnFlags.NoReorder | ImGuiTableColumnFlags.WidthFixed);
 
                 ImGui.TableSetupColumn("Bone Code",
@@ -156,54 +150,41 @@ namespace CustomizePlus.UI.Windows.Debug
 
                 ImGui.TableHeadersRow();
 
-                if (TargetSkeleton == null)
-                    return;
-
-                var relevantBoneNames = _targetProfile.Enabled
-                    ? TargetSkeleton.GetExtantBoneNames()
-                    : _targetProfile.Bones.Keys;
-
-                //TODO this shouldn't be necessary, the armature shouldn't cease to exist when the profile is disabled?
-                //if it must, then this section should conditionally reroute to show the saved values from within the profile
-                //instead of showing nothing
-                if (relevantBoneNames.Any(x => !TargetSkeleton.Bones.ContainsKey(x)))
-                    return;
-
-                var groupedBones =
-                    relevantBoneNames.GroupBy(x => BoneData.GetBoneFamily(TargetSkeleton.Bones[x].BoneName));
-
-                foreach (var boneGroup in groupedBones.OrderBy(x => (int)x.Key))
+                if (_targetArmature != null && targetObject != null)
                 {
-                    ImGui.TableNextRow();
-                    ImGui.TableSetColumnIndex(0);
+                    IEnumerable<ModelBone> relevantModelBones = _targetArmature.GetAllBones();
 
-                    //create a dropdown entry for the family if one doesn't already exist
-                    //mind that it'll only be rendered if bones exist to fill it
-                    if (!_groupExpandedState.TryGetValue(boneGroup.Key, out var expanded))
+                    var groupedBones = relevantModelBones.GroupBy(x => BoneData.GetBoneFamily(x.BoneName));
+
+                    foreach (var boneGroup in groupedBones.OrderBy(x => (int)x.Key))
                     {
-                        _groupExpandedState[boneGroup.Key] = false;
-                        expanded = false;
-                    }
+                        ImGui.TableNextRow();
+                        ImGui.TableSetColumnIndex(0);
 
-                    CtrlHelper.ArrowToggle($"##{boneGroup.Key}", ref expanded);
-                    ImGui.SameLine();
-                    CtrlHelper.StaticLabel(boneGroup.Key.ToString());
-                    if (BoneData.DisplayableFamilies.TryGetValue(boneGroup.Key, out var tip) && tip != null)
-                        CtrlHelper.AddHoverText(tip);
-
-                    if (expanded)
-                    {
-                        foreach (var codename in boneGroup.OrderBy(x =>
-                                     BoneData.GetBoneIndex(TargetSkeleton.Bones[x].BoneName)))
+                        //create a dropdown entry for the family if one doesn't already exist
+                        //mind that it'll only be rendered if bones exist to fill it
+                        if (!_groupExpandedState.TryGetValue(boneGroup.Key, out var expanded))
                         {
-                            for (var tri = 0; tri < TargetSkeleton.Bones[codename].TripleIndices.Count; ++tri)
+                            _groupExpandedState[boneGroup.Key] = false;
+                            expanded = false;
+                        }
+
+                        CtrlHelper.ArrowToggle($"##{boneGroup.Key}", ref expanded);
+                        ImGui.SameLine();
+                        CtrlHelper.StaticLabel(boneGroup.Key.ToString());
+                        if (BoneData.DisplayableFamilies.TryGetValue(boneGroup.Key, out var tip) && tip != null)
+                            CtrlHelper.AddHoverText(tip);
+
+                        if (expanded)
+                        {
+                            foreach (ModelBone mb in boneGroup.OrderBy(x => BoneData.GetBoneRanking(x.BoneName)))
                             {
-                                TransformationInfo(codename, tri);
+                                RenderTransformationInfo(mb, targetObject);
                             }
                         }
-                    }
 
-                    _groupExpandedState[boneGroup.Key] = expanded;
+                        _groupExpandedState[boneGroup.Key] = expanded;
+                    }
                 }
 
                 ImGui.EndTable();
@@ -215,15 +196,6 @@ namespace CustomizePlus.UI.Windows.Debug
 
             if (ImGui.Button("Cancel"))
                 Close();
-        }
-
-        public void ConfirmSkeletonConnection()
-        {
-            if (!TargetSkeleton.TryLinkSkeleton())
-            {
-                _targetProfile.Enabled = false;
-                DisplayNoLinkMsg();
-            }
         }
 
         public void DisplayNoLinkMsg()
@@ -242,49 +214,19 @@ namespace CustomizePlus.UI.Windows.Debug
             return output;
         }
 
-        private void TransformationInfo(string codename, int triplexIndex)
+        private void RenderTransformationInfo(ModelBone bone, CharacterBase* cBase)
         {
-            if (_targetProfile.Enabled
-                && TargetSkeleton.Bones.TryGetValue(codename, out var mb)
-                && mb != null
-                && mb.TripleIndices.ElementAtOrDefault(triplexIndex) is var triplex
-                && triplex != null
-                && mb.TryGetGameTransform(triplexIndex, _targetPose, out var deform))
+            if (bone.GetGameTransform(cBase, _targetPose) is FFXIVClientStructs.Havok.hkQsTransformf deform)
             {
-                var displayName = mb.GetDisplayName();
+                var displayName = bone.ToString();
 
                 var rowVector = deform.GetAttribute(_targetAttribute).GetAsNumericsVector();
 
-                if (_aggregateDeforms)
-                {
-                    var vectors = mb.GetLineage()
-                        .Where(x => x.GetGameTransforms().Count() > triplexIndex)
-                        .Select(x => x
-                            .GetGameTransforms()[triplexIndex]
-                            .GetAttribute(_targetAttribute)
-                            .GetAsNumericsVector());
-
-                    if (vectors.Any())
-                    {
-                        rowVector = vectors.Aggregate((x, y) =>
-                        {
-                            return _targetAttribute switch
-                            {
-                                BoneAttribute.Position => x + y,
-                                BoneAttribute.Rotation => Quaternion.Multiply(x.ToQuaternion(), y.ToQuaternion())
-                                    .GetAsNumericsVector(),
-                                BoneAttribute.Scale => x * y,
-                                _ => throw new NotImplementedException()
-                            };
-                        });
-                    }
-                }
-
-                ImGui.PushID(codename.GetHashCode() + triplexIndex);
+                ImGui.PushID(bone.BoneName.GetHashCode());
 
                 ImGui.TableNextRow();
                 ImGui.TableSetColumnIndex(0);
-                MysteryButton(codename, ref rowVector);
+                //MysteryButton(bone.BoneName, ref rowVector);
 
                 //----------------------------------
                 ImGui.PushFont(UiBuilder.MonoFont);
@@ -304,21 +246,18 @@ namespace CustomizePlus.UI.Windows.Debug
                 //----------------------------------
 
                 ImGui.TableNextColumn();
-                ImGui.TextDisabled($"{triplex.Item1,3}");
+                ImGui.TextDisabled($"{bone.PartialSkeletonIndex,3}");
 
                 ImGui.TableNextColumn();
-                ImGui.TextDisabled($"{triplex.Item2,3}");
-
-                ImGui.TableNextColumn();
-                ImGui.TextDisabled($"{triplex.Item3,3}");
+                ImGui.TextDisabled($"{bone.BoneIndex,3}");
 
                 //----------------------------------
 
                 ImGui.TableNextColumn();
-                CtrlHelper.StaticLabel(mb.BoneName, CtrlHelper.TextAlignment.Left, displayName);
+                CtrlHelper.StaticLabel(bone.BoneName, CtrlHelper.TextAlignment.Left, displayName);
 
                 ImGui.TableNextColumn();
-                CtrlHelper.StaticLabel(BoneData.GetBoneDisplayName(mb.BoneName));
+                CtrlHelper.StaticLabel(BoneData.GetBoneDisplayName(bone.BoneName));
 
                 ImGui.PopFont();
 
