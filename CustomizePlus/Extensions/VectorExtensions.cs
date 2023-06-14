@@ -13,21 +13,37 @@ namespace CustomizePlus.Extensions
         public static bool IsApproximately(this hkVector4f vector, Vector3 other, float errorMargin = 0.001f)
         {
             return IsApproximately(vector.X, other.X, errorMargin)
-                   && IsApproximately(vector.Y, other.Y, errorMargin)
-                   && IsApproximately(vector.Z, other.Z, errorMargin);
+                && IsApproximately(vector.Y, other.Y, errorMargin)
+                && IsApproximately(vector.Z, other.Z, errorMargin);
         }
 
         public static bool IsApproximately(this Vector3 vector, Vector3 other, float errorMargin = 0.001f)
         {
             return IsApproximately(vector.X, other.X, errorMargin)
-                   && IsApproximately(vector.Y, other.Y, errorMargin)
-                   && IsApproximately(vector.Z, other.Z, errorMargin);
+                && IsApproximately(vector.Y, other.Y, errorMargin)
+                && IsApproximately(vector.Z, other.Z, errorMargin);
+        }
+
+        public static bool IsApproximately(this Vector4 vector, Vector4 other, float errorMargin = 0.001f)
+        {
+            return IsApproximately(vector.X, other.X, errorMargin)
+                && IsApproximately(vector.Y, other.Y, errorMargin)
+                && IsApproximately(vector.Z, other.Z, errorMargin)
+                && IsApproximately(vector.W, other.W, errorMargin);
         }
 
         private static bool IsApproximately(float a, float b, float errorMargin)
         {
             var d = MathF.Abs(a - b);
             return d < errorMargin;
+        }
+
+        private static bool IsApproximately(this Quaternion quat, Quaternion other, float errorMargin = 0.001f)
+        {
+            return IsApproximately(quat.X, other.X, errorMargin)
+                && IsApproximately(quat.Y, other.Y, errorMargin)
+                && IsApproximately(quat.Z, other.Z, errorMargin)
+                && IsApproximately(quat.W, other.W, errorMargin);
         }
 
         public static Quaternion ToQuaternion(this Vector3 rotation)
@@ -59,49 +75,75 @@ namespace CustomizePlus.Extensions
 
         public static Quaternion ToQuaternion(this Vector4 rotation)
         {
-            return new Quaternion(rotation.X, rotation.Y, rotation.Z, rotation.W);
+            if (new Quaternion(rotation.X, rotation.Y, rotation.Z, rotation.W) is Quaternion q
+                && q.IsApproximately(Quaternion.Identity))
+            {
+                return Quaternion.Identity;
+            }
+            return q;
         }
 
         public static Quaternion ToQuaternion(this hkQuaternionf rotation)
         {
-            return new Quaternion(rotation.X, rotation.Y, rotation.Z, rotation.W);
+            if (new Quaternion(rotation.X, rotation.Y, rotation.Z, rotation.W) is Quaternion q
+                && q.IsApproximately(Quaternion.Identity))
+            {
+                return Quaternion.Identity;
+            }
+            return q;
         }
 
         public static Quaternion ToQuaternion(this hkVector4f rotation)
         {
-            return new Quaternion(rotation.X, rotation.Y, rotation.Z, rotation.W);
+            if (new Quaternion(rotation.X, rotation.Y, rotation.Z, rotation.W) is Quaternion q
+                && q.IsApproximately(Quaternion.Identity))
+            {
+                return Quaternion.Identity;
+            }
+            return q;
         }
 
 
-        public static hkQuaternionf ToHavokRotation(this Quaternion rotation)
+        public static hkQuaternionf ToHavokRotation(this Quaternion rot)
         {
             return new hkQuaternionf
             {
-                X = rotation.X,
-                Y = rotation.Y,
-                Z = rotation.Z,
-                W = rotation.W
+                X = rot.X,
+                Y = rot.Y,
+                Z = rot.Z,
+                W = rot.W
             };
         }
 
-        public static hkVector4f ToHavokTranslation(this Vector3 translation)
+        public static hkQuaternionf ToHavokRotation(this FFXIVClientStructs.FFXIV.Common.Math.Quaternion rot)
         {
-            return new hkVector4f
+            return new hkQuaternionf
             {
-                X = translation.X,
-                Y = translation.Y,
-                Z = translation.Z,
-                W = 0.0f
+                X = rot.X,
+                Y = rot.Y,
+                Z = rot.Z,
+                W = rot.W
             };
         }
 
-        public static hkVector4f ToHavokScaling(this Vector3 scaling)
+        public static hkVector4f ToHavokVector(this Vector3 vec)
         {
             return new hkVector4f
             {
-                X = scaling.X,
-                Y = scaling.Y,
-                Z = scaling.Z,
+                X = vec.X,
+                Y = vec.Y,
+                Z = vec.Z,
+                W = 1.0f
+            };
+        }
+
+        public static hkVector4f ToHavokVector(this FFXIVClientStructs.FFXIV.Common.Math.Vector3 vec)
+        {
+            return new hkVector4f
+            {
+                X = vec.X,
+                Y = vec.Y,
+                Z = vec.Z,
                 W = 1.0f
             };
         }
@@ -117,24 +159,60 @@ namespace CustomizePlus.Extensions
             };
         }
 
-        public static Vector3 GetAsNumericsVector(this PoseFile.Vector vec)
+        public static hkVector4f ToHavokVector(this FFXIVClientStructs.FFXIV.Common.Math.Vector4 vec)
         {
-            return new Vector3(vec.X, vec.Y, vec.Z);
+            return new hkVector4f
+            {
+                X = vec.X,
+                Y = vec.Y,
+                Z = vec.Z,
+                W = 1.0f
+            };
         }
 
-        public static Vector4 GetAsNumericsVector(this hkVector4f vec)
+        public static Vector3 GetAsNumericsVector(this PoseFile.Vector vec)
         {
-            return new Vector4(vec.X, vec.Y, vec.Z, vec.W);
+            Vector3 v = new Vector3(vec.X, vec.Y, vec.Z);
+
+            if (v.IsApproximately(Vector3.Zero))
+            {
+                return Vector3.Zero;
+            }
+            else if (v.IsApproximately(Vector3.One))
+            {
+                return Vector3.One;
+            }
+            return v;
+        }
+
+        public static Vector3 GetAsNumericsVector(this hkVector4f vec)
+        {
+            Vector3 v = new Vector3(vec.X, vec.Y, vec.Z);
+
+            if (v.IsApproximately(Vector3.Zero))
+            {
+                return Vector3.Zero;
+            }
+            else if (v.IsApproximately(Vector3.One))
+            {
+                return Vector3.One;
+            }
+            return v;
         }
 
         public static Vector4 GetAsNumericsVector(this Quaternion q)
         {
-            return new Vector4(q.X, q.Y, q.Z, q.W);
-        }
+            Vector4 v = new Vector4(q.X, q.Y, q.Z, q.W);
 
-        public static Vector3 RemoveWTerm(this Vector4 vec)
-        {
-            return new Vector3(vec.X, vec.Y, vec.Z);
+            if (v.IsApproximately(Vector4.Zero))
+            {
+                return Vector4.Zero;
+            }
+            else if (v.IsApproximately(Vector4.One))
+            {
+                return Vector4.One;
+            }
+            return v;
         }
 
         public static bool Equals(this hkVector4f first, hkVector4f second)

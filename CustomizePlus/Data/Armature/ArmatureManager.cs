@@ -71,7 +71,7 @@ namespace CustomizePlus.Data.Armature
                     && prof.Armature != null
                     && prof.Armature.IsVisible)
                 {
-                    prof.Armature.ApplyPiecewiseTransformation(obj);
+                    prof.Armature.ApplyTransformation(obj);
                 }
             }
         }

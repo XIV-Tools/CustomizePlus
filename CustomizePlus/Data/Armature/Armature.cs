@@ -310,33 +310,40 @@ namespace CustomizePlus.Data.Armature
                         if (currentPose->Skeleton->Bones[boneIndex].Name.String is string boneName &&
                             boneName != null)
                         {
-                            //time to build a new bone
-                            ModelBone newBone = new(arm, boneName, pSkeleIndex, boneIndex);
-
-                            if (currentPose->Skeleton->ParentIndices[boneIndex] is short parentIndex
-                                && parentIndex >= 0)
+                            if (pSkeleIndex == 0 && boneIndex == 0)
                             {
-                                newBone.AddParent(pSkeleIndex, parentIndex);
-                                newPartials[pSkeleIndex][parentIndex].AddChild(pSkeleIndex, boneIndex);
+                                newPartials.Last().Add(AliasedBone.CreateRootBone(arm, boneName));
                             }
-
-                            foreach (ModelBone mb in newPartials.SelectMany(x => x))
+                            else
                             {
-                                if (AreTwinnedNames(boneName, mb.BoneName))
+                                //time to build a new bone
+                                ModelBone newBone = new(arm, boneName, pSkeleIndex, boneIndex);
+
+                                if (currentPose->Skeleton->ParentIndices[boneIndex] is short parentIndex
+                                    && parentIndex >= 0)
                                 {
-                                    newBone.AddTwin(mb.PartialSkeletonIndex, mb.BoneIndex);
-                                    mb.AddTwin(pSkeleIndex, boneIndex);
-                                    break;
+                                    newBone.AddParent(pSkeleIndex, parentIndex);
+                                    newPartials[pSkeleIndex][parentIndex].AddChild(pSkeleIndex, boneIndex);
                                 }
-                            }
 
-                            if (arm.Profile.Bones.TryGetValue(boneName, out BoneTransform? bt)
-                                && bt != null)
-                            {
-                                newBone.UpdateModel(bt);
-                            }
+                                foreach (ModelBone mb in newPartials.SelectMany(x => x))
+                                {
+                                    if (AreTwinnedNames(boneName, mb.BoneName))
+                                    {
+                                        newBone.AddTwin(mb.PartialSkeletonIndex, mb.BoneIndex);
+                                        mb.AddTwin(pSkeleIndex, boneIndex);
+                                        break;
+                                    }
+                                }
 
-                            newPartials.Last().Add(newBone);
+                                if (arm.Profile.Bones.TryGetValue(boneName, out BoneTransform? bt)
+                                    && bt != null)
+                                {
+                                    newBone.UpdateModel(bt);
+                                }
+
+                                newPartials.Last().Add(newBone);
+                            }
                         }
                         else
                         {
@@ -362,44 +369,9 @@ namespace CustomizePlus.Data.Armature
 
         /// <summary>
         /// Iterate through this armature's model bones and apply their associated transformations
-        /// to all of their in-game siblings
+        /// to all of their in-game siblings.
         /// </summary>
         public unsafe void ApplyTransformation(GameObject obj)
-        {
-            CharacterBase* cBase = obj.ToCharacterBase();
-
-            if (cBase != null)
-            {
-                foreach (ModelBone mb in GetAllBones().Where(x => x.CustomizedTransform.IsEdited()))
-                {
-                    if (mb == MainRootBone)
-                    {
-                        //the main root bone's position information is handled by a different hook
-                        //so there's no point in trying to update it here
-                        //meanwhile root scaling has special rules
-
-                        if (obj.HasScalableRoot())
-                        {
-                            mb.ApplyModelScale(cBase);
-                        }
-
-                        mb.ApplyModelRotation(cBase);
-                    }
-                    else
-                    {
-                        mb.ApplyModelTransform(cBase);
-                    }
-                }
-            }
-        }
-
-
-        /// <summary>
-        /// Iterate through the skeleton of the given character base, and apply any transformations
-        /// for which this armature contains corresponding model bones. This method of application
-        /// is safer but more computationally costly
-        /// </summary>
-        public unsafe void ApplyPiecewiseTransformation(GameObject obj)
         {
             CharacterBase* cBase = obj.ToCharacterBase();
 
@@ -411,22 +383,18 @@ namespace CustomizePlus.Data.Armature
 
                     if (currentPose != null)
                     {
+                        //if (SnapToReferencePose)
+                        //{
+                        //    currentPose->SetToReferencePose();
+                        //}
+
                         for (int boneIndex = 0; boneIndex < currentPose->Skeleton->Bones.Length; ++boneIndex)
                         {
                             if (GetBoneAt(pSkeleIndex, boneIndex) is ModelBone mb
                                 && mb != null
                                 && mb.BoneName == currentPose->Skeleton->Bones[boneIndex].Name.String)
                             {
-                                if (mb == MainRootBone)
-                                {
-                                    if (obj.HasScalableRoot())
-                                    {
-                                        mb.ApplyModelScale(cBase);
-                                    }
-
-                                    mb.ApplyModelRotation(cBase);
-                                }
-                                else if (GameStateHelper.GameInPosingMode())
+                                if (GameStateHelper.GameInPosingMode())
                                 {
                                     mb.ApplyModelScale(cBase);
                                 }

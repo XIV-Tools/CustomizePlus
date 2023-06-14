@@ -216,9 +216,9 @@ namespace CustomizePlus.Data
 
         public hkQsTransformf ModifyExistingTranslation(hkQsTransformf tr)
         {
-            tr.Translation.X += Translation.X;
-            tr.Translation.Y += Translation.Y;
-            tr.Translation.Z += Translation.Z;
+            tr.Translation.X += MathF.Max(Translation.X, 0.01f);
+            tr.Translation.Y += MathF.Max(Translation.Y, 0.01f);
+            tr.Translation.Z += MathF.Max(Translation.Z, 0.01f);
 
             return tr;
         }

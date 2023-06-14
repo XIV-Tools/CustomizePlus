@@ -28,9 +28,9 @@ namespace CustomizePlus.Extensions
         {
             return new hkQsTransformf
             {
-                Translation = bt.Translation.ToHavokTranslation(),
+                Translation = bt.Translation.ToHavokVector(),
                 Rotation = bt.Rotation.ToQuaternion().ToHavokRotation(),
-                Scale = bt.Scaling.ToHavokScaling()
+                Scale = bt.Scaling.ToHavokVector()
             };
         }
 

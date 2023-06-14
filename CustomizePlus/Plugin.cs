@@ -243,16 +243,16 @@ namespace CustomizePlus
             // if this gets disposed while running we crash calling Original's getter, so get it at start
             var original = _renderManagerHook.Original;
 
-            try
-            {
-                var activeProfiles = ProfileManager.GetEnabledProfiles();
-                ArmatureManager.RenderCharacterProfiles(activeProfiles);
-            }
-            catch (Exception e)
-            {
-                PluginLog.Error($"Error in CustomizePlus render hook {e}");
-                _renderManagerHook?.Disable();
-            }
+            //try
+            //{
+            //    var activeProfiles = ProfileManager.GetEnabledProfiles();
+            //    ArmatureManager.RenderCharacterProfiles(activeProfiles);
+            //}
+            //catch (Exception e)
+            //{
+            //    PluginLog.Error($"Error in CustomizePlus render hook {e}");
+            //    _renderManagerHook?.Disable();
+            //}
 
             return original(a1, a2, a3, a4);
         }
@@ -264,30 +264,30 @@ namespace CustomizePlus
             _gameObjectMovementHook.Original(gameObjectPtr);
 
             ////If GPose and a 3rd-party posing service are active simultneously, abort
-            if (GameStateHelper.GameInPosingMode())
-            {
-                return;
-            }
+            //if (GameStateHelper.GameInPosingMode())
+            //{
+            //    return;
+            //}
 
-            if (DalamudServices.ObjectTable.CreateObjectReference(gameObjectPtr) is var obj
-                && obj != null
-                && ProfileManager.GetProfilesByGameObject(obj) .FirstOrDefault(x => x.Enabled) is CharacterProfile prof
-                && prof != null
-                && prof.Armature != null)
-            {
-                prof.Armature.ApplyRootTranslation(obj.ToCharacterBase());
+            //if (DalamudServices.ObjectTable.CreateObjectReference(gameObjectPtr) is var obj
+            //    && obj != null
+            //    && ProfileManager.GetProfilesByGameObject(obj) .FirstOrDefault(x => x.Enabled) is CharacterProfile prof
+            //    && prof != null
+            //    && prof.Armature != null)
+            //{
+            //    prof.Armature.ApplyRootTranslation(obj.ToCharacterBase());
 
-                //var objIndex = obj.ObjectIndex;
+            //    //var objIndex = obj.ObjectIndex;
 
-                //var isForbiddenFiller = objIndex == Constants.ObjectTableFillerIndex;
-                //var isForbiddenCutsceneNPC = Constants.IsInObjectTableCutsceneNPCRange(objIndex)
-                //                             || !ConfigurationManager.Configuration.ApplyToNPCsInCutscenes;
+            //    //var isForbiddenFiller = objIndex == Constants.ObjectTableFillerIndex;
+            //    //var isForbiddenCutsceneNPC = Constants.IsInObjectTableCutsceneNPCRange(objIndex)
+            //    //                             || !ConfigurationManager.Configuration.ApplyToNPCsInCutscenes;
 
-                //if (!isForbiddenFiller && !isForbiddenCutsceneNPC)
-                //{
-                //    ArmatureManager.RenderArmatureByObject(obj);
-                //}
-            }
+            //    //if (!isForbiddenFiller && !isForbiddenCutsceneNPC)
+            //    //{
+            //    //    ArmatureManager.RenderArmatureByObject(obj);
+            //    //}
+            //}
         }
     }
 }

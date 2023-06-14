@@ -220,7 +220,7 @@ namespace CustomizePlus.UI.Windows.Debug
             {
                 var displayName = bone.ToString();
 
-                var rowVector = deform.GetAttribute(_targetAttribute).GetAsNumericsVector();
+                var rowVector = deform.GetAttribute(_targetAttribute);
 
                 ImGui.PushID(bone.BoneName.GetHashCode());
 

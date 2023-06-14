@@ -1,8 +1,11 @@
 ﻿// © Customize+.
 // Licensed under the MIT license.
 
+using CustomizePlus.Extensions;
+
 using System;
 using System.Collections.Generic;
+using System.Numerics;
 using System.Linq;
 
 using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
@@ -197,7 +200,7 @@ namespace CustomizePlus.Data.Armature
 
         /// <summary>
         /// For each OTHER bone that shares the name of this one, direct
-        /// it to update its transform to match the one provided
+        /// it to update its transform to match the one provided.
         /// </summary>
         private void UpdateClones(BoneTransform newTransform)
         {
@@ -212,7 +215,7 @@ namespace CustomizePlus.Data.Armature
         /// Given a character base to which this model bone's master armature (presumably) applies,
         /// return the game's transform value for this model's in-game sibling within the given reference frame.
         /// </summary>
-        public hkQsTransformf GetGameTransform(CharacterBase* cBase, PoseType refFrame)
+        public virtual hkQsTransformf GetGameTransform(CharacterBase* cBase, PoseType refFrame)
         {
 
             FFXIVClientStructs.FFXIV.Client.Graphics.Render.Skeleton* skelly = cBase->Skeleton;
@@ -231,15 +234,10 @@ namespace CustomizePlus.Data.Armature
             };
         }
 
-        private void SetGameTransform(CharacterBase* cBase, hkQsTransformf transform, PoseType refFrame)
-        {
-            SetGameTransform(cBase, transform, PartialSkeletonIndex, BoneIndex, refFrame);
-        }
-
-        private static void SetGameTransform(CharacterBase* cBase, hkQsTransformf transform, int partialIndex, int boneIndex, PoseType refFrame)
+        protected virtual void SetGameTransform(CharacterBase* cBase, hkQsTransformf transform, PoseType refFrame)
         {
             FFXIVClientStructs.FFXIV.Client.Graphics.Render.Skeleton* skelly = cBase->Skeleton;
-            FFXIVClientStructs.FFXIV.Client.Graphics.Render.PartialSkeleton pSkelly = skelly->PartialSkeletons[partialIndex];
+            FFXIVClientStructs.FFXIV.Client.Graphics.Render.PartialSkeleton pSkelly = skelly->PartialSkeletons[PartialSkeletonIndex];
             hkaPose* targetPose = pSkelly.GetHavokPose(Constants.TruePoseIndex);
             //hkaPose* targetPose = cBase->Skeleton->PartialSkeletons[PartialSkeletonIndex].GetHavokPose(Constants.TruePoseIndex);
 
@@ -248,11 +246,11 @@ namespace CustomizePlus.Data.Armature
             switch (refFrame)
             {
                 case PoseType.Local:
-                    targetPose->LocalPose.Data[boneIndex] = transform;
+                    targetPose->LocalPose.Data[BoneIndex] = transform;
                     return;
 
                 case PoseType.Model:
-                    targetPose->ModelPose.Data[boneIndex] = transform;
+                    targetPose->ModelPose.Data[BoneIndex] = transform;
                     return;
 
                 default:
@@ -262,20 +260,69 @@ namespace CustomizePlus.Data.Armature
             }
         }
 
+        private static void SetSnappedTransform(CharacterBase* cBase, hkQsTransformf transform, int partialIndex, int boneIndex, BoneTransform bt)
+        {
+            FFXIVClientStructs.FFXIV.Client.Graphics.Render.Skeleton* skelly = cBase->Skeleton;
+            FFXIVClientStructs.FFXIV.Client.Graphics.Render.PartialSkeleton pSkelly = skelly->PartialSkeletons[partialIndex];
+            hkaPose* targetPose = pSkelly.GetHavokPose(Constants.TruePoseIndex);
+
+            if (targetPose == null) return;
+
+            //targetPose->AccessUnsyncedPoseLocalSpace()->Data[boneIndex] = transform;
+
+            //Referencing from Ktisis, Function 'SetFromLocalPose' @ Line 39 in 'Havok.cs'
+
+            var tRef = targetPose->Skeleton->ReferencePose[boneIndex];
+
+            var tParent = targetPose->ModelPose[targetPose->Skeleton->ParentIndices[boneIndex]];
+            var tModel =
+                *targetPose->AccessBoneModelSpace(boneIndex, hkaPose.PropagateOrNot.Propagate);
+
+
+            var v1 = tParent.Translation.GetAsNumericsVector();
+            var v2 = tRef.Translation.GetAsNumericsVector();
+            var r1 = tParent.Rotation.ToQuaternion();
+
+            var o1 = Vector3.Transform(v2, r1);
+            var o2 = v1 + o1;
+            var t1 = o2.ToHavokVector();
+
+            tModel.Translation =
+            (
+                tParent.Translation.GetAsNumericsVector()
+                + Vector3.Transform(tRef.Translation.GetAsNumericsVector(),
+                    tParent.Rotation.ToQuaternion())
+            ).ToHavokVector();
+
+            tModel.Rotation =
+                (tParent.Rotation.ToQuaternion() * tRef.Rotation.ToQuaternion()).ToHavokRotation();
+            tModel.Scale = tRef.Scale;
+
+            var t = tModel;
+            var tNew = bt.ModifyExistingTranslationWithRotation(bt.ModifyExistingRotation(bt.ModifyExistingScale(t)));
+            targetPose->ModelPose.Data[boneIndex] = tNew;
+        }
+
         /// <summary>
         /// Apply this model bone's associated transformation to its in-game sibling within
         /// the skeleton of the given character base.
         /// </summary>
-        public void ApplyModelTransform(CharacterBase* cBase)
+        public virtual void ApplyModelTransform(CharacterBase* cBase)
         {
             if (cBase != null
                 && CustomizedTransform.IsEdited()
                 && GetGameTransform(cBase, PoseType.Model) is hkQsTransformf gameTransform
-                && !gameTransform.Equals(Constants.NullTransform)
-                && CustomizedTransform.ModifyExistingTransform(gameTransform) is hkQsTransformf modTransform
-                && !modTransform.Equals(Constants.NullTransform))
+                && !gameTransform.Equals(Constants.NullTransform))
             {
-                SetGameTransform(cBase, modTransform, PoseType.Model);
+                if (MasterArmature.SnapToReferencePose)
+                {
+                    SetSnappedTransform(cBase, gameTransform, PartialSkeletonIndex, BoneIndex, CustomizedTransform);
+                }
+                else if (CustomizedTransform.ModifyExistingTransform(gameTransform) is hkQsTransformf modTransform
+                    && !modTransform.Equals(Constants.NullTransform))
+                {
+                    SetGameTransform(cBase, modTransform, PoseType.Model);
+                }
             }
         }
 
