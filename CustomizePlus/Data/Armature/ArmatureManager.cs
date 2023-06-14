@@ -1,6 +1,7 @@
 ﻿// © Customize+.
 // Licensed under the MIT license.
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using CustomizePlus.Data.Profile;
@@ -19,9 +20,19 @@ namespace CustomizePlus.Data.Armature
 
         public void RenderCharacterProfiles(params CharacterProfile[] profiles)
         {
-            RefreshActiveArmatures(profiles);
-            RefreshArmatureVisibility();
-            ApplyArmatureTransforms();
+            //RefreshActiveArmatures(profiles);
+            //RefreshArmatureVisibility();
+            //ApplyArmatureTransforms();
+            try
+            {
+                RefreshActiveArmatures(profiles);
+                RefreshArmatureVisibility();
+                ApplyArmatureTransforms();
+            }
+            catch (Exception ex)
+            {
+                Dalamud.Logging.PluginLog.LogError($"Exception while rendering character profiles:\n\t{ex}");
+            }
         }
 
         public void ConstructArmatureForProfile(CharacterProfile newProfile)
