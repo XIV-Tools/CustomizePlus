@@ -180,7 +180,7 @@ namespace CustomizePlus.Data
 
         public hkQsTransformf ModifyExistingTransform(hkQsTransformf tr)
         {
-            return ModifyExistingTranslation(ModifyExistingRotation(ModifyExistingScale(tr)));
+            return ModifyExistingTranslationWithRotation(ModifyExistingRotation(ModifyExistingScale(tr)));
         }
 
         public hkQsTransformf ModifyExistingScale(hkQsTransformf tr)
@@ -203,13 +203,22 @@ namespace CustomizePlus.Data
             return tr;
         }
 
-        public hkQsTransformf ModifyExistingTranslation(hkQsTransformf tr)
+        public hkQsTransformf ModifyExistingTranslationWithRotation(hkQsTransformf tr)
         {
             var adjustedTranslation = Vector4.Transform(Translation, tr.Rotation.ToQuaternion());
             tr.Translation.X += adjustedTranslation.X;
             tr.Translation.Y += adjustedTranslation.Y;
             tr.Translation.Z += adjustedTranslation.Z;
             tr.Translation.W += adjustedTranslation.W;
+
+            return tr;
+        }
+
+        public hkQsTransformf ModifyExistingTranslation(hkQsTransformf tr)
+        {
+            tr.Translation.X += Translation.X;
+            tr.Translation.Y += Translation.Y;
+            tr.Translation.Z += Translation.Z;
 
             return tr;
         }

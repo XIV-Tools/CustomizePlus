@@ -279,23 +279,19 @@ namespace CustomizePlus.Data.Armature
             }
         }
 
-        public void ApplyModelTransform(CharacterBase* cBase, BoneAttribute which)
+        public void ApplyModelScale(CharacterBase* cBase) => ApplyTransFunc(cBase, CustomizedTransform.ModifyExistingScale);
+        public void ApplyModelRotation(CharacterBase* cBase) => ApplyTransFunc(cBase, CustomizedTransform.ModifyExistingRotation);
+        public void ApplyModelFullTranslation(CharacterBase* cBase) => ApplyTransFunc(cBase, CustomizedTransform.ModifyExistingTranslationWithRotation);
+        public void ApplyStraightModelTranslation(CharacterBase* cBase) => ApplyTransFunc(cBase, CustomizedTransform.ModifyExistingTranslation);
+
+        private void ApplyTransFunc(CharacterBase* cBase, Func<hkQsTransformf, hkQsTransformf> modTrans)
         {
             if (cBase != null
                 && CustomizedTransform.IsEdited()
                 && GetGameTransform(cBase, PoseType.Model) is hkQsTransformf gameTransform
                 && !gameTransform.Equals(Constants.NullTransform))
             {
-                hkQsTransformf modTransform = which switch
-                {
-                    BoneAttribute.Scale => CustomizedTransform.ModifyExistingScale(gameTransform),
-                    BoneAttribute.Rotation => Helpers.GameStateHelper.GameInPosingMode()
-                        ? gameTransform
-                        : CustomizedTransform.ModifyExistingRotation(gameTransform),
-                    BoneAttribute.Position => Helpers.GameStateHelper.GameInPosingMode()
-                        ? gameTransform
-                        : CustomizedTransform.ModifyExistingTranslation(gameTransform)
-                };
+                hkQsTransformf modTransform = modTrans(gameTransform);
 
                 if (!modTransform.Equals(gameTransform) && !modTransform.Equals(Constants.NullTransform))
                 {
