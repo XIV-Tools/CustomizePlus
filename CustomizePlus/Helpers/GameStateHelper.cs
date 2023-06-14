@@ -11,7 +11,7 @@ namespace CustomizePlus.Helpers
         public static bool GameInPosingMode()
         {
             return Services.GPoseService.Instance.GPoseState == Services.GPoseState.Inside
-                && Services.PosingModeDetectService.Instance.IsInPosingMode;
+                || Services.PosingModeDetectService.Instance.IsInPosingMode;
         }
 
     }

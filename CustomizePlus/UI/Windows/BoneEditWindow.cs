@@ -208,6 +208,7 @@ namespace CustomizePlus.UI.Windows
                 ImGui.TableNextRow();
                 ImGui.TableSetColumnIndex(0);
 
+                if (GameStateHelper.GameInPosingMode()) ImGui.BeginDisabled();
                 if (ImGui.RadioButton("Position", _settings.EditingAttribute == BoneAttribute.Position))
                 {
                     _settings.EditingAttribute = BoneAttribute.Position;
@@ -220,6 +221,7 @@ namespace CustomizePlus.UI.Windows
                     _settings.EditingAttribute = BoneAttribute.Rotation;
                 }
                 CtrlHelper.AddHoverText($"May have unintended effects. Edit at your own risk!");
+                if (GameStateHelper.GameInPosingMode()) ImGui.EndDisabled();
 
                 ImGui.SameLine();
                 if (ImGui.RadioButton("Scale", _settings.EditingAttribute == BoneAttribute.Scale))
