@@ -80,6 +80,20 @@ namespace CustomizePlus.Data.Armature
         }
 
         /// <summary>
+        /// Return the bone at the given indices, if it exists
+        /// </summary>
+        public ModelBone? GetBoneAt(int partialIndex, int boneIndex)
+        {
+            if (_partialSkeletons.Length > partialIndex
+                && _partialSkeletons[partialIndex].Length > boneIndex)
+            {
+                return this[partialIndex, boneIndex];
+            }
+
+            return null;
+        }
+
+        /// <summary>
         /// Returns the root bone of the partial skeleton with the given index.
         /// </summary>
         public ModelBone GetRootBoneOfPartial(int partialIndex) => this[partialIndex, 0];
@@ -176,8 +190,6 @@ namespace CustomizePlus.Data.Armature
         /// </summary>
         public unsafe bool TryLinkSkeleton(bool forceRebuild = false)
         {
-            if (this.Profile.CharacterName == Constants.DefaultProfileCharacterName) { }
-
             try
             {
                 if (DalamudServices.ObjectTable.FirstOrDefault(Profile.AppliesTo) is GameObject obj
@@ -206,7 +218,11 @@ namespace CustomizePlus.Data.Armature
 
         private bool NewBonesAvailable(CharacterBase* cBase)
         {
-            if (cBase->Skeleton->PartialSkeletonCount > _partialSkeletons.Length)
+            if (cBase == null)
+            {
+                return false;
+            }
+            else if (cBase->Skeleton->PartialSkeletonCount > _partialSkeletons.Length)
             {
                 return true;
             }
@@ -344,8 +360,14 @@ namespace CustomizePlus.Data.Armature
             this[partialIdx, boneIdx].UpdateModel(bt, mirror, propagate);
         }
 
-        public unsafe void ApplyTransformation(CharacterBase* cBase)
+        /// <summary>
+        /// Iterate through this armature's model bones and apply their associated transformations
+        /// to all of their in-game siblings
+        /// </summary>
+        public unsafe void ApplyTransformation(GameObject obj)
         {
+            CharacterBase* cBase = obj.ToCharacterBase();
+
             if (cBase != null)
             {
                 foreach (ModelBone mb in GetAllBones().Where(x => x.CustomizedTransform.IsEdited()))
@@ -356,12 +378,12 @@ namespace CustomizePlus.Data.Armature
                         //so there's no point in trying to update it here
                         //meanwhile root scaling has special rules
 
-                        if ((*(GameObject*)cBase).HasScalableRoot())
+                        if (obj.HasScalableRoot())
                         {
-                            mb.ApplyModelTransform(cBase, BoneAttribute.Scale);
+                            mb.ApplyModelScale(cBase);
                         }
 
-                        mb.ApplyModelTransform(cBase, BoneAttribute.Rotation);
+                        mb.ApplyModelRotation(cBase);
                     }
                     else
                     {
@@ -371,11 +393,55 @@ namespace CustomizePlus.Data.Armature
             }
         }
 
+
+        /// <summary>
+        /// Iterate through the skeleton of the given character base, and apply any transformations
+        /// for which this armature contains corresponding model bones. This method of application
+        /// is safer but more computationally costly
+        /// </summary>
+        public unsafe void ApplyPiecewiseTransformation(GameObject obj)
+        {
+            CharacterBase* cBase = obj.ToCharacterBase();
+
+            if (cBase != null)
+            {
+                for (int pSkeleIndex = 0; pSkeleIndex < cBase->Skeleton->PartialSkeletonCount; ++pSkeleIndex)
+                {
+                    hkaPose* currentPose = cBase->Skeleton->PartialSkeletons[pSkeleIndex].GetHavokPose(Constants.TruePoseIndex);
+
+                    if (currentPose != null)
+                    {
+                        for (int boneIndex = 0; boneIndex < currentPose->Skeleton->Bones.Length; ++boneIndex)
+                        {
+                            if (GetBoneAt(pSkeleIndex, boneIndex) is ModelBone mb
+                                && mb != null
+                                && mb.BoneName == currentPose->Skeleton->Bones[boneIndex].Name.String)
+                            {
+                                if (mb == MainRootBone)
+                                {
+                                    if (obj.HasScalableRoot())
+                                    {
+                                        mb.ApplyModelScale(cBase);
+                                    }
+
+                                    mb.ApplyModelRotation(cBase);
+                                }
+                                else
+                                {
+                                    mb.ApplyModelTransform(cBase);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         public void ApplyRootTranslation(CharacterBase* cBase)
         {
             if (cBase != null)
             {
-                _partialSkeletons[0][0].ApplyModelTransform(cBase, BoneAttribute.Position);
+                _partialSkeletons[0][0].ApplyStraightModelTranslation(cBase);
             }
         }
 

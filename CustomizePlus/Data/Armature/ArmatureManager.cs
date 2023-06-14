@@ -63,18 +63,15 @@ namespace CustomizePlus.Data.Armature
         {
             foreach(GameObject obj in DalamudServices.ObjectTable)
             {
-                CharacterBase* cBase = obj.ToCharacterBase();
                 CharacterProfile? prof = Plugin.ProfileManager
                     .GetProfilesByGameObject(obj)
                     .FirstOrDefault(x => x.Enabled);
 
                 if (prof != null
                     && prof.Armature != null
-                    && prof.Armature.IsVisible
-                    && cBase != null
-                    && cBase->Skeleton != null)
+                    && prof.Armature.IsVisible)
                 {
-                    prof.Armature.ApplyTransformation(cBase);
+                    prof.Armature.ApplyPiecewiseTransformation(obj);
                 }
             }
         }
