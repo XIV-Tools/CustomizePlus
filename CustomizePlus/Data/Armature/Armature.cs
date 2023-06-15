@@ -443,7 +443,7 @@ namespace CustomizePlus.Data.Armature
 
         public void ApplyRootTranslation(CharacterBase* cBase)
         {
-            if (cBase != null)
+            if (cBase != null && _partialSkeletons.Any() && _partialSkeletons.First().Any())
             {
                 _partialSkeletons[0][0].ApplyStraightModelTranslation(cBase);
             }
