@@ -42,19 +42,6 @@ namespace CustomizePlus.UI.Windows
 
         protected override void DrawContents()
         {
-            /* Upcoming feature to group by either scale name or character name
-            List<string> uniqueCharacters = new();
-            List<string> uniqueScales = new();
-
-            for (int i = 0; i < config.BodyScales.Count; i++)
-            {
-                if (!uniqueCharacters.Contains(config.BodyScales[i].CharacterName))
-                    uniqueCharacters.Add(config.BodyScales[i].CharacterName);
-                if (!uniqueScales.Contains(config.BodyScales[i].ScaleName))
-                    uniqueScales.Add(config.BodyScales[i].ScaleName);
-            }
-            */
-
             // Draw the File Picker
             _importFilePicker.Draw();
 
@@ -149,6 +136,7 @@ namespace CustomizePlus.UI.Windows
                     {
                         IPCTestWindow.Show(DalamudServices.PluginInterface);
                     }
+                    CtrlHelper.AddHoverText("D: IPC TEST");
                 }
 
                 ImGui.TableNextColumn();
@@ -231,6 +219,10 @@ namespace CustomizePlus.UI.Windows
                         }
 
                         prof.Enabled = tempEnabled;
+
+                        //Send OnProfileUpdate if this is profile of the current player
+                        if (prof.CharacterName == GameDataHelper.GetPlayerName())
+                            Plugin.IPCManager.OnLocalPlayerProfileUpdate();
                     }
 
                     if (ImGui.IsItemHovered())
@@ -295,6 +287,7 @@ namespace CustomizePlus.UI.Windows
                     }
 
                     CtrlHelper.AddHoverText(string.Join('\n',
+                        $"D:",
                         $"Profile '{prof.ProfileName}'",
                         $"for {prof.CharacterName}",
                         $"with {prof.Bones.Count} modified bones",

@@ -171,7 +171,7 @@ namespace CustomizePlus.UI.Windows
                         ConfirmSkeletonConnection();
                         _targetArmature.SnapToReferencePose = tempRefSnap;
                     }
-                    CtrlHelper.AddHoverText($"Force character into their default reference pose");
+                    CtrlHelper.AddHoverText($"D: Force character into their default reference pose");
                 }
 
                 ImGui.TableNextColumn();
@@ -190,7 +190,7 @@ namespace CustomizePlus.UI.Windows
                     {
                         ConfirmSkeletonConnection();
                     }
-                    CtrlHelper.AddHoverText($"Changes will propagate \"outward\" from edited bones");
+                    CtrlHelper.AddHoverText($"D: Changes will propagate \"outward\" from edited bones");
                 }
 
                 if (!_profileInProgress.Enabled) ImGui.EndDisabled();
@@ -658,7 +658,6 @@ namespace CustomizePlus.UI.Windows
         public BoneAttribute EditingAttribute = BoneAttribute.Scale;
 
         public Dictionary<BoneData.BoneFamily, bool> GroupExpandedState = new();
-        public FrameStackManager EditStack;
 
         public EditorSessionSettings(Armature armRef)
         {
