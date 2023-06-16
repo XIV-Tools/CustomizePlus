@@ -231,6 +231,10 @@ namespace CustomizePlus.UI.Windows
                         }
 
                         prof.Enabled = tempEnabled;
+
+                        //Send OnProfileUpdate if this is profile of the current player
+                        if (prof.CharacterName == GameDataHelper.GetPlayerName())
+                            Plugin.IPCManager.OnLocalPlayerProfileUpdate();
                     }
 
                     if (ImGui.IsItemHovered())
