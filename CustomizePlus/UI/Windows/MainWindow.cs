@@ -42,19 +42,6 @@ namespace CustomizePlus.UI.Windows
 
         protected override void DrawContents()
         {
-            /* Upcoming feature to group by either scale name or character name
-            List<string> uniqueCharacters = new();
-            List<string> uniqueScales = new();
-
-            for (int i = 0; i < config.BodyScales.Count; i++)
-            {
-                if (!uniqueCharacters.Contains(config.BodyScales[i].CharacterName))
-                    uniqueCharacters.Add(config.BodyScales[i].CharacterName);
-                if (!uniqueScales.Contains(config.BodyScales[i].ScaleName))
-                    uniqueScales.Add(config.BodyScales[i].ScaleName);
-            }
-            */
-
             // Draw the File Picker
             _importFilePicker.Draw();
 

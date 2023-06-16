@@ -658,7 +658,6 @@ namespace CustomizePlus.UI.Windows
         public BoneAttribute EditingAttribute = BoneAttribute.Scale;
 
         public Dictionary<BoneData.BoneFamily, bool> GroupExpandedState = new();
-        public FrameStackManager EditStack;
 
         public EditorSessionSettings(Armature armRef)
         {

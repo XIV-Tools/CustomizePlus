@@ -255,7 +255,7 @@ namespace CustomizePlus
             // Call the original function.
             _gameObjectMovementHook.Original(gameObjectPtr);
 
-            ////If GPose and a 3rd-party posing service are active simultneously, abort
+            // If GPose and a 3rd-party posing service are active simultneously, abort
             if (GameStateHelper.GameInPosingMode())
             {
                 return;
@@ -268,17 +268,6 @@ namespace CustomizePlus
                 && prof.Armature != null)
             {
                 prof.Armature.ApplyRootTranslation(obj.ToCharacterBase());
-
-                //var objIndex = obj.ObjectIndex;
-
-                //var isForbiddenFiller = objIndex == Constants.ObjectTableFillerIndex;
-                //var isForbiddenCutsceneNPC = Constants.IsInObjectTableCutsceneNPCRange(objIndex)
-                //                             || !ConfigurationManager.Configuration.ApplyToNPCsInCutscenes;
-
-                //if (!isForbiddenFiller && !isForbiddenCutsceneNPC)
-                //{
-                //    ArmatureManager.RenderArmatureByObject(obj);
-                //}
             }
         }
     }
