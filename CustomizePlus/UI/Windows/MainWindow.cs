@@ -149,6 +149,7 @@ namespace CustomizePlus.UI.Windows
                     {
                         IPCTestWindow.Show(DalamudServices.PluginInterface);
                     }
+                    CtrlHelper.AddHoverText("D: IPC TEST");
                 }
 
                 ImGui.TableNextColumn();
@@ -299,6 +300,7 @@ namespace CustomizePlus.UI.Windows
                     }
 
                     CtrlHelper.AddHoverText(string.Join('\n',
+                        $"D:",
                         $"Profile '{prof.ProfileName}'",
                         $"for {prof.CharacterName}",
                         $"with {prof.Bones.Count} modified bones",
