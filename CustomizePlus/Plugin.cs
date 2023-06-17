@@ -47,7 +47,7 @@ namespace CustomizePlus
 		private static CustomizePlusIpc ipcManager = null!;
 		private static ServiceManager serviceManager { get; set; } = null!;
 
-		private delegate IntPtr RenderDelegate(IntPtr a1, long a2, int a3, int a4);
+		private delegate nint RenderDelegate(nint a1, nint a2, int a3, int a4);
 		[UnmanagedFunctionPointer(CallingConvention.StdCall)]
 		private unsafe delegate void GameObjectMovementDelegate(IntPtr gameObject);
 
@@ -196,7 +196,7 @@ namespace CustomizePlus
 			}
 		}
 
-		public static unsafe void Update()
+		public static void Update()
 		{
 			for (var i = 0; i < DalamudServices.ObjectTable.Length; i++)
 			{
@@ -378,13 +378,10 @@ namespace CustomizePlus
 			}
 		}
 
-        private static IntPtr OnRender(IntPtr a1, long a2, int a3, int a4)
+        private static nint OnRender(nint a1, nint a2, int a3, int a4)
         {
 			if (renderManagerHook == null)
 				throw new Exception();
-
-			// if this gets disposed while running we crash calling Original's getter, so get it at start
-			RenderDelegate original = renderManagerHook.Original;
 
 			try
 			{
@@ -396,11 +393,11 @@ namespace CustomizePlus
 				renderManagerHook?.Disable();
 			}
 
-			return original(a1, a2, a3, a4);
+			return renderManagerHook.Original(a1, a2, a3, a4);
 		}
 
 		//todo: doesn't work in cutscenes, something getting called after this and resets changes
-		private static unsafe void OnGameObjectMove(IntPtr gameObjectPtr)
+		private static void OnGameObjectMove(IntPtr gameObjectPtr)
 		{
 			// Call the original function.
 			gameObjectMovementHook.Original(gameObjectPtr);

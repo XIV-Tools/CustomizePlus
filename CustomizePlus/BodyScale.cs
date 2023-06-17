@@ -8,9 +8,6 @@ namespace CustomizePlus
 	using System.Collections.Generic;
 	using System.Linq;
 	using System.Numerics;
-	using System.Runtime.Serialization;
-	using System.Windows.Forms;
-	using System.Xml.Linq;
 	using Anamnesis.Posing;
 	using CustomizePlus.Data;
 	using CustomizePlus.Extensions;
@@ -18,8 +15,6 @@ namespace CustomizePlus
 	using CustomizePlus.Services;
 	using Dalamud.Game.ClientState.Objects.Types;
 	using Dalamud.Logging;
-	using Dalamud.Utility;
-	using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
 
 	[Serializable]
 	public class BodyScale
@@ -408,7 +403,7 @@ namespace CustomizePlus
 
 			public unsafe void Update(HkaPose* pose)
 			{
-				if (pose == null)
+				if (pose == null || pose->IsModelSynced == 0)
 					return;
 
 				if (!this.isInitialized)
@@ -439,23 +434,31 @@ namespace CustomizePlus
 							transform.Scale.Z = boneScale.Scale.Z;
 						}
 
-						//Apply position and rotation only when PosingModeDetectService does not detect posing mode
-						if (GPoseService.Instance.GPoseState != GPoseState.Inside || !PosingModeDetectService.Instance.IsInPosingMode)
-						{
-							Quaternion newRotation =
-								Quaternion.Multiply(new Quaternion(transform.Rotation.X, transform.Rotation.Y, transform.Rotation.Z, transform.Rotation.W), 
-								Quaternion.CreateFromYawPitchRoll(boneScale.Rotation.X * MathF.PI / 180, boneScale.Rotation.Y * MathF.PI / 180, boneScale.Rotation.Z * MathF.PI / 180));
-							transform.Rotation.X = newRotation.X;
-							transform.Rotation.Y = newRotation.Y;
-							transform.Rotation.Z = newRotation.Z;
-							transform.Rotation.W = newRotation.W;
+						var inGPose = GPoseService.Instance.GPoseState == GPoseState.Inside;
+						var applyRot = !inGPose || !PosingModeDetectService.Instance.IsAnamnesisRotationFrozen;
+						var applyPos = !inGPose || !PosingModeDetectService.Instance.IsAnamnesisPositionFrozen;
+						if (!applyRot && !applyPos) continue;
 
-							Vector4 adjustedPositionOffset = Vector4.Transform(boneScale.Position, newRotation);
+						var rotation = new Quaternion(transform.Rotation.X, transform.Rotation.Y, transform.Rotation.Z, transform.Rotation.W);
 
-							transform.Translation.X += adjustedPositionOffset.X;
-							transform.Translation.Y += adjustedPositionOffset.Y;
-							transform.Translation.Z += adjustedPositionOffset.Z;
-							transform.Translation.W += adjustedPositionOffset.W;
+						if (applyRot) {
+							rotation *= Quaternion.CreateFromYawPitchRoll(
+								boneScale.Rotation.X * MathF.PI / 180,
+								boneScale.Rotation.Y * MathF.PI / 180,
+								boneScale.Rotation.Z * MathF.PI / 180
+							);
+							transform.Rotation.X = rotation.X;
+							transform.Rotation.Y = rotation.Y;
+							transform.Rotation.Z = rotation.Z;
+							transform.Rotation.W = rotation.W;
+						}
+
+						if (applyPos) {
+							var positionOffset = Vector4.Transform(boneScale.Position, rotation);
+							transform.Translation.X += positionOffset.X;
+							transform.Translation.Y += positionOffset.Y;
+							transform.Translation.Z += positionOffset.Z;
+							transform.Translation.W += positionOffset.W;
 						}
 
 						pose->Transforms[index] = transform;
