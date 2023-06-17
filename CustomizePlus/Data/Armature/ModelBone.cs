@@ -10,6 +10,8 @@ using System.Linq;
 
 using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
 using FFXIVClientStructs.Havok;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.Header;
+using System.Reflection;
 
 //using CustomizePlus.Memory;
 
@@ -68,6 +70,9 @@ namespace CustomizePlus.Data.Armature
         /// </summary>
         public BoneTransform CustomizedTransform { get; }
 
+        internal bool MainHandBone { get; set; } = false;
+        internal bool OffHandBone { get; set; } = false;
+
         public ModelBone(Armature arm, string codeName, int partialIdx, int boneIdx)
         {
             MasterArmature = arm;
@@ -116,11 +121,22 @@ namespace CustomizePlus.Data.Armature
             //update the transform locally
             CustomizedTransform.UpdateToMatch(newTransform);
 
-            //these should be connected by reference already, I think?
-            //but I suppose it doesn't hurt...?
+            //the model bones should(?) be the same, by reference
+            //but we still need to delete them 
             if (newTransform.IsEdited())
             {
-                MasterArmature.Profile.Bones[BoneName] = CustomizedTransform;
+                //if (MainHandBone)
+                //{
+                //    MasterArmature.Profile.Bones_MH[BoneName] = new(newTransform);
+                //}
+                //else if (OffHandBone)
+                //{
+                //    MasterArmature.Profile.Bones_OH[BoneName] = new(newTransform);
+                //}
+                //else
+                //{
+                MasterArmature.Profile.Bones[BoneName] = new(newTransform);
+                //}
             }
             else
             {
@@ -185,6 +201,11 @@ namespace CustomizePlus.Data.Armature
         /// </summary>
         public void UpdateModel(BoneTransform newTransform, bool mirror = false, bool propagate = false)
         {
+            UpdateModel(newTransform, mirror, propagate, true);
+        }
+
+        private void UpdateModel(BoneTransform newTransform, bool mirror, bool propagate, bool clone)
+        {
             if (mirror && TwinBone is ModelBone mb && mb != null)
             {
                 BoneTransform mirroredTransform = BoneData.IsIVCSBone(BoneName)
@@ -194,8 +215,38 @@ namespace CustomizePlus.Data.Armature
                 mb.UpdateModel(mirroredTransform, false, propagate);
             }
 
+            if (propagate && this is not AliasedBone)
+            {
+                BoneTransform delta = new BoneTransform()
+                {
+                    Translation = newTransform.Translation - CustomizedTransform.Translation,
+                    Rotation = newTransform.Rotation - CustomizedTransform.Rotation,
+                    Scaling = newTransform.Scaling - CustomizedTransform.Scaling
+                };
+
+                PropagateModelUpdate(delta);
+            }
+
             UpdateTransformation(newTransform);
-            UpdateClones(newTransform);
+
+            if (clone)
+            {
+                UpdateClones(newTransform);
+            }
+        }
+
+        private void PropagateModelUpdate(BoneTransform deltaTransform)
+        {
+            foreach(ModelBone mb in ChildBones)
+            {
+                BoneTransform modTransform = new(CustomizedTransform);
+                modTransform.Translation += deltaTransform.Translation;
+                modTransform.Rotation += deltaTransform.Rotation;
+                modTransform.Scaling += deltaTransform.Scaling;
+
+                mb.UpdateTransformation(modTransform);
+                mb.PropagateModelUpdate(deltaTransform);
+            }
         }
 
         /// <summary>
@@ -204,11 +255,31 @@ namespace CustomizePlus.Data.Armature
         /// </summary>
         private void UpdateClones(BoneTransform newTransform)
         {
-            foreach(ModelBone mb in MasterArmature.GetAllBones()
+            foreach(ModelBone mb in MasterArmature.GetBones()
                 .Where(x => x.BoneName == this.BoneName && x != this))
             {
                 mb.UpdateTransformation(newTransform);
             }
+        }
+
+        private static hkQsTransformf Subtract(hkQsTransformf termLeft, hkQsTransformf termRight)
+        {
+            return new hkQsTransformf()
+            {
+                Translation = (termLeft.Translation.GetAsNumericsVector() - termRight.Translation.GetAsNumericsVector()).ToHavokVector(),
+                Rotation = Quaternion.Divide(termLeft.Rotation.ToQuaternion(), termRight.Rotation.ToQuaternion()).ToHavokRotation(),
+                Scale = (termLeft.Scale.GetAsNumericsVector() - termRight.Scale.GetAsNumericsVector()).ToHavokVector()
+            };
+        }
+
+        private static hkQsTransformf Add(hkQsTransformf term1, hkQsTransformf term2)
+        {
+            return new hkQsTransformf()
+            {
+                Translation = (term1.Translation.GetAsNumericsVector() + term2.Translation.GetAsNumericsVector()).ToHavokVector(),
+                Rotation = Quaternion.Multiply(term1.Rotation.ToQuaternion(), term2.Rotation.ToQuaternion()).ToHavokRotation(),
+                Scale = (term1.Scale.GetAsNumericsVector() + term2.Scale.GetAsNumericsVector()).ToHavokVector()
+            };
         }
 
         /// <summary>
@@ -260,49 +331,6 @@ namespace CustomizePlus.Data.Armature
             }
         }
 
-        private static void SetSnappedTransform(CharacterBase* cBase, hkQsTransformf transform, int partialIndex, int boneIndex, BoneTransform bt)
-        {
-            FFXIVClientStructs.FFXIV.Client.Graphics.Render.Skeleton* skelly = cBase->Skeleton;
-            FFXIVClientStructs.FFXIV.Client.Graphics.Render.PartialSkeleton pSkelly = skelly->PartialSkeletons[partialIndex];
-            hkaPose* targetPose = pSkelly.GetHavokPose(Constants.TruePoseIndex);
-
-            if (targetPose == null) return;
-
-            //targetPose->AccessUnsyncedPoseLocalSpace()->Data[boneIndex] = transform;
-
-            //Referencing from Ktisis, Function 'SetFromLocalPose' @ Line 39 in 'Havok.cs'
-
-            var tRef = targetPose->Skeleton->ReferencePose[boneIndex];
-
-            var tParent = targetPose->ModelPose[targetPose->Skeleton->ParentIndices[boneIndex]];
-            var tModel =
-                *targetPose->AccessBoneModelSpace(boneIndex, hkaPose.PropagateOrNot.Propagate);
-
-
-            var v1 = tParent.Translation.GetAsNumericsVector();
-            var v2 = tRef.Translation.GetAsNumericsVector();
-            var r1 = tParent.Rotation.ToQuaternion();
-
-            var o1 = Vector3.Transform(v2, r1);
-            var o2 = v1 + o1;
-            var t1 = o2.ToHavokVector();
-
-            tModel.Translation =
-            (
-                tParent.Translation.GetAsNumericsVector()
-                + Vector3.Transform(tRef.Translation.GetAsNumericsVector(),
-                    tParent.Rotation.ToQuaternion())
-            ).ToHavokVector();
-
-            tModel.Rotation =
-                (tParent.Rotation.ToQuaternion() * tRef.Rotation.ToQuaternion()).ToHavokRotation();
-            tModel.Scale = tRef.Scale;
-
-            var t = tModel;
-            var tNew = bt.ModifyExistingTranslationWithRotation(bt.ModifyExistingRotation(bt.ModifyExistingScale(t)));
-            targetPose->ModelPose.Data[boneIndex] = tNew;
-        }
-
         /// <summary>
         /// Apply this model bone's associated transformation to its in-game sibling within
         /// the skeleton of the given character base.
@@ -314,11 +342,7 @@ namespace CustomizePlus.Data.Armature
                 && GetGameTransform(cBase, PoseType.Model) is hkQsTransformf gameTransform
                 && !gameTransform.Equals(Constants.NullTransform))
             {
-                if (MasterArmature.SnapToReferencePose)
-                {
-                    SetSnappedTransform(cBase, gameTransform, PartialSkeletonIndex, BoneIndex, CustomizedTransform);
-                }
-                else if (CustomizedTransform.ModifyExistingTransform(gameTransform) is hkQsTransformf modTransform
+                if (CustomizedTransform.ModifyExistingTransform(gameTransform) is hkQsTransformf modTransform
                     && !modTransform.Equals(Constants.NullTransform))
                 {
                     SetGameTransform(cBase, modTransform, PoseType.Model);
