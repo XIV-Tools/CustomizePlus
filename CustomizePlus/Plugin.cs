@@ -64,11 +64,9 @@ namespace CustomizePlus
 
 			serviceManager = new ServiceManager();
 			serviceManager.Add<GPoseService>();
-			serviceManager.Add<GPoseAmnesisKtisisWarningService>();
 			serviceManager.Add<PosingModeDetectService>();
 
-			DalamudServices.Framework.RunOnFrameworkThread(() =>
-			{
+			DalamudServices.Framework.RunOnFrameworkThread(() => {
 				serviceManager.Start();
 				DalamudServices.Framework.Update += Framework_Update;
 			});
