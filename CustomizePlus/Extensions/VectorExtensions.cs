@@ -56,21 +56,15 @@ namespace CustomizePlus.Extensions
 
         public static Vector3 ToEulerAngles(this Quaternion q)
         {
-            var nq = Vector4.Normalize(q.GetAsNumericsVector());
+            FFXIVClientStructs.FFXIV.Common.Math.Quaternion newQ = new FFXIVClientStructs.FFXIV.Common.Math.Quaternion()
+            {
+                X = q.X,
+                Y = q.Y,
+                Z = q.Z,
+                W = q.W
+            };
 
-            var rollX = MathF.Atan2(
-                2 * (nq.W * nq.X + nq.Y * nq.Z),
-                1 - 2 * (nq.X * nq.X + nq.Y * nq.Y));
-
-            var pitchY = 2 * MathF.Atan2(
-                MathF.Sqrt(1 + 2 * (nq.W * nq.Y - nq.X * nq.Z)),
-                MathF.Sqrt(1 - 2 * (nq.W * nq.Y - nq.X * nq.Z)));
-
-            var yawZ = MathF.Atan2(
-                2 * (nq.W * nq.Z + nq.X * nq.Y),
-                1 - 2 * (nq.Y * nq.Y + nq.Z * nq.Z));
-
-            return new Vector3(rollX, pitchY, yawZ);
+            return newQ.EulerAngles;
         }
 
         public static Quaternion ToQuaternion(this Vector4 rotation)
@@ -84,6 +78,16 @@ namespace CustomizePlus.Extensions
         }
 
         public static Quaternion ToQuaternion(this hkQuaternionf rotation)
+        {
+            if (new Quaternion(rotation.X, rotation.Y, rotation.Z, rotation.W) is Quaternion q
+                && q.IsApproximately(Quaternion.Identity))
+            {
+                return Quaternion.Identity;
+            }
+            return q;
+        }
+
+        public static Quaternion ToQuaternion(this FFXIVClientStructs.FFXIV.Common.Math.Quaternion rotation)
         {
             if (new Quaternion(rotation.X, rotation.Y, rotation.Z, rotation.W) is Quaternion q
                 && q.IsApproximately(Quaternion.Identity))
@@ -170,6 +174,16 @@ namespace CustomizePlus.Extensions
             };
         }
 
+        public static FFXIVClientStructs.FFXIV.Common.Math.Vector3 ToClientVector(this Vector3 vec)
+        {
+            return new FFXIVClientStructs.FFXIV.Common.Math.Vector3()
+            {
+                X = vec.X,
+                Y = vec.Y,
+                Z = vec.Z
+            };
+        }
+
         public static Vector3 GetAsNumericsVector(this PoseFile.Vector vec)
         {
             Vector3 v = new Vector3(vec.X, vec.Y, vec.Z);
@@ -221,6 +235,16 @@ namespace CustomizePlus.Extensions
                    && first.Y == second.Y
                    && first.Z == second.Z
                    && first.W == second.W;
+        }
+
+        public static FFXIVClientStructs.FFXIV.Common.Math.Vector3 HadamardMultiply(this FFXIVClientStructs.FFXIV.Common.Math.Vector3 orig, FFXIVClientStructs.FFXIV.Common.Math.Vector3 other)
+        {
+            return new FFXIVClientStructs.FFXIV.Common.Math.Vector3()
+            {
+                X = MathF.Max(MathF.Round(orig.X * other.X, 2), 0.01f),
+                Y = MathF.Max(MathF.Round(orig.Y * other.Y, 2), 0.01f),
+                Z = MathF.Max(MathF.Round(orig.Z * other.Z, 2), 0.01f)
+            };
         }
     }
 }
