@@ -435,13 +435,10 @@ namespace CustomizePlus
 						}
 
 						var inGPose = GPoseService.Instance.GPoseState == GPoseState.Inside;
-						var applyRot = !inGPose || !PosingModeDetectService.Instance.IsAnamnesisRotationFrozen;
-						var applyPos = !inGPose || !PosingModeDetectService.Instance.IsAnamnesisPositionFrozen;
-						if (!applyRot && !applyPos) continue;
 
 						var rotation = new Quaternion(transform.Rotation.X, transform.Rotation.Y, transform.Rotation.Z, transform.Rotation.W);
 
-						if (applyRot) {
+						if (!inGPose || !PosingModeDetectService.Instance.IsAnamnesisRotationFrozen) {
 							rotation *= Quaternion.CreateFromYawPitchRoll(
 								boneScale.Rotation.X * MathF.PI / 180,
 								boneScale.Rotation.Y * MathF.PI / 180,
@@ -453,7 +450,7 @@ namespace CustomizePlus
 							transform.Rotation.W = rotation.W;
 						}
 
-						if (applyPos) {
+						if (!inGPose || !PosingModeDetectService.Instance.IsAnamnesisPositionFrozen) {
 							var positionOffset = Vector4.Transform(boneScale.Position, rotation);
 							transform.Translation.X += positionOffset.X;
 							transform.Translation.Y += positionOffset.Y;
