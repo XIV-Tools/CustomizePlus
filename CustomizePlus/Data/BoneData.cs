@@ -32,8 +32,10 @@ namespace CustomizePlus.Data
             Cape,
             Armor,
             Skirt,
+            MainHand,
+            OffHand,
             Equipment,
-            Unknown
+            Unknown,
         }
 
         //TODO move the csv data to an external (compressed?) file
