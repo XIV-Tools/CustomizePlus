@@ -16,7 +16,7 @@ namespace CustomizePlus.Data.Armature
     /// </summary>
     internal unsafe class AliasedBone : ModelBone
     {
-        private delegate hkQsTransformf TransformGetter(CharacterBase* cBase, ModelBone mb, PoseType refFrame);
+        private delegate hkQsTransformf TransformGetter(CharacterBase* cBase, PoseType refFrame);
         private delegate void TransformSetter(CharacterBase* cBase, hkQsTransformf transform, PoseType refFrame);
 
         private TransformGetter _getTransform;
@@ -30,12 +30,17 @@ namespace CustomizePlus.Data.Armature
 
         public static AliasedBone CreateRootBone(Armature arm, string codename)
         {
-            return new AliasedBone(arm, codename, GetFakeRootTransform, SetFakeRootTransform);
+            return new AliasedBone(arm, codename, GetWholeskeletonTransform, SetWholeSkeletonTransform);
+        }
+
+        public static AliasedBone CreateWeaponBone(Armature arm, string codename)
+        {
+            return new AliasedBone(arm, codename, GetChildObjectTransform, SetChildObjectTransform);
         }
 
         public override unsafe hkQsTransformf GetGameTransform(CharacterBase* cBase, PoseType refFrame)
         {
-            return _getTransform(cBase, this, refFrame);
+            return _getTransform(cBase, refFrame);
         }
 
         protected override unsafe void SetGameTransform(CharacterBase* cBase, hkQsTransformf transform, PoseType refFrame)
@@ -43,21 +48,50 @@ namespace CustomizePlus.Data.Armature
             _setTransform(cBase, transform, refFrame);
         }
 
-        public override unsafe void ApplyModelTransform(CharacterBase* cBase)
-        {
-            if (cBase != null
-                && CustomizedTransform.IsEdited()
-                && GetGameTransform(cBase, PoseType.Model) is hkQsTransformf gameTransform
-                && !gameTransform.Equals(Constants.NullTransform))
-            {
+        //public override unsafe void ApplyModelTransform(CharacterBase* cBase)
+        //{
+        //    if (cBase != null
+        //        && CustomizedTransform.IsEdited())
+        //    {
+        //        hkQsTransformf originalTransform = new hkQsTransformf()
+        //        {
+        //            Translation = CustomizedTransform.Translation.ToHavokVector(),
+        //            Rotation = CustomizedTransform.Rotation.ToQuaternion().ToHavokRotation(),
+        //            Scale = CustomizedTransform.Scaling.ToHavokVector()
+        //        };
 
-            }
-        }
+        //        cBase->Skeleton->PartialSkeletons[0]
+        //            .GetHavokPose(Constants.TruePoseIndex)->ModelPose.Data[0]
+        //            .Translation.Y *= originalTransform.Scale.Y;
 
+        //        cBase->Skeleton->Transform.Position.X += CustomizedTransform.Translation.X;
+        //        cBase->Skeleton->Transform.Position.Y += CustomizedTransform.Translation.Y;
+        //        cBase->Skeleton->Transform.Position.Z += CustomizedTransform.Translation.Z;
+
+        //        Quaternion newRot = cBase->DrawObject.Object.Rotation.ToHavokRotation().ToQuaternion()
+        //            * CustomizedTransform.Rotation.ToQuaternion();
+
+        //        cBase->Skeleton->Transform.Rotation.X = newRot.X;
+        //        cBase->Skeleton->Transform.Rotation.Y = newRot.Y;
+        //        cBase->Skeleton->Transform.Rotation.Z = newRot.Z;
+        //        cBase->Skeleton->Transform.Rotation.W = newRot.W;
+
+        //        cBase->Skeleton->Transform.Scale.X = CustomizedTransform.Scaling.X;
+        //        cBase->Skeleton->Transform.Scale.Y = CustomizedTransform.Scaling.Y;
+        //        cBase->Skeleton->Transform.Scale.Z = CustomizedTransform.Scaling.Z;
+
+        //        //i.e. check to see if the scale has been modified externally
+
+        //        //Vector3 currentScale = cBase->DrawObject.Object.Scale;
+        //        //Vector3 expectedScale = _cachedScale?.HadamardMultiply(CustomizedTransform.Scaling) ?? Vector3.NegativeInfinity;
+
+
+        //    }
+        //}
 
         #region Stock accessor functions
 
-        private static hkQsTransformf GetFakeRootTransform(CharacterBase* cBase, ModelBone mb, PoseType refFrame)
+        private static hkQsTransformf GetWholeskeletonTransform(CharacterBase* cBase, PoseType refFrame)
         {
             return new hkQsTransformf()
             {
@@ -67,22 +101,65 @@ namespace CustomizePlus.Data.Armature
             };
         }
 
-        private static void SetFakeRootTransform(CharacterBase* cBase, hkQsTransformf transform, PoseType refFrame)
+        private static void SetWholeSkeletonTransform(CharacterBase* cBase, hkQsTransformf transform, PoseType refFrame)
         {
-            //move the camera upward to adjust for rescaling of the character's height...?
-            //cBase->Skeleton->PartialSkeletons[0].GetHavokPose(Constants.TruePoseIndex)->ModelPose.Data[0].Translation =
-            //    new Vector3(transform.Scale.X, 1, 1).ToHavokVector();
+            BoneTransform original = new(GetWholeskeletonTransform(cBase, refFrame));
+            BoneTransform modified = new(transform);
+            BoneTransform delta = modified - original;
 
-            cBase->DrawObject.Object.Position = new Vector3()
+            BoneTransform baseTransform = new BoneTransform()
             {
-                X = transform.Translation.X,
-                Y = transform.Translation.Y,
-                Z = transform.Translation.Z,
+                Translation = cBase->DrawObject.Object.Position,
+                Rotation = cBase->DrawObject.Object.Rotation.EulerAngles,
+                Scaling = cBase->DrawObject.Object.Scale
             };
-            //cBase->DrawObject.Object.Rotation =
-            //    new Quaternion(transform.Rotation.X, transform.Rotation.Y, transform.Rotation.Z, transform.Rotation.W);
-            //cBase->DrawObject.Object.Scale =
-            //    new Vector3(transform.Translation.X, transform.Translation.Y, transform.Translation.Z);
+
+            cBase->Skeleton->Transform = new FFXIVClientStructs.FFXIV.Client.Graphics.Transform()
+            {
+                Position = transform.Translation.GetAsNumericsVector().ToClientVector(),
+                Rotation = transform.Rotation.ToQuaternion(),
+                Scale = transform.Scale.GetAsNumericsVector().ToClientVector()
+            };
+        }
+
+        private static hkQsTransformf GetChildObjectTransform(CharacterBase* cBase, PoseType refFrame)
+        {
+            Object* obj = cBase->DrawObject.Object.ChildObject;
+
+            if (obj->GetObjectType() != ObjectType.CharacterBase)
+            {
+                return Constants.NullTransform;
+            }
+
+            Weapon* wBase = (Weapon*)obj->NextSiblingObject;
+
+            if (wBase == null) return Constants.NullTransform;
+
+            return new hkQsTransformf()
+            {
+                Translation = wBase->CharacterBase.Skeleton->Transform.Position.ToHavokVector(),
+                Rotation = wBase->CharacterBase.Skeleton->Transform.Rotation.ToHavokRotation(),
+                Scale = wBase->CharacterBase.Skeleton->Transform.Scale.ToHavokVector()
+            };
+        }
+        private static void SetChildObjectTransform(CharacterBase* cBase, hkQsTransformf transform, PoseType refFrame)
+        {
+            Object* obj = cBase->DrawObject.Object.ChildObject;
+
+            if (obj->GetObjectType() != ObjectType.CharacterBase)
+                return;
+
+            Weapon* wBase = (Weapon*)obj;
+
+            if (wBase != null)
+            {
+                wBase->CharacterBase.Skeleton->Transform = new FFXIVClientStructs.FFXIV.Client.Graphics.Transform()
+                {
+                    Position = transform.Translation.GetAsNumericsVector().ToClientVector(),
+                    Rotation = transform.Rotation.ToQuaternion(),
+                    Scale = transform.Scale.GetAsNumericsVector().ToClientVector()
+                };
+            }
         }
 
         #endregion
