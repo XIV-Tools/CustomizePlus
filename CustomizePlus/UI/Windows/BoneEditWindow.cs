@@ -299,10 +299,35 @@ namespace CustomizePlus.UI.Windows
                 if (_profileInProgress != null || _targetArmature != null)
                 {
                     IEnumerable<EditRowParams> relevantModelBones = _settings.ShowLiveBones && _targetArmature != null
-                        ? _targetArmature.GetAllBones().DistinctBy(x => x.BoneName).Select(x => new EditRowParams(x))
+                        ? _targetArmature.GetBones().Select(x => new EditRowParams(x))
                         : _profileInProgress.Bones.Select(x => new EditRowParams(x.Key, x.Value));
 
-                    var groupedBones = relevantModelBones.GroupBy(x => BoneData.GetBoneFamily(x.BoneCodeName));
+                    var groupedBones = relevantModelBones.GroupBy(x => BoneData.GetBoneFamily(x.BoneCodeName)).ToList();
+
+                    //TODO implement the method to pull out the bone parameters if not integrated naturally
+                    //with the rest of the bones
+
+                    //IEnumerable<EditRowParams> mhGroup = _settings.ShowLiveBones && _targetArmature != null
+                    //    ? _targetArmature.GetMHBones().Select(x => new EditRowParams(x))
+                    //    : _profileInProgress.Bones_MH.Select(x => new EditRowParams(x.Key, x.Value));
+
+                    //if (mhGroup.GroupBy(x => BoneData.BoneFamily.MainHand).FirstOrDefault() is var mhg
+                    //    && mhg != null
+                    //    && mhg.Any())
+                    //{
+                    //    groupedBones.Add(mhg);
+                    //}
+
+                    //IEnumerable<EditRowParams> ohGroup = _settings.ShowLiveBones && _targetArmature != null
+                    //    ? _targetArmature.GetOHBones().Select(x => new EditRowParams(x))
+                    //    : _profileInProgress.Bones_OH.Select(x => new EditRowParams(x.Key, x.Value));
+
+                    //if (ohGroup.GroupBy(x => BoneData.BoneFamily.OffHand).FirstOrDefault() is var ohg
+                    //    && ohg != null
+                    //    && ohg.Any())
+                    //{
+                    //    groupedBones.Add(ohg);
+                    //}
 
                     foreach (var boneGroup in groupedBones.OrderBy(x => (int)x.Key))
                     {
@@ -584,6 +609,9 @@ namespace CustomizePlus.UI.Windows
             ImGui.SameLine();
             flagUpdate |= RevertBoneButton(codename, ref newVector);
 
+            //TODO the sliders need to cache their value at the instant they're clicked into
+            //then transforms can be adjusted using the delta in relation to that cached value
+
             //----------------------------------
             ImGui.TableNextColumn();
             flagUpdate |= SingleValueSlider($"##{displayName}-X", ref newVector.X);
@@ -640,10 +668,10 @@ namespace CustomizePlus.UI.Windows
                 {
                     bone.Basis.UpdateModel(transform, _settings.MirrorModeEnabled, _settings.ParentingEnabled);
                 }
-                else
-                {
-                    _profileInProgress.Bones[codename].UpdateToMatch(transform);
-                }
+                //else
+                //{
+                //    _profileInProgress.Bones[codename].UpdateToMatch(transform);
+                //}
             }
         }
 
@@ -677,6 +705,10 @@ namespace CustomizePlus.UI.Windows
         public string BoneDisplayName => BoneData.GetBoneDisplayName(BoneCodeName);
         public BoneTransform Transform;
         public ModelBone? Basis = null;
+
+        public float CachedX;
+        public float CachedY;
+        public float CachedZ;
 
         public EditRowParams(ModelBone mb)
         {
