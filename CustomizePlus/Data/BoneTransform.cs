@@ -33,9 +33,16 @@ namespace CustomizePlus.Data
             Scaling = Vector3.One;
         }
 
-        public BoneTransform(BoneTransform original)
+        public BoneTransform(BoneTransform original) : this()
         {
             UpdateToMatch(original);
+        }
+
+        public BoneTransform(hkQsTransformf original) : this()
+        {
+            Translation = original.Translation.GetAsNumericsVector();
+            Rotation = original.Rotation.ToQuaternion().ToEulerAngles();
+            Scaling = original.Scale.GetAsNumericsVector();
         }
 
         private Vector3 _translation;
@@ -216,9 +223,9 @@ namespace CustomizePlus.Data
 
         public hkQsTransformf ModifyExistingTranslation(hkQsTransformf tr)
         {
-            tr.Translation.X += MathF.Max(Translation.X, 0.01f);
-            tr.Translation.Y += MathF.Max(Translation.Y, 0.01f);
-            tr.Translation.Z += MathF.Max(Translation.Z, 0.01f);
+            tr.Translation.X += Translation.X;
+            tr.Translation.Y += Translation.Y;
+            tr.Translation.Z += Translation.Z;
 
             return tr;
         }
@@ -233,6 +240,16 @@ namespace CustomizePlus.Data
             vector.Z = Math.Clamp(vector.Z, Constants.MinVectorValueLimit, Constants.MaxVectorValueLimit);
 
             return vector;
+        }
+
+        public static BoneTransform operator -(BoneTransform left, BoneTransform right)
+        {
+            return new BoneTransform()
+            {
+                Translation = left.Translation - right.Translation,
+                Rotation = left.Rotation - right.Rotation,
+                Scaling = left.Scaling - right.Scaling
+            };
         }
     }
 }
