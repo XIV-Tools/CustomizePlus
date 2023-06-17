@@ -4,16 +4,16 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
+
 using CustomizePlus.Data.Profile;
-using CustomizePlus.Extensions;
 using CustomizePlus.Helpers;
+
+using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Logging;
+
 using FFXIVClientStructs.FFXIV.Client.Graphics.Render;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
-using Dalamud.Game.ClientState.Objects.Types;
 using FFXIVClientStructs.Havok;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.ToolTip;
 
 namespace CustomizePlus.Data.Armature
 {
@@ -50,6 +50,8 @@ namespace CustomizePlus.Data.Armature
         /// The root bone of a partial skeleton may also be a regular bone in a different partial skeleton.
         /// </summary>
         private ModelBone[][] _partialSkeletons;
+        private ModelBone[][] _weaponPartialsRight;
+        private ModelBone[][] _weaponPartialsLeft;
 
         #region Bone Accessors -------------------------------------------------------------------------------
 
@@ -310,15 +312,24 @@ namespace CustomizePlus.Data.Armature
                         if (currentPose->Skeleton->Bones[boneIndex].Name.String is string boneName &&
                             boneName != null)
                         {
+                            ModelBone newBone;
+
                             if (pSkeleIndex == 0 && boneIndex == 0)
                             {
-                                newPartials.Last().Add(AliasedBone.CreateRootBone(arm, boneName));
+                                newBone = AliasedBone.CreateRootBone(arm, boneName);
                             }
+                            //else if (boneName == "n_buki_r")
+                            //{
+                            //    newBone = AliasedBone.CreateWeaponBone(arm, boneName);
+                            //}
                             else
                             {
-                                //time to build a new bone
-                                ModelBone newBone = new(arm, boneName, pSkeleIndex, boneIndex);
+                                newBone = new ModelBone(arm, boneName, pSkeleIndex, boneIndex);
+                            }
 
+                            //skip adding parents/children/twins if it's the root bone
+                            if (pSkeleIndex > 0 || boneIndex > 0)
+                            {
                                 if (currentPose->Skeleton->ParentIndices[boneIndex] is short parentIndex
                                     && parentIndex >= 0)
                                 {
@@ -341,9 +352,9 @@ namespace CustomizePlus.Data.Armature
                                 {
                                     newBone.UpdateModel(bt);
                                 }
-
-                                newPartials.Last().Add(newBone);
                             }
+
+                            newPartials.Last().Add(newBone);
                         }
                         else
                         {
