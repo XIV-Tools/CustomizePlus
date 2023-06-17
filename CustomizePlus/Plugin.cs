@@ -243,16 +243,16 @@ namespace CustomizePlus
             // if this gets disposed while running we crash calling Original's getter, so get it at start
             var original = _renderManagerHook.Original;
 
-            //try
-            //{
-            //    var activeProfiles = ProfileManager.GetEnabledProfiles();
-            //    ArmatureManager.RenderCharacterProfiles(activeProfiles);
-            //}
-            //catch (Exception e)
-            //{
-            //    PluginLog.Error($"Error in CustomizePlus render hook {e}");
-            //    _renderManagerHook?.Disable();
-            //}
+            try
+            {
+                var activeProfiles = ProfileManager.GetEnabledProfiles();
+                ArmatureManager.RenderCharacterProfiles(activeProfiles);
+            }
+            catch (Exception e)
+            {
+                PluginLog.Error($"Error in CustomizePlus render hook {e}");
+                _renderManagerHook?.Disable();
+            }
 
             return original(a1, a2, a3, a4);
         }
