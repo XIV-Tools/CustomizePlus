@@ -61,8 +61,8 @@ namespace CustomizePlus.Data.Configuration.Version2
                 MirrorMode = false,
                 EditingAttribute = default,
                 DebuggingMode = newConfig.DebuggingModeEnabled,
-                ApplyToNpcs = newConfig.ApplyToNPCs,
-                ApplyToNpcsInCutscenes = newConfig.ApplyToNPCsInCutscenes
+                ApplyToNpcs = true,
+                ApplyToNpcsInCutscenes = true
             };
 
             foreach(CharacterProfile prof in Plugin.ProfileManager.Profiles)
