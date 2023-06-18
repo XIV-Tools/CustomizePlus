@@ -149,7 +149,28 @@ namespace CustomizePlus.UI.Windows
                     {
                         IPCTestWindow.Show(DalamudServices.PluginInterface);
                     }
+                    CtrlHelper.AddHoverText("Test IPC");
+                    ImGui.SameLine();
                 }
+
+                ImGui.Dummy(new(CtrlHelper.IconButtonWidth, 0));
+                ImGui.SameLine();
+                if (ImGuiComponents.IconButton(FontAwesomeIcon.BusinessTime))
+                {
+                    Data.Configuration.Version2.Version2Configuration oldConfig =
+                        Data.Configuration.Version2.Version2Configuration.ConvertFromLatestVersion(Plugin.ConfigurationManager.Configuration);
+
+                    _importFilePicker.SaveFileDialog("Export Legacy Configuration", ".json", "CustomizePlus_Backup", ".json", (isSuccess, path) =>
+                    {
+                        if (isSuccess)
+                        {
+                            var json = JsonConvert.SerializeObject(oldConfig, Formatting.Indented);
+
+                            File.WriteAllText(path, json);
+                        }
+                    }, DalamudServices.PluginInterface.ConfigFile.DirectoryName);
+                }
+                CtrlHelper.AddHoverText("Export V2 Legacy Configuration File");
 
                 ImGui.TableNextColumn();
 
@@ -157,7 +178,7 @@ namespace CustomizePlus.UI.Windows
                 {
                     Plugin.ProfileManager.CheckForNewProfiles();
                 }
-                CtrlHelper.AddHoverText("Check directory for new files");
+                CtrlHelper.AddHoverText("Rediscover profiles.");
 
                 ImGui.SameLine();
 
