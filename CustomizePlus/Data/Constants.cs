@@ -45,12 +45,6 @@ namespace CustomizePlus.Data
         public const int MaxVectorValueLimit = 512;
 
         /// <summary>
-        /// Predicate function for determining if the given object table index represents a
-        /// cutscene NPC object, with a small buffer in case the prior entries overflow past index 200.
-        /// </summary>
-        public static bool IsInObjectTableCutsceneNPCRange(int index) => index is > 202 and < 240;
-
-        /// <summary>
         /// Predicate function for determining if the given object table index represents an
         /// NPC in a busy area (i.e. there are ~245 other objects already).
         /// </summary>
@@ -96,8 +90,14 @@ namespace CustomizePlus.Data
         /// </summary>
         public const int TruePoseIndex = 0;
 
+        /// <summary>
+        /// Main render hook address
+        /// </summary>
         public const string RenderHookAddress = "E8 ?? ?? ?? ?? 48 81 C3 ?? ?? ?? ?? BF ?? ?? ?? ?? 33 ED";
 
+        /// <summary>
+        /// Movement hook address, used for position offset and other changes which cannot be done in main hook
+        /// </summary>
         public const string MovementHookAddress = "E8 ?? ?? ?? ?? EB 29 48 8B 5F 08";
     }
 }

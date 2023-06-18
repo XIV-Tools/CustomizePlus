@@ -32,8 +32,6 @@ namespace CustomizePlus.UI.Windows
                 return;
 
             DrawPluginEnabledCheckbox();
-            DrawApplyToNPCsCheckbox();
-            DrawApplyToNPCsInCutscenesCheckbox();
         }
 
         private void DrawPluginEnabledCheckbox()
@@ -46,30 +44,6 @@ namespace CustomizePlus.UI.Windows
                 Plugin.ConfigurationManager.Configuration.PluginEnabled = isChecked;
                 Plugin.ConfigurationManager.SaveConfiguration();
                 Plugin.ReloadHooks();
-            }
-        }
-
-        private void DrawApplyToNPCsCheckbox()
-        {
-            var isChecked = Plugin.ConfigurationManager.Configuration.ApplyToNPCs;
-            if (CtrlHelper.CheckboxWithTextAndHelp("##applytonpcs", "LEGACY? Apply to NPCs",
-                    "Apply profiles to NPCs.\nSpecify a profile with the name 'Default' for it to apply to all NPCs and non-specified players.",
-                    ref isChecked))
-            {
-                Plugin.ConfigurationManager.Configuration.ApplyToNPCs = isChecked;
-                Plugin.ConfigurationManager.SaveConfiguration();
-            }
-        }
-
-        private void DrawApplyToNPCsInCutscenesCheckbox()
-        {
-            var isChecked = Plugin.ConfigurationManager.Configuration.ApplyToNPCsInCutscenes;
-            if (CtrlHelper.CheckboxWithTextAndHelp("##applytonpcscutscenes", "LEGACY? Apply to NPCs in Cutscenes",
-                    "Apply profiles to NPCs in cutscenes.\nSpecify a profile with the name 'DefaultCutscene' to apply it to all generic characters while in a cutscene.",
-                    ref isChecked))
-            {
-                Plugin.ConfigurationManager.Configuration.ApplyToNPCsInCutscenes = isChecked;
-                Plugin.ConfigurationManager.SaveConfiguration();
             }
         }
 

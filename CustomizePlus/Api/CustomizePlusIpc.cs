@@ -14,38 +14,51 @@ using Dalamud.Logging;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Ipc;
 using Newtonsoft.Json;
+using CustomizePlus.Helpers;
 
 namespace CustomizePlus.Api
 {
     public class CustomizePlusIpc : IDisposable
     {
         public const string ProviderApiVersionLabel = $"CustomizePlus.{nameof(GetApiVersion)}";
+        [Obsolete("To be removed in later versions after mare switches to new endpoints")]
         public const string GetCharacterProfileLegacyLabel = "CustomizePlus.GetBodyScale";
         public const string GetCharacterProfileLabel = $"CustomizePlus.{nameof(SetCharacterProfile)}";
         public const string GetProfileFromCharacterLabel = $"CustomizePlus.{nameof(GetProfileFromCharacter)}";
+        [Obsolete("To be removed in later versions after mare switches to new endpoints")]
         public const string SetCharacterProfileLegacyLabel = "CustomizePlus.SetBodyScale";
         public const string SetCharacterProfileLabel = $"CustomizePlus.{nameof(SetCharacterProfile)}";
         public const string SetProfileToCharacterLabel = $"CustomizePlus.{nameof(SetProfileToCharacter)}";
+        [Obsolete("To be removed in later versions after mare switches to new endpoints")]
+        public const string SetProfileToCharacterLegacyLabel = "CustomizePlus.SetBodyScaleToCharacter";
         public const string RevertLabel = $"CustomizePlus.{nameof(Revert)}";
         public const string RevertCharacterLabel = $"CustomizePlus.{nameof(RevertCharacter)}";
-        public const string OnProfileUpdateLabel = $"CustomizePlus.{nameof(OnProfileUpdate)}";
+        [Obsolete("To be removed in later versions after mare switches to new endpoints")]
+        public const string OnOnLocalPlayerProfileLegacyLabel = "CustomizePlus.OnScaleUpdate";
+        public const string OnLocalPlayerProfileUpdateLabel = $"CustomizePlus.{nameof(OnLocalPlayerProfileUpdate)}";
         public static readonly string ApiVersion = "2.0";
         private readonly ObjectTable _objectTable;
         private readonly DalamudPluginInterface _pluginInterface;
         internal ICallGateProvider<string>? ProviderGetApiVersion;
 
-
+        [Obsolete("To be removed in later versions after mare switches to new endpoints")]
         internal ICallGateProvider<string, string?>? ProviderGetCharacterProfileLegacy;
         internal ICallGateProvider<string, string?>? ProviderGetCharacterProfile;
         internal ICallGateProvider<Character?, string?>? ProviderGetProfileFromCharacter;
 
-        internal ICallGateProvider<string?, object?>?
-            ProviderOnProfileUpdate; //Sends either bodyscale string or null at startup and when scales are saved in the ui
+        //Sends local player's profile on hooks reload (plugin startup) as well as any updates to their profile.
+        //If no profile is applied sends null
+        [Obsolete("To be removed in later versions after mare switches to new endpoints")]
+        internal ICallGateProvider<string?, object?>? ProviderOnLocalPlayerProfileLegacyUpdate;
+        internal ICallGateProvider<string?, object?>? ProviderOnLocalPlayerProfileUpdate;
 
         internal ICallGateProvider<string, object>? ProviderRevert;
         internal ICallGateProvider<Character?, object>? ProviderRevertCharacter;
+        [Obsolete("To be removed in later versions after mare switches to new endpoints")]
         internal ICallGateProvider<string, string, object>? ProviderSetCharacterProfileLegacy;
         internal ICallGateProvider<string, string, object>? ProviderSetCharacterProfile;
+        [Obsolete("To be removed in later versions after mare switches to new endpoints")]
+        internal ICallGateProvider<string, Character?, object>? ProviderSetProfileToCharacterLegacy;
         internal ICallGateProvider<string, Character?, object>? ProviderSetProfileToCharacter;
 
         public CustomizePlusIpc(ObjectTable objectTable, DalamudPluginInterface pluginInterface)
@@ -68,10 +81,12 @@ namespace CustomizePlus.Api
             ProviderGetProfileFromCharacter?.UnregisterFunc();
             ProviderSetCharacterProfileLegacy?.UnregisterAction();
             ProviderSetCharacterProfile?.UnregisterAction();
+            ProviderSetProfileToCharacterLegacy?.UnregisterAction();
             ProviderSetProfileToCharacter?.UnregisterAction();
             ProviderRevert?.UnregisterAction();
             ProviderRevertCharacter?.UnregisterAction();
             ProviderGetApiVersion?.UnregisterFunc();
+            ProviderOnLocalPlayerProfileUpdate?.UnregisterFunc();
         }
 
         private void InitializeProviders()
@@ -143,6 +158,17 @@ namespace CustomizePlus.Api
             try
             {
                 ProviderSetProfileToCharacter =
+                    _pluginInterface.GetIpcProvider<string, Character?, object>(SetProfileToCharacterLegacyLabel);
+                ProviderSetProfileToCharacter.RegisterAction(SetProfileToCharacter);
+            }
+            catch (Exception ex)
+            {
+                PluginLog.Error(ex, $"Error registering IPC provider for {SetProfileToCharacterLegacyLabel}.");
+            }
+
+            try
+            {
+                ProviderSetProfileToCharacter =
                     _pluginInterface.GetIpcProvider<string, Character?, object>(SetProfileToCharacterLabel);
                 ProviderSetProfileToCharacter.RegisterAction(SetProfileToCharacter);
             }
@@ -175,18 +201,33 @@ namespace CustomizePlus.Api
 
             try
             {
-                ProviderOnProfileUpdate = _pluginInterface.GetIpcProvider<string?, object?>(OnProfileUpdateLabel);
+                ProviderOnLocalPlayerProfileLegacyUpdate = _pluginInterface.GetIpcProvider<string?, object?>(OnOnLocalPlayerProfileLegacyLabel);
             }
             catch (Exception ex)
             {
-                PluginLog.Error(ex, $"Error registering IPC provider for {OnProfileUpdateLabel}.");
+                PluginLog.Error(ex, $"Error registering IPC provider for {OnOnLocalPlayerProfileLegacyLabel}.");
+            }
+
+            try
+            {
+                ProviderOnLocalPlayerProfileUpdate = _pluginInterface.GetIpcProvider<string?, object?>(OnLocalPlayerProfileUpdateLabel);
+            }
+            catch (Exception ex)
+            {
+                PluginLog.Error(ex, $"Error registering IPC provider for {OnLocalPlayerProfileUpdateLabel}.");
             }
         }
 
-        public void OnProfileUpdate(string profileJson)
+        public void OnLocalPlayerProfileUpdate()
         {
-            PluginLog.Debug("Sending c+ ipc profile message.");
-            ProviderOnProfileUpdate?.SendMessage(profileJson);
+            //Get player's body profile string and send IPC message
+            if (GameDataHelper.GetPlayerName() is string name && name != null)
+            {
+                CharacterProfile? profile = Plugin.ProfileManager.GetProfileByCharacterName(name, true);
+
+                PluginLog.Debug($"Sending local player update message: {profile?.ProfileName ?? "no profile"} - {profile?.CharacterName ?? "no profile"}");
+                ProviderOnLocalPlayerProfileUpdate?.SendMessage(profile != null ? JsonConvert.SerializeObject(profile) : null);
+            }
         }
 
         private static string GetApiVersion()
@@ -196,7 +237,7 @@ namespace CustomizePlus.Api
 
         private string? GetCharacterProfile(string characterName)
         {
-            var prof = Plugin.ProfileManager.GetProfileByCharacterName(characterName);
+            var prof = Plugin.ProfileManager.GetProfileByCharacterName(characterName, true);
             return prof != null ? JsonConvert.SerializeObject(prof) : null;
         }
 
