@@ -49,29 +49,6 @@ namespace CustomizePlus.Data.Configuration.Version2
             return config;
         }
 
-        public static Version2Configuration ConvertFromLatestVersion(PluginConfiguration newConfig)
-        {
-            var config = new Version2Configuration
-            {
-                Version = 2,
-                Enable = newConfig.PluginEnabled,
-                AutomaticEditMode = false,
-                MirrorMode = false,
-                EditingAttribute = default,
-                DebuggingMode = newConfig.DebuggingModeEnabled,
-                ApplyToNpcs = newConfig.ApplyToNPCs,
-                ApplyToNpcsInCutscenes = newConfig.ApplyToNPCsInCutscenes
-            };
-
-            foreach(CharacterProfile prof in Plugin.ProfileManager.Profiles)
-            {
-                Version2BodyScale bs = ProfileConverter.ConvertToLegacyConfigV2(prof);
-                config.BodyScales.Add(bs);
-            }
-
-            return config;
-        }
-
         public int Version { get; set; } = 2;
     }
 }

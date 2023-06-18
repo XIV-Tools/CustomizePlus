@@ -25,7 +25,6 @@ namespace CustomizePlus.Data.Configuration
 
         public PluginConfiguration Configuration { get; private set; }
         private static string ConfigFilePath => DalamudServices.PluginInterface.ConfigFile.FullName;
-
         /// <summary>
         /// Gets Dalamud's pre-determined location for storing files related to Customize+.
         /// </summary>
@@ -71,13 +70,11 @@ namespace CustomizePlus.Data.Configuration
             switch (configVersion)
             {
                 case 0:
-                    BackupLegacyConfiguration(path);
                     var legacyConfig0 = new Version0Configuration();
                     output = legacyConfig0.LoadFromFile(path).ConvertToLatestVersion();
                     break;
 
                 case 2:
-                    BackupLegacyConfiguration(path);
                     var legacyConfig2 = new Version2Configuration();
                     output = legacyConfig2.LoadFromFile(path).ConvertToLatestVersion();
                     break;
@@ -90,11 +87,6 @@ namespace CustomizePlus.Data.Configuration
                 default:
                     output = new PluginConfiguration();
                     break;
-            }
-
-            if (configVersion != null && configVersion < Constants.ConfigurationVersion)
-            {
-                ChatHelper.PrintInChat("Configuration backed up and updated to newest version.");
             }
 
             return output;
@@ -110,29 +102,6 @@ namespace CustomizePlus.Data.Configuration
                 : JsonConvert
                     .DeserializeObject<ConfigurationVersion>(
                         File.ReadAllText(DalamudServices.PluginInterface.ConfigFile.FullName)).Version;
-        }
-
-        private static void BackupLegacyConfiguration(string path)
-        {
-            string backupPath = Path.Combine(ConfigDirectory, Path.GetFileName(path));
-
-            int increment = 1;
-
-            backupPath = IncrementBackupPath(backupPath, increment);
-
-            while(File.Exists(backupPath))
-            {
-                ++increment;
-                backupPath = IncrementBackupPath(path, increment);
-            }
-
-            File.Copy(path, backupPath);
-        }
-
-        private static string IncrementBackupPath(string path, int inc)
-        {
-            return Path.Combine(Path.GetDirectoryName(path),
-                $"{Path.GetFileNameWithoutExtension(path)}_LegacyBackup{inc}{Path.GetExtension(path)}");
         }
     }
 }
