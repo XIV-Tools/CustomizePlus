@@ -208,23 +208,20 @@ namespace CustomizePlus.UI.Windows
                 ImGui.TableNextRow();
                 ImGui.TableSetColumnIndex(0);
 
-                if (GameStateHelper.GameInPosingModeWithFrozenRotation()) ImGui.BeginDisabled();
+                if (GameStateHelper.GameInPosingMode()) ImGui.BeginDisabled();
                 if (ImGui.RadioButton("Position", _settings.EditingAttribute == BoneAttribute.Position))
                 {
                     _settings.EditingAttribute = BoneAttribute.Position;
                 }
                 CtrlHelper.AddHoverText($"May have unintended effects. Edit at your own risk!");
-                if (GameStateHelper.GameInPosingModeWithFrozenRotation()) ImGui.EndDisabled();
 
                 ImGui.SameLine();
-
-                if (GameStateHelper.GameInPosingModeWithFrozenPosition()) ImGui.BeginDisabled();
                 if (ImGui.RadioButton("Rotation", _settings.EditingAttribute == BoneAttribute.Rotation))
                 {
                     _settings.EditingAttribute = BoneAttribute.Rotation;
                 }
                 CtrlHelper.AddHoverText($"May have unintended effects. Edit at your own risk!");
-                if (GameStateHelper.GameInPosingModeWithFrozenPosition()) ImGui.EndDisabled();
+                if (GameStateHelper.GameInPosingMode()) ImGui.EndDisabled();
 
                 ImGui.SameLine();
                 if (ImGui.RadioButton("Scale", _settings.EditingAttribute == BoneAttribute.Scale))

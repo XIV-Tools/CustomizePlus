@@ -114,28 +114,6 @@ namespace CustomizePlus.Data.Profile
             return newProfile;
         }
 
-        public static Version2BodyScale ConvertToLegacyConfigV2(CharacterProfile prof)
-        {
-            Version2BodyScale oldProfile = new()
-            {
-                CharacterName = prof.CharacterName,
-                ScaleName = prof.ProfileName,
-                BodyScaleEnabled = prof.Enabled
-            };
-
-            foreach(var kvp in prof.Bones)
-            {
-                oldProfile.Bones[kvp.Key] = new BoneEditsContainer()
-                {
-                    Position = kvp.Value.Translation,
-                    Rotation = kvp.Value.Rotation,
-                    Scale = kvp.Value.Scaling
-                };
-            }
-
-            return oldProfile;
-        }
-
         public static CharacterProfile? ConvertFromConfigV0(string json)
         {
             var oldVer = JsonConvert.DeserializeObject<Version0BodyScale>(json);
