@@ -12,23 +12,23 @@ namespace CustomizePlus.Services
     {
         // Borrowed from Ktisis:
         // If this is NOP'd, Anam posing is enabled.
-        internal static unsafe byte* AnamnesisFreezePosition;
-        internal static unsafe byte* AnamnesisFreezeRotation;
-        internal static unsafe byte* AnamnesisFreezeScale;
+        private static unsafe byte* AnamnesisFreezePosition;
+        private static unsafe byte* AnamnesisFreezeRotation;
+        private static unsafe byte* AnamnesisFreezeScale;
 
         internal static unsafe bool IsAnamnesisPositionFrozen =>
-            (AnamnesisFreezePosition != null && *AnamnesisFreezePosition == 0x90) || *AnamnesisFreezePosition == 0x00;
+            (AnamnesisFreezePosition != null && *AnamnesisFreezePosition == 0x90)
+            || *AnamnesisFreezePosition == 0x00;
 
         internal static unsafe bool IsAnamnesisRotationFrozen =>
-            (AnamnesisFreezeRotation != null && *AnamnesisFreezeRotation == 0x90) || *AnamnesisFreezeRotation == 0x00;
+            (AnamnesisFreezeRotation != null && *AnamnesisFreezeRotation == 0x90)
+            || *AnamnesisFreezeRotation == 0x00;
 
         internal static unsafe bool IsAnamnesisScalingFrozen =>
-            (AnamnesisFreezeScale != null && *AnamnesisFreezeScale == 0x90) || *AnamnesisFreezeScale == 0x00;
+            (AnamnesisFreezeScale != null && *AnamnesisFreezeScale == 0x90)
+            || *AnamnesisFreezeScale == 0x00;
 
-        internal static bool IsAnamnesis =>
-            IsAnamnesisPositionFrozen || IsAnamnesisRotationFrozen || IsAnamnesisScalingFrozen;
-
-        public bool IsInPosingMode => IsAnamnesis; //Can't detect Ktisis for now
+        public bool IsInPosingMode => IsAnamnesisPositionFrozen || IsAnamnesisRotationFrozen || IsAnamnesisScalingFrozen;
 
         public override unsafe void Start()
         {

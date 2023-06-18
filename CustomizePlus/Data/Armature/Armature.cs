@@ -417,22 +417,19 @@ namespace CustomizePlus.Data.Armature
                                 && mb != null
                                 && mb.BoneName == currentPose->Skeleton->Bones[boneIndex].Name.String)
                             {
-                                if (mb == MainRootBone)
-                                {
-                                    if (obj.HasScalableRoot())
-                                    {
-                                        mb.ApplyModelScale(cBase);
-                                    }
-
-                                    mb.ApplyModelRotation(cBase);
-                                }
-                                else if (GameStateHelper.GameInPosingMode())
+                                if (mb != MainRootBone || obj.HasScalableRoot())
                                 {
                                     mb.ApplyModelScale(cBase);
                                 }
-                                else
+
+                                if (!GameStateHelper.GameInPosingModeWithFrozenRotation())
                                 {
-                                    mb.ApplyModelTransform(cBase);
+                                    mb.ApplyModelRotation(cBase);
+                                }
+
+                                if (!GameStateHelper.GameInPosingModeWithFrozenPosition())
+                                {
+                                    mb.ApplyModelTranslationAtAngle(cBase);
                                 }
                             }
                         }
@@ -445,7 +442,7 @@ namespace CustomizePlus.Data.Armature
         {
             if (cBase != null && _partialSkeletons.Any() && _partialSkeletons.First().Any())
             {
-                _partialSkeletons[0][0].ApplyStraightModelTranslation(cBase);
+                _partialSkeletons[0][0].ApplyModelTranslationAsIs(cBase);
             }
         }
 
@@ -455,74 +452,5 @@ namespace CustomizePlus.Data.Armature
                 && (name1[^1] == 'l' ^ name2[^1] == 'l')
                 && (name1[0..^1] == name2[0..^1]);
         }
-
-        //public void OverrideWithReferencePose()
-        //{
-        //    for (var pSkeleIndex = 0; pSkeleIndex < Skeleton->PartialSkeletonCount; ++pSkeleIndex)
-        //    {
-        //        for (var poseIndex = 0; poseIndex < 4; ++poseIndex)
-        //        {
-        //            var snapPose = Skeleton->PartialSkeletons[pSkeleIndex].GetHavokPose(poseIndex);
-
-        //            if (snapPose != null)
-        //            {
-        //                snapPose->SetToReferencePose();
-        //            }
-        //        }
-        //    }
-        //}
-
-        //public void OverrideRootParenting()
-        //{
-        //    var pSkeleNot = Skeleton->PartialSkeletons[0];
-
-        //    for (var pSkeleIndex = 1; pSkeleIndex < Skeleton->PartialSkeletonCount; ++pSkeleIndex)
-        //    {
-        //        var partialSkele = Skeleton->PartialSkeletons[pSkeleIndex];
-
-        //        for (var poseIndex = 0; poseIndex < 4; ++poseIndex)
-        //        {
-        //            var currentPose = partialSkele.GetHavokPose(poseIndex);
-
-        //            if (currentPose != null && partialSkele.ConnectedBoneIndex >= 0)
-        //            {
-        //                int boneIdx = partialSkele.ConnectedBoneIndex;
-        //                int parentBoneIdx = partialSkele.ConnectedParentBoneIndex;
-
-        //                var transA = currentPose->AccessBoneModelSpace(boneIdx, 0);
-        //                var transB = pSkeleNot.GetHavokPose(0)->AccessBoneModelSpace(parentBoneIdx, 0);
-
-        //                //currentPose->AccessBoneModelSpace(parentBoneIdx, hkaPose.PropagateOrNot.DontPropagate);
-
-        //                for (var i = 0; i < currentPose->Skeleton->Bones.Length; ++i)
-        //                {
-        //                    currentPose->ModelPose[i] = ApplyPropagatedTransform(currentPose->ModelPose[i], transB,
-        //                        transA->Translation, transB->Rotation);
-        //                    currentPose->ModelPose[i] = ApplyPropagatedTransform(currentPose->ModelPose[i], transB,
-        //                        transB->Translation, transA->Rotation);
-        //                }
-        //            }
-        //        }
-        //    }
-        //}
-
-        //private hkQsTransformf ApplyPropagatedTransform(hkQsTransformf init, hkQsTransformf* propTrans,
-        //    hkVector4f initialPos, hkQuaternionf initialRot)
-        //{
-        //    var sourcePosition = propTrans->Translation.GetAsNumericsVector().RemoveWTerm();
-        //    var deltaRot = propTrans->Rotation.ToQuaternion() / initialRot.ToQuaternion();
-        //    var deltaPos = sourcePosition - initialPos.GetAsNumericsVector().RemoveWTerm();
-
-        //    hkQsTransformf output = new()
-        //    {
-        //        Translation = Vector3
-        //            .Transform(init.Translation.GetAsNumericsVector().RemoveWTerm() - sourcePosition, deltaRot)
-        //            .ToHavokTranslation(),
-        //        Rotation = deltaRot.ToHavokRotation(),
-        //        Scale = init.Scale
-        //    };
-
-        //    return output;
-        //}
     }
 }
