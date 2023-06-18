@@ -92,6 +92,11 @@ namespace CustomizePlus.Data.Configuration
                     break;
             }
 
+            if (configVersion != null && configVersion < Constants.ConfigurationVersion)
+            {
+                ChatHelper.PrintInChat("Configuration backed up and updated to newest version.");
+            }
+
             return output;
         }
 
@@ -127,8 +132,7 @@ namespace CustomizePlus.Data.Configuration
         private static string IncrementBackupPath(string path, int inc)
         {
             return Path.Combine(Path.GetDirectoryName(path),
-                $"{Path.GetFileNameWithoutExtension(path)}_LegacyBackup{inc}",
-                Path.GetExtension(path));
+                $"{Path.GetFileNameWithoutExtension(path)}_LegacyBackup{inc}{Path.GetExtension(path)}");
         }
     }
 }
