@@ -56,7 +56,9 @@ namespace CustomizePlus.UI.Windows.Debug
             if (!GameDataHelper.TryLookupCharacterBase(_targetProfile.CharacterName, out CharacterBase* targetObject))
             {
                 _targetProfile.Enabled = false;
-                DisplayNoLinkMsg();
+
+                // This is broken right now and will spam open an unclosable window. Since this is dev I just disabled it, Devs should know why bones dont show up.
+                //DisplayNoLinkMsg();
             }
 
             ImGui.TextUnformatted($"Character Name: {_targetProfile.CharacterName}");

@@ -14,7 +14,7 @@ namespace CustomizePlus.UI
         protected abstract string Title { get; }
 
         protected virtual Vector2? ForcedSize { get; set; }
-        protected virtual Vector2 MinSize => new(550, 256);
+        protected virtual Vector2 MinSize => new(600, 256);
         protected virtual Vector2 MaxSize => new(2560, 1440);
 
         protected virtual ImGuiWindowFlags WindowFlags { get; set; } = ImGuiWindowFlags.None;
