@@ -20,9 +20,6 @@ namespace CustomizePlus.Data.Armature
 
         public void RenderCharacterProfiles(params CharacterProfile[] profiles)
         {
-            //RefreshActiveArmatures(profiles);
-            //RefreshArmatureVisibility();
-            //ApplyArmatureTransforms();
             try
             {
                 RefreshActiveArmatures(profiles);

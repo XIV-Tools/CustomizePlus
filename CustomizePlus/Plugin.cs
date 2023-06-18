@@ -37,7 +37,7 @@ namespace CustomizePlus
         public static ArmatureManager ArmatureManager { get; } = new();
         public static ConfigurationManager ConfigurationManager { get; set; } = new();
 
-        private static CustomizePlusIpc _ipcManager = null!;
+        public static CustomizePlusIpc IPCManager = null!;
 
         private static Hook<RenderDelegate>? _renderManagerHook;
         private static Hook<GameObjectMovementDelegate>? _gameObjectMovementHook;
@@ -59,15 +59,15 @@ namespace CustomizePlus
                 ProfileManager.LoadProfiles();
                 ProfileManager.CompleteInitialization();
 
-                ReloadHooks();
-
                 DalamudServices.Framework.RunOnFrameworkThread(() =>
                 {
                     ServiceManager.Start();
                     DalamudServices.Framework.Update += Framework_Update;
                 });
 
-                _ipcManager = new CustomizePlusIpc(DalamudServices.ObjectTable, DalamudServices.PluginInterface);
+                IPCManager = new CustomizePlusIpc(DalamudServices.ObjectTable, DalamudServices.PluginInterface);
+
+                ReloadHooks();
 
                 DalamudServices.CommandManager.AddCommand((s, t) => MainWindow.Toggle(), "/customize",
                     "Toggles the Customize+ configuration window.");
@@ -103,7 +103,7 @@ namespace CustomizePlus
 
             DalamudServices.Framework.Update -= Framework_Update;
 
-            _ipcManager?.Dispose();
+            IPCManager?.Dispose();
 
             _gameObjectMovementHook?.Disable();
             _gameObjectMovementHook?.Dispose();
@@ -117,6 +117,7 @@ namespace CustomizePlus
             DalamudServices.PluginInterface.UiBuilder.Draw -= InterfaceManager.Draw;
             DalamudServices.PluginInterface.UiBuilder.OpenConfigUi -= MainWindow.Show;
         }
+
         public static void ReloadHooks()
         {
             try
@@ -144,6 +145,9 @@ namespace CustomizePlus
 
                     PluginLog.Debug("Hooking render manager");
                     _renderManagerHook.Enable();
+
+                    //Send current player's profile update message to IPC
+                    IPCManager.OnLocalPlayerProfileUpdate();
                 }
                 else
                 {
@@ -157,18 +161,6 @@ namespace CustomizePlus
             {
                 PluginLog.Error($"Failed to hook Render::Manager::Render {e}");
                 throw;
-            }
-        }
-
-        private void UpdatePlayerIpc()
-        {
-            //Get player's body profile string and send IPC message
-            if (GameDataHelper.GetPlayerName() is string name && name != null)
-            {
-                if (ProfileManager.GetProfileByCharacterName(name) is CharacterProfile prof && prof != null)
-                {
-                    _ipcManager.OnProfileUpdate(JsonConvert.SerializeObject(prof));
-                }
             }
         }
 
