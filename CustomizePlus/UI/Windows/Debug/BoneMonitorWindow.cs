@@ -53,7 +53,8 @@ namespace CustomizePlus.UI.Windows.Debug
 
         protected override void DrawContents()
         {
-            if (!GameDataHelper.TryLookupCharacterBase(_targetProfile.CharacterName, out CharacterBase* targetObject))
+            if (!GameDataHelper.TryLookupCharacterBase(_targetProfile.CharacterName, out CharacterBase* targetObject)
+                && _targetProfile.Enabled)
             {
                 _targetProfile.Enabled = false;
                 DisplayNoLinkMsg();
@@ -126,7 +127,7 @@ namespace CustomizePlus.UI.Windows.Debug
 
             ImGui.Separator();
 
-            if (ImGui.BeginTable("Bones", 9,
+            if (ImGui.BeginTable("Bones", 10,
                     ImGuiTableFlags.Borders | ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.ScrollY,
                     new Vector2(0, ImGui.GetFrameHeightWithSpacing() - 56)))
             {
@@ -144,6 +145,9 @@ namespace CustomizePlus.UI.Windows.Debug
                     ImGuiTableColumnFlags.NoReorder | ImGuiTableColumnFlags.WidthStretch);
 
                 ImGui.TableSetupColumn("Bone Name",
+                    ImGuiTableColumnFlags.NoReorder | ImGuiTableColumnFlags.WidthStretch);
+
+                ImGui.TableSetupColumn("Parent Bone",
                     ImGuiTableColumnFlags.NoReorder | ImGuiTableColumnFlags.WidthStretch);
 
                 ImGui.TableSetupScrollFreeze(0, 1);
@@ -258,6 +262,11 @@ namespace CustomizePlus.UI.Windows.Debug
 
                 ImGui.TableNextColumn();
                 CtrlHelper.StaticLabel(BoneData.GetBoneDisplayName(bone.BoneName));
+
+                ImGui.TableNextColumn();
+                CtrlHelper.StaticLabel(BoneData.GetBoneDisplayName(bone.ParentBone?.BoneName ?? "N/A"),
+                    CtrlHelper.TextAlignment.Left,
+                    bone.ParentBone?.ToString() ?? "N/A");
 
                 ImGui.PopFont();
 

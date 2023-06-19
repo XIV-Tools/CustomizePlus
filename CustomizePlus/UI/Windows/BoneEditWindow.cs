@@ -299,7 +299,7 @@ namespace CustomizePlus.UI.Windows
                 if (_profileInProgress != null || _targetArmature != null)
                 {
                     IEnumerable<EditRowParams> relevantModelBones = _settings.ShowLiveBones && _targetArmature != null
-                        ? _targetArmature.GetBones().Select(x => new EditRowParams(x))
+                        ? _targetArmature.GetAllBones().Select(x => new EditRowParams(x))
                         : _profileInProgress.Bones.Select(x => new EditRowParams(x.Key, x.Value));
 
                     var groupedBones = relevantModelBones.GroupBy(x => BoneData.GetBoneFamily(x.BoneCodeName)).ToList();

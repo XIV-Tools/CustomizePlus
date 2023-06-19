@@ -255,7 +255,7 @@ namespace CustomizePlus.Data.Armature
         /// </summary>
         private void UpdateClones(BoneTransform newTransform)
         {
-            foreach(ModelBone mb in MasterArmature.GetBones()
+            foreach(ModelBone mb in MasterArmature.GetAllBones()
                 .Where(x => x.BoneName == this.BoneName && x != this))
             {
                 mb.UpdateTransformation(newTransform);
