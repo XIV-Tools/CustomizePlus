@@ -5,7 +5,9 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Linq;
+using CustomizePlus.Helpers;
 using Dalamud.Game.ClientState.Objects.Enums;
+using Newtonsoft.Json;
 
 namespace CustomizePlus.Data.Profile
 {
@@ -189,6 +191,10 @@ namespace CustomizePlus.Data.Profile
                 {
                     StopEditing(prof);
                 }
+
+                //Send OnProfileUpdate if this is profile of the current player and it's enabled
+                if (prof.CharacterName == GameDataHelper.GetPlayerName() && prof.Enabled)
+                    Plugin.IPCManager.OnLocalPlayerProfileUpdate();
             }
         }
 
@@ -287,9 +293,13 @@ namespace CustomizePlus.Data.Profile
             return enabledProfiles.ToArray();
         }
 
-        public CharacterProfile? GetProfileByCharacterName(string name)
+        public CharacterProfile? GetProfileByCharacterName(string name, bool enabledOnly = false)
         {
-            return Profiles.FirstOrDefault(x => x.CharacterName == name);
+            var query = Profiles.Where(x => x.CharacterName == name);
+            if (enabledOnly)
+                query = query.Where(x => x.Enabled);
+
+            return query.FirstOrDefault();
         }
 
         public CharacterProfile? GetProfileByUniqueId(int id)

@@ -171,7 +171,7 @@ namespace CustomizePlus.UI.Windows
                         ConfirmSkeletonConnection();
                         _targetArmature.SnapToReferencePose = tempRefSnap;
                     }
-                    CtrlHelper.AddHoverText($"Force character into their default reference pose");
+                    CtrlHelper.AddHoverText($"D: Force character into their default reference pose");
                 }
 
                 ImGui.TableNextColumn();
@@ -190,7 +190,7 @@ namespace CustomizePlus.UI.Windows
                     {
                         ConfirmSkeletonConnection();
                     }
-                    CtrlHelper.AddHoverText($"Changes will propagate \"outward\" from edited bones");
+                    CtrlHelper.AddHoverText($"D: Changes will propagate \"outward\" from edited bones");
                 }
 
                 if (!_profileInProgress.Enabled) ImGui.EndDisabled();
@@ -208,20 +208,23 @@ namespace CustomizePlus.UI.Windows
                 ImGui.TableNextRow();
                 ImGui.TableSetColumnIndex(0);
 
-                if (GameStateHelper.GameInPosingMode()) ImGui.BeginDisabled();
+                if (GameStateHelper.GameInPosingModeWithFrozenRotation()) ImGui.BeginDisabled();
                 if (ImGui.RadioButton("Position", _settings.EditingAttribute == BoneAttribute.Position))
                 {
                     _settings.EditingAttribute = BoneAttribute.Position;
                 }
                 CtrlHelper.AddHoverText($"May have unintended effects. Edit at your own risk!");
+                if (GameStateHelper.GameInPosingModeWithFrozenRotation()) ImGui.EndDisabled();
 
                 ImGui.SameLine();
+
+                if (GameStateHelper.GameInPosingModeWithFrozenPosition()) ImGui.BeginDisabled();
                 if (ImGui.RadioButton("Rotation", _settings.EditingAttribute == BoneAttribute.Rotation))
                 {
                     _settings.EditingAttribute = BoneAttribute.Rotation;
                 }
                 CtrlHelper.AddHoverText($"May have unintended effects. Edit at your own risk!");
-                if (GameStateHelper.GameInPosingMode()) ImGui.EndDisabled();
+                if (GameStateHelper.GameInPosingModeWithFrozenPosition()) ImGui.EndDisabled();
 
                 ImGui.SameLine();
                 if (ImGui.RadioButton("Scale", _settings.EditingAttribute == BoneAttribute.Scale))
@@ -658,7 +661,6 @@ namespace CustomizePlus.UI.Windows
         public BoneAttribute EditingAttribute = BoneAttribute.Scale;
 
         public Dictionary<BoneData.BoneFamily, bool> GroupExpandedState = new();
-        public FrameStackManager EditStack;
 
         public EditorSessionSettings(Armature armRef)
         {

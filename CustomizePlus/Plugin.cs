@@ -37,15 +37,15 @@ namespace CustomizePlus
         public static ArmatureManager ArmatureManager { get; } = new();
         public static ConfigurationManager ConfigurationManager { get; set; } = new();
 
-        private static CustomizePlusIpc _ipcManager = null!;
+        public static CustomizePlusIpc IPCManager = null!;
 
         private static Hook<RenderDelegate>? _renderManagerHook;
         private static Hook<GameObjectMovementDelegate>? _gameObjectMovementHook;
 
-        private delegate IntPtr RenderDelegate(IntPtr a1, long a2, int a3, int a4);
+        private delegate nint RenderDelegate(nint a1, nint a2, int a3, int a4);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate void GameObjectMovementDelegate(IntPtr gameObject);
+        private delegate void GameObjectMovementDelegate(nint gameObject);
 
 
         public Plugin(DalamudPluginInterface pluginInterface)
@@ -59,15 +59,15 @@ namespace CustomizePlus
                 ProfileManager.LoadProfiles();
                 ProfileManager.CompleteInitialization();
 
-                ReloadHooks();
-
                 DalamudServices.Framework.RunOnFrameworkThread(() =>
                 {
                     ServiceManager.Start();
                     DalamudServices.Framework.Update += Framework_Update;
                 });
 
-                _ipcManager = new CustomizePlusIpc(DalamudServices.ObjectTable, DalamudServices.PluginInterface);
+                IPCManager = new CustomizePlusIpc(DalamudServices.ObjectTable, DalamudServices.PluginInterface);
+
+                ReloadHooks();
 
                 DalamudServices.CommandManager.AddCommand((s, t) => MainWindow.Toggle(), "/customize",
                     "Toggles the Customize+ configuration window.");
@@ -103,7 +103,7 @@ namespace CustomizePlus
 
             DalamudServices.Framework.Update -= Framework_Update;
 
-            _ipcManager?.Dispose();
+            IPCManager?.Dispose();
 
             _gameObjectMovementHook?.Disable();
             _gameObjectMovementHook?.Dispose();
@@ -117,6 +117,7 @@ namespace CustomizePlus
             DalamudServices.PluginInterface.UiBuilder.Draw -= InterfaceManager.Draw;
             DalamudServices.PluginInterface.UiBuilder.OpenConfigUi -= MainWindow.Show;
         }
+
         public static void ReloadHooks()
         {
             try
@@ -144,6 +145,9 @@ namespace CustomizePlus
 
                     PluginLog.Debug("Hooking render manager");
                     _renderManagerHook.Enable();
+
+                    //Send current player's profile update message to IPC
+                    IPCManager.OnLocalPlayerProfileUpdate();
                 }
                 else
                 {
@@ -157,18 +161,6 @@ namespace CustomizePlus
             {
                 PluginLog.Error($"Failed to hook Render::Manager::Render {e}");
                 throw;
-            }
-        }
-
-        private void UpdatePlayerIpc()
-        {
-            //Get player's body profile string and send IPC message
-            if (GameDataHelper.GetPlayerName() is string name && name != null)
-            {
-                if (ProfileManager.GetProfileByCharacterName(name) is CharacterProfile prof && prof != null)
-                {
-                    _ipcManager.OnProfileUpdate(JsonConvert.SerializeObject(prof));
-                }
             }
         }
 
@@ -233,15 +225,12 @@ namespace CustomizePlus
             }
         }
 
-        private static IntPtr OnRender(IntPtr a1, long a2, int a3, int a4)
+        private static nint OnRender(nint a1, nint a2, int a3, int a4)
         {
             if (_renderManagerHook == null)
             {
                 throw new Exception();
             }
-
-            // if this gets disposed while running we crash calling Original's getter, so get it at start
-            var original = _renderManagerHook.Original;
 
             try
             {
@@ -254,17 +243,17 @@ namespace CustomizePlus
                 _renderManagerHook?.Disable();
             }
 
-            return original(a1, a2, a3, a4);
+            return _renderManagerHook.Original(a1, a2, a3, a4);
         }
 
         //todo: doesn't work in cutscenes, something getting called after this and resets changes
-        private unsafe static void OnGameObjectMove(IntPtr gameObjectPtr)
+        private unsafe static void OnGameObjectMove(nint gameObjectPtr)
         {
             // Call the original function.
-            _gameObjectMovementHook.Original(gameObjectPtr);
+            _gameObjectMovementHook?.Original(gameObjectPtr);
 
             ////If GPose and a 3rd-party posing service are active simultneously, abort
-            if (GameStateHelper.GameInPosingMode())
+            if (GameStateHelper.GameInPosingModeWithFrozenPosition())
             {
                 return;
             }
@@ -276,17 +265,6 @@ namespace CustomizePlus
                 && prof.Armature != null)
             {
                 prof.Armature.ApplyRootTranslation(obj.ToCharacterBase());
-
-                //var objIndex = obj.ObjectIndex;
-
-                //var isForbiddenFiller = objIndex == Constants.ObjectTableFillerIndex;
-                //var isForbiddenCutsceneNPC = Constants.IsInObjectTableCutsceneNPCRange(objIndex)
-                //                             || !ConfigurationManager.Configuration.ApplyToNPCsInCutscenes;
-
-                //if (!isForbiddenFiller && !isForbiddenCutsceneNPC)
-                //{
-                //    ArmatureManager.RenderArmatureByObject(obj);
-                //}
             }
         }
     }

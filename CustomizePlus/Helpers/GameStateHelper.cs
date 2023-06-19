@@ -8,11 +8,22 @@ namespace CustomizePlus.Helpers
 {
     internal static class GameStateHelper
     {
-        public static bool GameInPosingMode()
+        //public static bool GameInPosingMode()
+        //{
+        //    return Services.GPoseService.Instance.GPoseState == Services.GPoseState.Inside
+        //        || Services.PosingModeDetectService.Instance.IsInPosingMode;
+        //}
+
+        public static bool GameInPosingModeWithFrozenRotation()
         {
             return Services.GPoseService.Instance.GPoseState == Services.GPoseState.Inside
-                || Services.PosingModeDetectService.Instance.IsInPosingMode;
+                && Services.PosingModeDetectService.IsAnamnesisRotationFrozen;
         }
 
+        public static bool GameInPosingModeWithFrozenPosition()
+        {
+            return Services.GPoseService.Instance.GPoseState == Services.GPoseState.Inside
+                && Services.PosingModeDetectService.IsAnamnesisPositionFrozen;
+        }
     }
 }
