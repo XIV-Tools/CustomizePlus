@@ -14,16 +14,5 @@ namespace CustomizePlus.Helpers
                 || Services.PosingModeDetectService.Instance.IsInPosingMode;
         }
 
-        public static bool GameInPosingModeWithFrozenRotation()
-        {
-            return Services.GPoseService.Instance.GPoseState == Services.GPoseState.Inside
-                && Services.PosingModeDetectService.IsAnamnesisRotationFrozen;
-        }
-
-        public static bool GameInPosingModeWithFrozenPosition()
-        {
-            return Services.GPoseService.Instance.GPoseState == Services.GPoseState.Inside
-                && Services.PosingModeDetectService.IsAnamnesisPositionFrozen;
-        }
     }
 }

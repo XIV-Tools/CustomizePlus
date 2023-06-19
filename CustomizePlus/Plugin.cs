@@ -42,10 +42,10 @@ namespace CustomizePlus
         private static Hook<RenderDelegate>? _renderManagerHook;
         private static Hook<GameObjectMovementDelegate>? _gameObjectMovementHook;
 
-        private delegate nint RenderDelegate(nint a1, nint a2, int a3, int a4);
+        private delegate IntPtr RenderDelegate(IntPtr a1, long a2, int a3, int a4);
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        private delegate void GameObjectMovementDelegate(nint gameObject);
+        private delegate void GameObjectMovementDelegate(IntPtr gameObject);
 
 
         public Plugin(DalamudPluginInterface pluginInterface)
@@ -225,12 +225,15 @@ namespace CustomizePlus
             }
         }
 
-        private static nint OnRender(nint a1, nint a2, int a3, int a4)
+        private static IntPtr OnRender(IntPtr a1, long a2, int a3, int a4)
         {
             if (_renderManagerHook == null)
             {
                 throw new Exception();
             }
+
+            // if this gets disposed while running we crash calling Original's getter, so get it at start
+            var original = _renderManagerHook.Original;
 
             try
             {
@@ -243,17 +246,17 @@ namespace CustomizePlus
                 _renderManagerHook?.Disable();
             }
 
-            return _renderManagerHook.Original(a1, a2, a3, a4);
+            return original(a1, a2, a3, a4);
         }
 
         //todo: doesn't work in cutscenes, something getting called after this and resets changes
-        private unsafe static void OnGameObjectMove(nint gameObjectPtr)
+        private unsafe static void OnGameObjectMove(IntPtr gameObjectPtr)
         {
             // Call the original function.
-            _gameObjectMovementHook?.Original(gameObjectPtr);
+            _gameObjectMovementHook.Original(gameObjectPtr);
 
             ////If GPose and a 3rd-party posing service are active simultneously, abort
-            if (GameStateHelper.GameInPosingModeWithFrozenPosition())
+            if (GameStateHelper.GameInPosingMode())
             {
                 return;
             }
@@ -265,6 +268,17 @@ namespace CustomizePlus
                 && prof.Armature != null)
             {
                 prof.Armature.ApplyRootTranslation(obj.ToCharacterBase());
+
+                //var objIndex = obj.ObjectIndex;
+
+                //var isForbiddenFiller = objIndex == Constants.ObjectTableFillerIndex;
+                //var isForbiddenCutsceneNPC = Constants.IsInObjectTableCutsceneNPCRange(objIndex)
+                //                             || !ConfigurationManager.Configuration.ApplyToNPCsInCutscenes;
+
+                //if (!isForbiddenFiller && !isForbiddenCutsceneNPC)
+                //{
+                //    ArmatureManager.RenderArmatureByObject(obj);
+                //}
             }
         }
     }
