@@ -20,9 +20,6 @@ namespace CustomizePlus.Data.Armature
 
         public void RenderCharacterProfiles(params CharacterProfile[] profiles)
         {
-            //RefreshActiveArmatures(profiles);
-            //RefreshArmatureVisibility();
-            //ApplyArmatureTransforms();
             try
             {
                 RefreshActiveArmatures(profiles);
@@ -62,11 +59,11 @@ namespace CustomizePlus.Data.Armature
         }
 
 
-        private void RefreshArmatureVisibility()
+        private unsafe void RefreshArmatureVisibility()
         {
             foreach (var arm in _armatures)
             {
-                arm.IsVisible = arm.Profile.Enabled && arm.TryLinkSkeleton();
+                arm.IsVisible = arm.Profile.Enabled && arm.TryLinkSkeleton() != null;
             }
         }
 

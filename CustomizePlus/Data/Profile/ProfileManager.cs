@@ -5,7 +5,9 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Linq;
+using CustomizePlus.Helpers;
 using Dalamud.Game.ClientState.Objects.Enums;
+using Newtonsoft.Json;
 
 namespace CustomizePlus.Data.Profile
 {
@@ -122,10 +124,31 @@ namespace CustomizePlus.Data.Profile
             }
         }
 
+        public void DuplicateProfile(CharacterProfile prof, string? newCharName, string? newProfName)
+        {
+            if (Profiles.Contains(prof))
+            {
+                CharacterProfile dupe = new CharacterProfile(prof);
+
+                if (newCharName != null)
+                {
+                    dupe.CharacterName = newCharName;
+                }
+
+                if (newProfName != null)
+                {
+                    dupe.CharacterName = newProfName;
+                }
+
+                AddAndSaveProfile(dupe);
+            }
+        }
+
         public void DeleteProfile(CharacterProfile prof)
         {
             if (Profiles.Remove(prof))
             {
+                Dalamud.Logging.PluginLog.LogInformation($"{prof} deleted");
                 ProfileReaderWriter.DeleteProfile(prof);
             }
         }
@@ -160,64 +183,68 @@ namespace CustomizePlus.Data.Profile
         ///     Mark the given profile (if any) as currently being edited, and return
         ///     a copy that can be safely mangled without affecting the old one.
         /// </summary>
-        public bool GetWorkingCopy(CharacterProfile prof, out CharacterProfile? copy)
+        public CharacterProfile? GetWorkingCopy(CharacterProfile prof)
         {
-            if (prof != null && ProfileOpenInEditor != prof)
+            if (prof != null && ProfileOpenInEditor == null)
             {
                 Dalamud.Logging.PluginLog.LogInformation($"Creating new copy of {prof} for editing...");
 
-                copy = new CharacterProfile(prof);
+                ProfileOpenInEditor = new CharacterProfile(prof);
 
-                PruneIdempotentTransforms(copy);
-                ProfileOpenInEditor = copy;
-                return true;
+                PruneIdempotentTransforms(ProfileOpenInEditor);
+                return ProfileOpenInEditor;
             }
 
-            copy = null;
-            return false;
+            return null;
         }
 
-        public void SaveWorkingCopy(CharacterProfile prof, bool editingComplete = false)
+        public void SaveWorkingCopy(bool editingComplete = false)
         {
-            if (ProfileOpenInEditor == prof)
+            if (ProfileOpenInEditor != null)
             {
-                Dalamud.Logging.PluginLog.LogInformation($"Saving changes to {prof} to manager...");
+                Dalamud.Logging.PluginLog.LogInformation($"Saving changes to {ProfileOpenInEditor} to manager...");
 
-                AddAndSaveProfile(prof);
+                AddAndSaveProfile(ProfileOpenInEditor);
 
                 if (editingComplete)
                 {
-                    StopEditing(prof);
+                    StopEditing();
                 }
+
+                //Send OnProfileUpdate if this is profile of the current player and it's enabled
+                if (ProfileOpenInEditor.CharacterName == GameDataHelper.GetPlayerName() && ProfileOpenInEditor.Enabled)
+                    Plugin.IPCManager.OnLocalPlayerProfileUpdate();
             }
         }
 
-        public void RevertWorkingCopy(CharacterProfile prof)
+        public void RevertWorkingCopy()
         {
-            var original = GetProfileByUniqueId(prof.UniqueId);
-            Dalamud.Logging.PluginLog.LogInformation($"Reverting {prof} to its original state...");
-
-            if (original != null
-                && Profiles.Contains(prof)
-                && ProfileOpenInEditor == prof)
+            if (ProfileOpenInEditor != null)
             {
-                foreach (var kvp in prof.Bones)
+                var original = GetProfileByUniqueId(ProfileOpenInEditor.UniqueId);
+
+                if (original != null)
                 {
-                    if (original.Bones.TryGetValue(kvp.Key, out var bt) && bt != null)
+                    Dalamud.Logging.PluginLog.LogInformation($"Reverting {ProfileOpenInEditor} to its original state...");
+
+                    foreach (var kvp in ProfileOpenInEditor.Bones)
                     {
-                        prof.Bones[kvp.Key].UpdateToMatch(bt);
-                    }
-                    else
-                    {
-                        prof.Bones.Remove(kvp.Key);
+                        if (original.Bones.TryGetValue(kvp.Key, out var bt) && bt != null)
+                        {
+                            ProfileOpenInEditor.Bones[kvp.Key].UpdateToMatch(bt);
+                        }
+                        else
+                        {
+                            ProfileOpenInEditor.Bones.Remove(kvp.Key);
+                        }
                     }
                 }
             }
         }
 
-        public void StopEditing(CharacterProfile prof)
+        public void StopEditing()
         {
-            Dalamud.Logging.PluginLog.LogInformation($"{prof} deleted");
+            Dalamud.Logging.PluginLog.LogInformation($"{ProfileOpenInEditor} deleted");
             ProfileOpenInEditor = null;
         }
 
@@ -287,9 +314,13 @@ namespace CustomizePlus.Data.Profile
             return enabledProfiles.ToArray();
         }
 
-        public CharacterProfile? GetProfileByCharacterName(string name)
+        public CharacterProfile? GetProfileByCharacterName(string name, bool enabledOnly = false)
         {
-            return Profiles.FirstOrDefault(x => x.CharacterName == name);
+            var query = Profiles.Where(x => x.CharacterName == name);
+            if (enabledOnly)
+                query = query.Where(x => x.Enabled);
+
+            return query.FirstOrDefault();
         }
 
         public CharacterProfile? GetProfileByUniqueId(int id)

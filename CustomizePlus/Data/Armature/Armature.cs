@@ -190,15 +190,13 @@ namespace CustomizePlus.Data.Armature
         /// Returns whether or not a link can be established between the armature and an in-game object.
         /// If unbuilt, the armature will use this opportunity to rebuild itself.
         /// </summary>
-        public unsafe bool TryLinkSkeleton(bool forceRebuild = false)
+        public unsafe CharacterBase* TryLinkSkeleton(bool forceRebuild = false)
         {
             try
             {
-                if (DalamudServices.ObjectTable.FirstOrDefault(Profile.AppliesTo) is GameObject obj
-                    && obj != null)
-                {
-                    CharacterBase* cBase = obj.ToCharacterBase();
-
+                if (GameDataHelper.TryLookupCharacterBase(Profile.CharacterName, out CharacterBase* cBase)
+                    && cBase != null)
+                { 
                     if (!Built || forceRebuild)
                     {
                         RebuildSkeleton(cBase);
@@ -207,7 +205,7 @@ namespace CustomizePlus.Data.Armature
                     {
                         AugmentSkeleton(cBase);
                     }
-                    return true;
+                    return cBase;
                 }
             }
             catch
@@ -215,7 +213,7 @@ namespace CustomizePlus.Data.Armature
                 PluginLog.LogError($"Error occured while attempting to link skeleton: {this}");
             }
 
-            return false;
+            return null;
         }
 
         private bool NewBonesAvailable(CharacterBase* cBase)
