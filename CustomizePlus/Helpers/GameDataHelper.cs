@@ -36,9 +36,7 @@ namespace CustomizePlus.Helpers
                 var clientObj = (FFXIVClientObject*)objPtr;
 
                 if (clientObj != null && (CharacterBase*)clientObj->DrawObject != null)
-                {
                     return true;
-                }
             }
 
             return false;
