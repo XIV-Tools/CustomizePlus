@@ -192,9 +192,11 @@ namespace CustomizePlus.Data.Armature
         {
             try
             {
-                if (DalamudServices.ObjectTable.FirstOrDefault(Profile.AppliesTo) is GameObject obj
-                    && obj != null)
+                foreach (var obj in DalamudServices.ObjectTable)
                 {
+                    if(!Profile.AppliesTo(obj) || !GameDataHelper.IsValidGameObject(obj))
+                        continue;
+
                     CharacterBase* cBase = obj.ToCharacterBase();
 
                     if (!Built || forceRebuild)

@@ -23,9 +23,41 @@ namespace CustomizePlus.Helpers
 {
     public static class GameDataHelper
     {
-        public static DalamudObject? FindModelByName(string name)
+        /// <summary>
+        /// Checks that supplied GameObject is a valid object (exists and has DrawObject associated with it)
+        /// </summary>
+        /// <param name="gameObject">GameObject</param>
+        /// <returns></returns>
+        public static unsafe bool IsValidGameObject(DalamudObject gameObject)
         {
-            return DalamudServices.ObjectTable.FirstOrDefault(x => x.Name.ToString() == name);
+            if (gameObject.Address is IntPtr objPtr
+                && objPtr != IntPtr.Zero)
+            {
+                var clientObj = (FFXIVClientObject*)objPtr;
+
+                if (clientObj != null && (CharacterBase*)clientObj->DrawObject != null)
+                    return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Searches for a valid GameObject based on a specified name
+        /// </summary>
+        /// <param name="name">Name of the object</param>
+        /// <returns></returns>
+        public static unsafe DalamudObject? FindGameObjectByName(string name)
+        {
+            foreach (var obj in DalamudServices.ObjectTable)
+            {
+                if (obj.Name.ToString() != name)
+                    continue;
+
+                if (IsValidGameObject(obj))
+                    return obj;
+            }
+            return null;
         }
 
         public static unsafe CharacterBase* ToCharacterBase(this DalamudObject obj)
@@ -52,20 +84,10 @@ namespace CustomizePlus.Helpers
                 cBase = anyObj.ToCharacterBase();
                 return true;
             }
-            else if (FindModelByName(name) is DalamudObject obj
-                && obj.Address is IntPtr objPtr
-                && objPtr != IntPtr.Zero)
+            else if (FindGameObjectByName(name) is DalamudObject obj)
             {
-                var clientObj = (FFXIVClientObject*)objPtr;
-
-                //var plainObject = (FFXIVClientStructs.FFXIV.Client.Graphics.Scene.Object*)clientObj;
-                //var weapon = plainObject->ChildObject;
-
-                if (clientObj != null)
-                {
-                    cBase = (CharacterBase*)clientObj->DrawObject;
-                    return true;
-                }
+                cBase = (CharacterBase*)((FFXIVClientObject*)obj.Address)->DrawObject;
+                return true;
             }
 
             cBase = null;
