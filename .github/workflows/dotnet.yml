@@ -5,7 +5,9 @@ name: .NET Build
 
 on:
   push:
-    branches: 'main, structureRework'
+    branches:  
+      - main
+      - structureRework
     tags-ignore: '*'
   pull_request:
     types: [opened, reopened]
