@@ -23,7 +23,7 @@ namespace CustomizePlus.UI.Windows.Debug
     {
         private readonly Dictionary<BoneData.BoneFamily, bool> _groupExpandedState = new();
         private readonly bool _modelFrozen = false;
-        private ModelBone.PoseType _targetPose;
+        private ModelBone.PosingSpace _targetPose;
         private bool _aggregateDeforms;
 
         private BoneAttribute _targetAttribute;
@@ -103,12 +103,12 @@ namespace CustomizePlus.UI.Windows.Debug
             ImGui.Spacing();
             ImGui.SameLine();
 
-            if (ImGui.RadioButton("Local", _targetPose == ModelBone.PoseType.Local))
-                _targetPose = ModelBone.PoseType.Local;
+            if (ImGui.RadioButton("Local", _targetPose == ModelBone.PosingSpace.Self))
+                _targetPose = ModelBone.PosingSpace.Self;
 
             ImGui.SameLine();
-            if (ImGui.RadioButton("Model", _targetPose == ModelBone.PoseType.Model))
-                _targetPose = ModelBone.PoseType.Model;
+            if (ImGui.RadioButton("Model", _targetPose == ModelBone.PosingSpace.Parent))
+                _targetPose = ModelBone.PosingSpace.Parent;
 
             //ImGui.SameLine();
             //if (ImGui.RadioButton("Reference", _targetPose == ModelBone.PoseType.Reference))

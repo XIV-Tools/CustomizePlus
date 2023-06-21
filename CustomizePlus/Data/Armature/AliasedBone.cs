@@ -16,8 +16,8 @@ namespace CustomizePlus.Data.Armature
     /// </summary>
     internal unsafe class AliasedBone : ModelBone
     {
-        private delegate hkQsTransformf TransformGetter(CharacterBase* cBase, PoseType refFrame);
-        private delegate void TransformSetter(CharacterBase* cBase, hkQsTransformf transform, PoseType refFrame);
+        private delegate hkQsTransformf TransformGetter(CharacterBase* cBase, PosingSpace refFrame);
+        private delegate void TransformSetter(CharacterBase* cBase, hkQsTransformf transform, PosingSpace refFrame);
 
         private TransformGetter _getTransform;
         private TransformSetter _setTransform;
@@ -38,12 +38,12 @@ namespace CustomizePlus.Data.Armature
             return new AliasedBone(arm, codename, GetChildObjectTransform, SetChildObjectTransform);
         }
 
-        public override unsafe hkQsTransformf GetGameTransform(CharacterBase* cBase, PoseType refFrame)
+        public override unsafe hkQsTransformf GetGameTransform(CharacterBase* cBase, PosingSpace refFrame)
         {
             return _getTransform(cBase, refFrame);
         }
 
-        protected override unsafe void SetGameTransform(CharacterBase* cBase, hkQsTransformf transform, PoseType refFrame)
+        protected override unsafe void SetGameTransform(CharacterBase* cBase, hkQsTransformf transform, PosingSpace refFrame)
         {
             _setTransform(cBase, transform, refFrame);
         }
@@ -91,7 +91,7 @@ namespace CustomizePlus.Data.Armature
 
         #region Stock accessor functions
 
-        private static hkQsTransformf GetWholeskeletonTransform(CharacterBase* cBase, PoseType refFrame)
+        private static hkQsTransformf GetWholeskeletonTransform(CharacterBase* cBase, PosingSpace refFrame)
         {
             return new hkQsTransformf()
             {
@@ -101,7 +101,7 @@ namespace CustomizePlus.Data.Armature
             };
         }
 
-        private static void SetWholeSkeletonTransform(CharacterBase* cBase, hkQsTransformf transform, PoseType refFrame)
+        private static void SetWholeSkeletonTransform(CharacterBase* cBase, hkQsTransformf transform, PosingSpace refFrame)
         {
             BoneTransform original = new(GetWholeskeletonTransform(cBase, refFrame));
             BoneTransform modified = new(transform);
@@ -122,7 +122,7 @@ namespace CustomizePlus.Data.Armature
             };
         }
 
-        private static hkQsTransformf GetChildObjectTransform(CharacterBase* cBase, PoseType refFrame)
+        private static hkQsTransformf GetChildObjectTransform(CharacterBase* cBase, PosingSpace refFrame)
         {
             Object* obj = cBase->DrawObject.Object.ChildObject;
 
@@ -142,7 +142,7 @@ namespace CustomizePlus.Data.Armature
                 Scale = wBase->CharacterBase.Skeleton->Transform.Scale.ToHavokVector()
             };
         }
-        private static void SetChildObjectTransform(CharacterBase* cBase, hkQsTransformf transform, PoseType refFrame)
+        private static void SetChildObjectTransform(CharacterBase* cBase, hkQsTransformf transform, PosingSpace refFrame)
         {
             Object* obj = cBase->DrawObject.Object.ChildObject;
 

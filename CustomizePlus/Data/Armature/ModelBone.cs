@@ -22,9 +22,9 @@ namespace CustomizePlus.Data.Armature
     /// </summary>
     public unsafe class ModelBone
     {
-        public enum PoseType
+        public enum PosingSpace
         {
-            Local, Model, BindPose, World
+            Self, Parent, Character
         }
 
         public readonly Armature MasterArmature;
@@ -286,7 +286,7 @@ namespace CustomizePlus.Data.Armature
         /// Given a character base to which this model bone's master armature (presumably) applies,
         /// return the game's transform value for this model's in-game sibling within the given reference frame.
         /// </summary>
-        public virtual hkQsTransformf GetGameTransform(CharacterBase* cBase, PoseType refFrame)
+        public virtual hkQsTransformf GetGameTransform(CharacterBase* cBase, PosingSpace refFrame)
         {
 
             FFXIVClientStructs.FFXIV.Client.Graphics.Render.Skeleton* skelly = cBase->Skeleton;
@@ -298,14 +298,15 @@ namespace CustomizePlus.Data.Armature
 
             return refFrame switch
             {
-                PoseType.Local => targetPose->LocalPose[BoneIndex],
-                PoseType.Model => targetPose->ModelPose[BoneIndex],
+                PosingSpace.Self => targetPose->GetSyncedPoseLocalSpace()->Data[BoneIndex],
+                PosingSpace.Parent => localTransform,
+                PosingSpace.Character => targetPose->GetSyncedPoseModelSpace()->Data[BoneIndex],
                 _ => Constants.NullTransform
                 //TODO properly implement the other options
             };
         }
 
-        protected virtual void SetGameTransform(CharacterBase* cBase, hkQsTransformf transform, PoseType refFrame)
+        protected virtual void SetGameTransform(CharacterBase* cBase, hkQsTransformf transform, PosingSpace refFrame)
         {
             FFXIVClientStructs.FFXIV.Client.Graphics.Render.Skeleton* skelly = cBase->Skeleton;
             FFXIVClientStructs.FFXIV.Client.Graphics.Render.PartialSkeleton pSkelly = skelly->PartialSkeletons[PartialSkeletonIndex];
@@ -316,11 +317,11 @@ namespace CustomizePlus.Data.Armature
 
             switch (refFrame)
             {
-                case PoseType.Local:
+                case PosingSpace.Self:
                     targetPose->LocalPose.Data[BoneIndex] = transform;
                     return;
 
-                case PoseType.Model:
+                case PosingSpace.Parent:
                     targetPose->ModelPose.Data[BoneIndex] = transform;
                     return;
 
@@ -339,13 +340,13 @@ namespace CustomizePlus.Data.Armature
         {
             if (cBase != null
                 && CustomizedTransform.IsEdited()
-                && GetGameTransform(cBase, PoseType.Model) is hkQsTransformf gameTransform
+                && GetGameTransform(cBase, PosingSpace.Parent) is hkQsTransformf gameTransform
                 && !gameTransform.Equals(Constants.NullTransform))
             {
                 if (CustomizedTransform.ModifyExistingTransform(gameTransform) is hkQsTransformf modTransform
                     && !modTransform.Equals(Constants.NullTransform))
                 {
-                    SetGameTransform(cBase, modTransform, PoseType.Model);
+                    SetGameTransform(cBase, modTransform, PosingSpace.Parent);
                 }
             }
         }
@@ -359,14 +360,14 @@ namespace CustomizePlus.Data.Armature
         {
             if (cBase != null
                 && CustomizedTransform.IsEdited()
-                && GetGameTransform(cBase, PoseType.Model) is hkQsTransformf gameTransform
+                && GetGameTransform(cBase, PosingSpace.Parent) is hkQsTransformf gameTransform
                 && !gameTransform.Equals(Constants.NullTransform))
             {
                 hkQsTransformf modTransform = modTrans(gameTransform);
 
                 if (!modTransform.Equals(gameTransform) && !modTransform.Equals(Constants.NullTransform))
                 {
-                    SetGameTransform(cBase, modTransform, PoseType.Model);
+                    SetGameTransform(cBase, modTransform, PosingSpace.Parent);
                 }
             }
         }
