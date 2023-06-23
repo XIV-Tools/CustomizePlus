@@ -1,32 +1,30 @@
 ﻿// © Customize+.
 // Licensed under the MIT license.
 
-using CustomizePlus.Extensions;
-
 using System;
 using System.Collections.Generic;
-using System.Numerics;
 using System.Linq;
 
 using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
 using FFXIVClientStructs.Havok;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.Header;
-using System.Reflection;
 
 //using CustomizePlus.Memory;
 
 namespace CustomizePlus.Data.Armature
 {
     /// <summary>
+    /// Represents a frame of reference in which a model bone's transformations are being modified.
+    /// </summary>
+    public enum PosingSpace
+    {
+        Self, Parent, Character
+    }
+
+    /// <summary>
     ///     Represents a single bone of an ingame character's skeleton.
     /// </summary>
     public unsafe class ModelBone
     {
-        public enum PosingSpace
-        {
-            Self, Parent, Character
-        }
-
         public readonly Armature MasterArmature;
 
         public readonly int PartialSkeletonIndex;
@@ -68,7 +66,7 @@ namespace CustomizePlus.Data.Armature
         /// The transform that this model bone will impart upon its in-game sibling when the master armature
         /// is applied to the in-game skeleton.
         /// </summary>
-        public BoneTransform CustomizedTransform { get; }
+        protected virtual BoneTransform CustomizedTransform { get; }
 
         #region Model Bone Construction
 
@@ -107,7 +105,7 @@ namespace CustomizePlus.Data.Armature
         }
 
         /// <summary>
-        /// Indicate a bone that acts as this model bone's mirror image
+        /// Indicate a bone that acts as this model bone's mirror image.
         /// </summary>
         public void AddTwin(int twinPartialIdx, int twinBoneIdx)
         {
@@ -123,21 +121,10 @@ namespace CustomizePlus.Data.Armature
             CustomizedTransform.UpdateToMatch(newTransform);
 
             //the model bones should(?) be the same, by reference
-            //but we still need to delete them 
+            //but we still may need to delete them 
             if (newTransform.IsEdited())
             {
-                //if (MainHandBone)
-                //{
-                //    MasterArmature.Profile.Bones_MH[BoneName] = new(newTransform);
-                //}
-                //else if (OffHandBone)
-                //{
-                //    MasterArmature.Profile.Bones_OH[BoneName] = new(newTransform);
-                //}
-                //else
-                //{
                 MasterArmature.Profile.Bones[BoneName] = new(newTransform);
-                //}
             }
             else
             {
@@ -151,16 +138,13 @@ namespace CustomizePlus.Data.Armature
             return $"{BoneName} ({BoneData.GetBoneDisplayName(BoneName)}) @ <{PartialSkeletonIndex}, {BoneIndex}>";
         }
 
+        public BoneTransform GetTransformation() => new(CustomizedTransform);
+
         /// <summary>
         /// Update the transformation associated with this model bone. Optionally extend the transformation
         /// to the model bone's twin (in which case it will be appropriately mirrored) and/or children.
         /// </summary>
         public void UpdateModel(BoneTransform newTransform, bool mirror = false, bool propagate = false)
-        {
-            UpdateModel(newTransform, mirror, propagate, true);
-        }
-
-        private void UpdateModel(BoneTransform newTransform, bool mirror, bool propagate, bool clone)
         {
             if (mirror && TwinBone is ModelBone mb && mb != null)
             {
@@ -171,7 +155,7 @@ namespace CustomizePlus.Data.Armature
                 mb.UpdateModel(mirroredTransform, false, propagate);
             }
 
-            if (propagate && this is not AliasedBone)
+            if (propagate && this is not ModelRootBone)
             {
                 BoneTransform delta = new BoneTransform()
                 {
@@ -185,15 +169,18 @@ namespace CustomizePlus.Data.Armature
 
             UpdateTransformation(newTransform);
 
-            if (clone)
+            IEnumerable<ModelBone> clones = MasterArmature.GetAllBones()
+                .Where(x => x.BoneName == BoneName && !ReferenceEquals(x, this));
+
+            foreach (ModelBone clone in clones)
             {
-                UpdateClones(newTransform);
+                clone.UpdateModel(newTransform, mirror, propagate);
             }
         }
 
         private void PropagateModelUpdate(BoneTransform deltaTransform)
         {
-            foreach(ModelBone mb in ChildBones)
+            foreach (ModelBone mb in ChildBones)
             {
                 BoneTransform modTransform = new(CustomizedTransform);
                 modTransform.Translation += deltaTransform.Translation;
@@ -206,21 +193,8 @@ namespace CustomizePlus.Data.Armature
         }
 
         /// <summary>
-        /// For each OTHER bone that shares the name of this one, direct
-        /// it to update its transform to match the one provided.
-        /// </summary>
-        private void UpdateClones(BoneTransform newTransform)
-        {
-            foreach(ModelBone mb in MasterArmature.GetAllBones()
-                .Where(x => x.BoneName == this.BoneName && x != this))
-            {
-                mb.UpdateTransformation(newTransform);
-            }
-        }
-
-        /// <summary>
         /// Given a character base to which this model bone's master armature (presumably) applies,
-        /// return the game's transform value for this model's in-game sibling within the given reference frame.
+        /// return the game's current transform value for the bone corresponding to this model bone (in model space).
         /// </summary>
         public virtual hkQsTransformf GetGameTransform(CharacterBase* cBase)
         {
@@ -235,7 +209,11 @@ namespace CustomizePlus.Data.Armature
             return targetPose->GetSyncedPoseModelSpace()->Data[BoneIndex];
         }
 
-        protected virtual void SetGameTransform(CharacterBase* cBase, hkQsTransformf transform, PosingSpace refFrame)
+        /// <summary>
+        /// Given a character base to which this model bone's master armature (presumably) applies,
+        /// change to the given transform value the value for the bone corresponding to this model bone.
+        /// </summary>
+        protected virtual void SetGameTransform(CharacterBase* cBase, hkQsTransformf transform)
         {
             FFXIVClientStructs.FFXIV.Client.Graphics.Render.Skeleton* skelly = cBase->Skeleton;
             FFXIVClientStructs.FFXIV.Client.Graphics.Render.PartialSkeleton pSkelly = skelly->PartialSkeletons[PartialSkeletonIndex];
@@ -244,21 +222,8 @@ namespace CustomizePlus.Data.Armature
 
             if (targetPose == null) return;
 
-            switch (refFrame)
-            {
-                case PosingSpace.Self:
-                    targetPose->LocalPose.Data[BoneIndex] = transform;
-                    return;
-
-                case PosingSpace.Parent:
-                    targetPose->ModelPose.Data[BoneIndex] = transform;
-                    return;
-
-                default:
-                    return;
-
-                    //TODO properly implement the other options
-            }
+            targetPose->AccessSyncedPoseModelSpace()->Data[BoneIndex] = transform;
+            targetPose->BoneFlags[BoneIndex] = 1;
         }
 
         /// <summary>
@@ -275,7 +240,7 @@ namespace CustomizePlus.Data.Armature
                 if (CustomizedTransform.ModifyExistingTransform(gameTransform) is hkQsTransformf modTransform
                     && !modTransform.Equals(Constants.NullTransform))
                 {
-                    SetGameTransform(cBase, modTransform, PosingSpace.Parent);
+                    SetGameTransform(cBase, modTransform);
                 }
             }
         }
@@ -296,7 +261,7 @@ namespace CustomizePlus.Data.Armature
 
                 if (!modTransform.Equals(gameTransform) && !modTransform.Equals(Constants.NullTransform))
                 {
-                    SetGameTransform(cBase, modTransform, PosingSpace.Parent);
+                    SetGameTransform(cBase, modTransform);
                 }
             }
         }

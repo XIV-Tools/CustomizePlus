@@ -2,7 +2,11 @@
 // Licensed under the MIT license.
 
 using System;
+using System.Linq;
 using System.Collections.Generic;
+
+using CustomizePlus.Data.Armature;
+
 using Newtonsoft.Json;
 
 namespace CustomizePlus.Data.Profile
@@ -12,7 +16,7 @@ namespace CustomizePlus.Data.Profile
     ///     the information that gets saved to disk by the plugin.
     /// </summary>
     [Serializable]
-    public sealed class CharacterProfile
+    public sealed class CharacterProfile : IBoneContainer
     {
         [NonSerialized] private static int _nextGlobalId;
 
@@ -92,6 +96,28 @@ namespace CustomizePlus.Data.Profile
         public override int GetHashCode()
         {
             return UniqueId;
+        }
+
+        public IEnumerable<TransformInfo> GetBoneTransformValues(BoneAttribute attribute, PosingSpace space)
+        {
+            return Bones.Select(x => new TransformInfo(this, x.Key, x.Value, attribute, space));
+        }
+
+        public void UpdateBoneTransformValue(TransformInfo newTransform, BoneUpdateMode mode, bool mirrorChanges, bool propagateChanges = false)
+        {
+            if (!Bones.ContainsKey(newTransform.BoneCodeName))
+            {
+                Bones[newTransform.BoneCodeName] = new BoneTransform();
+            }
+
+            BoneAttribute att = mode switch
+            {
+                BoneUpdateMode.Position => BoneAttribute.Position,
+                BoneUpdateMode.Rotation => BoneAttribute.Rotation,
+                _ => BoneAttribute.Scale
+            };
+
+            Bones[newTransform.BoneCodeName].UpdateAttribute(att, newTransform.TransformationValue);
         }
     }
 }

@@ -59,7 +59,7 @@ namespace CustomizePlus.UI.Windows
         /// <inheritdoc/>
         protected unsafe override void DrawContents()
         {
-            CharacterBase* targetObject = _settings.SkeletonInProgress.TryLinkSkeleton();
+            CharacterBase* targetObject = _settings.ArmatureInProgress.TryLinkSkeleton();
 
             if (targetObject == null && _settings.ShowLiveBones)
             {
@@ -207,7 +207,7 @@ namespace CustomizePlus.UI.Windows
                 if (!_settings.ShowLiveBones || targetObject == null) ImGui.BeginDisabled();
                 if (ImGui.Button("Reload Bone Data"))
                 {
-                    _settings.SkeletonInProgress.RebuildSkeleton(targetObject);
+                    _settings.ArmatureInProgress.RebuildSkeleton(targetObject);
                 }
                 CtrlHelper.AddHoverText("Refresh the skeleton data obtained from in-game");
                 if (!_settings.ShowLiveBones || targetObject == null) ImGui.EndDisabled();
@@ -268,42 +268,18 @@ namespace CustomizePlus.UI.Windows
 
                 ImGui.TableHeadersRow();
 
-                if (_settings.SkeletonInProgress != null || _settings.ProfileInProgress != null)
+                if (_settings.ArmatureInProgress != null || _settings.ProfileInProgress != null)
                 {
-                    IEnumerable<EditRowParams> relevantModelBones = _settings.ShowLiveBones && _settings.SkeletonInProgress != null
-                        ? _settings.SkeletonInProgress.GetAllBones().DistinctBy(x => x.BoneName).Select(x => new EditRowParams(x))
-                        : _settings.ProfileInProgress.Bones.Select(x => new EditRowParams(x.Key, x.Value));
+                    IBoneContainer container = _settings.ShowLiveBones && _settings.ArmatureInProgress != null
+                        ? _settings.ArmatureInProgress
+                        : _settings.ProfileInProgress;
 
-                    var groupedBones = relevantModelBones.GroupBy(x => BoneData.GetBoneFamily(x.BoneCodeName)).ToList();
-
-                    //TODO implement the method to pull out the bone parameters if not integrated naturally
-                    //with the rest of the bones
-
-                    //IEnumerable<EditRowParams> mhGroup = _settings.ShowLiveBones && _targetArmature != null
-                    //    ? _targetArmature.GetMHBones().Select(x => new EditRowParams(x))
-                    //    : _profileInProgress.Bones_MH.Select(x => new EditRowParams(x.Key, x.Value));
-
-                    //if (mhGroup.GroupBy(x => BoneData.BoneFamily.MainHand).FirstOrDefault() is var mhg
-                    //    && mhg != null
-                    //    && mhg.Any())
-                    //{
-                    //    groupedBones.Add(mhg);
-                    //}
-
-                    //IEnumerable<EditRowParams> ohGroup = _settings.ShowLiveBones && _targetArmature != null
-                    //    ? _targetArmature.GetOHBones().Select(x => new EditRowParams(x))
-                    //    : _profileInProgress.Bones_OH.Select(x => new EditRowParams(x.Key, x.Value));
-
-                    //if (ohGroup.GroupBy(x => BoneData.BoneFamily.OffHand).FirstOrDefault() is var ohg
-                    //    && ohg != null
-                    //    && ohg.Any())
-                    //{
-                    //    groupedBones.Add(ohg);
-                    //}
+                    var groupedBones = container.GetBoneTransformValues(_settings.EditingAttribute, _settings.ReferenceFrame)
+                        .GroupBy(x => BoneData.GetBoneFamily(x.BoneCodeName)).ToList();
 
                     foreach (var boneGroup in groupedBones.OrderBy(x => (int)x.Key))
                     {
-                        //Hide root bone if it's not enabled in settings
+                        //Hide root bone group if it's not enabled in settings
                         if (boneGroup.Key == BoneData.BoneFamily.Root &&
                             !Plugin.ConfigurationManager.Configuration.RootPositionEditingEnabled)
                             continue;
@@ -335,9 +311,9 @@ namespace CustomizePlus.UI.Windows
 
                         if (expanded)
                         {
-                            foreach (EditRowParams erp in boneGroup.OrderBy(x => BoneData.GetBoneRanking(x.BoneCodeName)))
+                            foreach (TransformInfo trInfo in boneGroup.OrderBy(x => BoneData.GetBoneRanking(x.BoneCodeName)))
                             {
-                                CompleteBoneEditor(erp);
+                                CompleteBoneEditor(trInfo);
                             }
                         }
 
@@ -437,7 +413,7 @@ namespace CustomizePlus.UI.Windows
         /// </summary>
         public unsafe void ConfirmSkeletonConnection()
         {
-            if (_settings.SkeletonInProgress == null || _settings.SkeletonInProgress.TryLinkSkeleton() == null)
+            if (_settings.ArmatureInProgress == null || _settings.ArmatureInProgress.TryLinkSkeleton() == null)
             {
                 if (_settings.ShowLiveBones)
                 {
@@ -552,20 +528,14 @@ namespace CustomizePlus.UI.Windows
             return false;
         }
 
-        private void CompleteBoneEditor(EditRowParams bone)
+        private void CompleteBoneEditor(TransformInfo trInfo)
         {
-            string codename = bone.BoneCodeName;
-            string displayName = bone.BoneDisplayName;
-            BoneTransform transform = new BoneTransform(bone.Transform);
+            string codename = trInfo.BoneCodeName;
+            string displayName = trInfo.BoneDisplayName;
 
             bool flagUpdate = false;
 
-            Vector3 newVector = _settings.EditingAttribute switch
-            {
-                BoneAttribute.Position => transform.Translation,
-                BoneAttribute.Rotation => transform.Rotation,
-                _ => transform.Scaling
-            };
+            Vector3 newVector = trInfo.TransformationValue;
 
             ImGui.PushID(codename);
 
@@ -615,33 +585,16 @@ namespace CustomizePlus.UI.Windows
             {
                 _dirty = true;
 
-                //var whichValue = FrameStackManager.Axis.X;
-                //if (originalVector.Y != newVector.Y)
-                //{
-                //    whichValue = FrameStackManager.Axis.Y;
-                //}
+                trInfo.TransformationValue = newVector;
 
-                //if (originalVector.Z != newVector.Z)
-                //{
-                //    whichValue = FrameStackManager.Axis.Z;
-                //}
-
-                //_settings.EditStack.Do(codename, Settings.EditingAttribute, whichValue, originalVector, newVector);
-
-                transform.UpdateAttribute(_settings.EditingAttribute, newVector);
-
-                //if we have access to the armature, then use it to push the values through
-                //as the bone information allows us to propagate them to siblings and children
-                //otherwise access them through the profile directly
-
-                if (_settings.ShowLiveBones)
+                BoneUpdateMode mode = _settings.EditingAttribute switch
                 {
-                    bone.Basis.UpdateModel(transform, _settings.MirrorModeEnabled, _settings.ParentingEnabled);
-                }
-                else
-                {
-                    _settings.ProfileInProgress.Bones[codename].UpdateToMatch(transform);
-                }
+                    BoneAttribute.Position => BoneUpdateMode.Position,
+                    BoneAttribute.Rotation => BoneUpdateMode.Rotation,
+                    _ => BoneUpdateMode.Scale
+                };
+
+                trInfo.PushChanges(mode, _settings.MirrorModeEnabled, _settings.ParentingEnabled);
             }
         }
 
@@ -654,12 +607,13 @@ namespace CustomizePlus.UI.Windows
         private string? _originalCharName;
         private string? _originalProfName;
 
-        public Armature SkeletonInProgress => ProfileInProgress.Armature;
+        public Armature ArmatureInProgress => ProfileInProgress.Armature;
 
         public bool ShowLiveBones = false;
         public bool MirrorModeEnabled = false;
         public bool ParentingEnabled = false;
         public BoneAttribute EditingAttribute = BoneAttribute.Scale;
+        public PosingSpace ReferenceFrame = PosingSpace.Self;
 
         public Dictionary<BoneData.BoneFamily, bool> GroupExpandedState = new();
 
@@ -682,36 +636,6 @@ namespace CustomizePlus.UI.Windows
 
             ProfileInProgress.Enabled = true;
             ShowLiveBones = true;
-        }
-    }
-
-    /// <summary>
-    /// Simple structure for representing arguments to the editor table.
-    /// Can be constructed with or without access to a live armature.
-    /// </summary>
-    internal struct EditRowParams
-    {
-        public string BoneCodeName;
-        public string BoneDisplayName => BoneData.GetBoneDisplayName(BoneCodeName);
-        public BoneTransform Transform;
-        public ModelBone Basis;
-
-        public float CachedX;
-        public float CachedY;
-        public float CachedZ;
-
-        public EditRowParams(ModelBone mb)
-        {
-            BoneCodeName = mb.BoneName;
-            Transform = mb.CustomizedTransform;
-            Basis = mb;
-        }
-
-        public EditRowParams(string codename, BoneTransform tr)
-        {
-            BoneCodeName = codename;
-            Transform = tr;
-            Basis = null;
         }
     }
 }

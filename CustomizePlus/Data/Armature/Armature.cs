@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime;
 
 using CustomizePlus.Data.Profile;
 using CustomizePlus.Helpers;
@@ -21,7 +22,7 @@ namespace CustomizePlus.Data.Armature
     /// Represents a "copy" of the ingame skeleton upon which the linked character profile is meant to operate.
     /// Acts as an interface by which the in-game skeleton can be manipulated on a bone-by-bone basis.
     /// </summary>
-    public unsafe class Armature
+    public unsafe class Armature : IBoneContainer
     {
         /// <summary>
         /// Gets the Customize+ profile for which this mockup applies transformations.
@@ -109,6 +110,9 @@ namespace CustomizePlus.Data.Armature
         // For that reason we must subtract the number of duplicate bones
         public int TotalBoneCount => _partialSkeletons.Sum(x => x.Length);
 
+        /// <summary>
+        /// Get all individual model bones making up this armature
+        /// </summary>
         public IEnumerable<ModelBone> GetAllBones()
         {
             for (int i = 0; i < _partialSkeletons.Length; ++i)
@@ -119,6 +123,11 @@ namespace CustomizePlus.Data.Armature
                 }
             }
         }
+
+        /// <summary>
+        /// Get all individual model bones making up this armature EXCEPT for partial root bones
+        /// </summary>
+        public IEnumerable<ModelBone> GetAllEditableBones() => GetAllBones().Where(x => x is not PartialRootBone);
 
         /// <summary>
         /// Gets a value indicating whether this armature has yet built its skeleton.
@@ -314,12 +323,13 @@ namespace CustomizePlus.Data.Armature
 
                             if (pSkeleIndex == 0 && boneIndex == 0)
                             {
-                                newBone = AliasedBone.CreateRootBone(arm, boneName);
+                                newBone = new ModelRootBone(arm, boneName);
                             }
-                            //else if (boneName == "n_buki_r")
-                            //{
-                            //    newBone = AliasedBone.CreateWeaponBone(arm, boneName);
-                            //}
+                            else if (boneIndex == 0)
+                            {
+                                ModelBone cloneOf = newPartials[0][currentPartial.ConnectedBoneIndex];
+                                newBone = new PartialRootBone(arm, cloneOf, boneName, pSkeleIndex);
+                            }
                             else
                             {
                                 newBone = new ModelBone(arm, boneName, pSkeleIndex, boneIndex);
@@ -369,11 +379,6 @@ namespace CustomizePlus.Data.Armature
             }
 
             return newPartials;
-        }
-
-        public void UpdateBoneTransform(int partialIdx, int boneIdx, BoneTransform bt, bool mirror = false, bool propagate = false)
-        {
-            this[partialIdx, boneIdx].UpdateModel(bt, mirror, propagate);
         }
 
         /// <summary>
@@ -433,73 +438,28 @@ namespace CustomizePlus.Data.Armature
                 && (name1[0..^1] == name2[0..^1]);
         }
 
-        //public void OverrideWithReferencePose()
-        //{
-        //    for (var pSkeleIndex = 0; pSkeleIndex < Skeleton->PartialSkeletonCount; ++pSkeleIndex)
-        //    {
-        //        for (var poseIndex = 0; poseIndex < 4; ++poseIndex)
-        //        {
-        //            var snapPose = Skeleton->PartialSkeletons[pSkeleIndex].GetHavokPose(poseIndex);
+        public IEnumerable<TransformInfo> GetBoneTransformValues(BoneAttribute attribute, PosingSpace space)
+        {
+            return GetAllEditableBones().Select(x => new TransformInfo(this, x, attribute, space));
+        }
 
-        //            if (snapPose != null)
-        //            {
-        //                snapPose->SetToReferencePose();
-        //            }
-        //        }
-        //    }
-        //}
+        public void UpdateBoneTransformValue(TransformInfo newTransform, BoneUpdateMode mode, bool mirrorChanges, bool propagateChanges)
+        {
+            if (GetAllBones().FirstOrDefault(x => x.BoneName == newTransform.BoneCodeName) is ModelBone mb
+                && mb != null)
+            {
+                BoneTransform oldTransform = mb.GetTransformation();
 
-        //public void OverrideRootParenting()
-        //{
-        //    var pSkeleNot = Skeleton->PartialSkeletons[0];
+                BoneAttribute att = mode switch
+                {
+                    BoneUpdateMode.Position => BoneAttribute.Position,
+                    BoneUpdateMode.Rotation => BoneAttribute.Rotation,
+                    _ => BoneAttribute.Scale
+                };
 
-        //    for (var pSkeleIndex = 1; pSkeleIndex < Skeleton->PartialSkeletonCount; ++pSkeleIndex)
-        //    {
-        //        var partialSkele = Skeleton->PartialSkeletons[pSkeleIndex];
-
-        //        for (var poseIndex = 0; poseIndex < 4; ++poseIndex)
-        //        {
-        //            var currentPose = partialSkele.GetHavokPose(poseIndex);
-
-        //            if (currentPose != null && partialSkele.ConnectedBoneIndex >= 0)
-        //            {
-        //                int boneIdx = partialSkele.ConnectedBoneIndex;
-        //                int parentBoneIdx = partialSkele.ConnectedParentBoneIndex;
-
-        //                var transA = currentPose->AccessBoneModelSpace(boneIdx, 0);
-        //                var transB = pSkeleNot.GetHavokPose(0)->AccessBoneModelSpace(parentBoneIdx, 0);
-
-        //                //currentPose->AccessBoneModelSpace(parentBoneIdx, hkaPose.PropagateOrNot.DontPropagate);
-
-        //                for (var i = 0; i < currentPose->Skeleton->Bones.Length; ++i)
-        //                {
-        //                    currentPose->ModelPose[i] = ApplyPropagatedTransform(currentPose->ModelPose[i], transB,
-        //                        transA->Translation, transB->Rotation);
-        //                    currentPose->ModelPose[i] = ApplyPropagatedTransform(currentPose->ModelPose[i], transB,
-        //                        transB->Translation, transA->Rotation);
-        //                }
-        //            }
-        //        }
-        //    }
-        //}
-
-        //private hkQsTransformf ApplyPropagatedTransform(hkQsTransformf init, hkQsTransformf* propTrans,
-        //    hkVector4f initialPos, hkQuaternionf initialRot)
-        //{
-        //    var sourcePosition = propTrans->Translation.GetAsNumericsVector().RemoveWTerm();
-        //    var deltaRot = propTrans->Rotation.ToQuaternion() / initialRot.ToQuaternion();
-        //    var deltaPos = sourcePosition - initialPos.GetAsNumericsVector().RemoveWTerm();
-
-        //    hkQsTransformf output = new()
-        //    {
-        //        Translation = Vector3
-        //            .Transform(init.Translation.GetAsNumericsVector().RemoveWTerm() - sourcePosition, deltaRot)
-        //            .ToHavokTranslation(),
-        //        Rotation = deltaRot.ToHavokRotation(),
-        //        Scale = init.Scale
-        //    };
-
-        //    return output;
-        //}
+                oldTransform.UpdateAttribute(att, newTransform.TransformationValue);
+                mb.UpdateModel(oldTransform, mirrorChanges, propagateChanges);
+            }
+        }
     }
 }

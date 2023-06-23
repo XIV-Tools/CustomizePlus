@@ -18,6 +18,12 @@ namespace CustomizePlus.Data
         Scale = 2
     }
 
+    public enum BoneUpdateMode
+    {
+        Position, Rotation, Scale,
+        //PositionIncludingScale, ScaleIncludingPosition
+    }
+
     [Serializable]
     public class BoneTransform
     {
@@ -36,13 +42,6 @@ namespace CustomizePlus.Data
         public BoneTransform(BoneTransform original) : this()
         {
             UpdateToMatch(original);
-        }
-
-        public BoneTransform(hkQsTransformf original) : this()
-        {
-            Translation = original.Translation.GetAsNumericsVector();
-            Rotation = original.Rotation.ToQuaternion().ToEulerAngles();
-            Scaling = original.Scale.GetAsNumericsVector();
         }
 
         private Vector3 _translation;

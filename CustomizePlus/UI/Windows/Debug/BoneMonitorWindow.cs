@@ -23,7 +23,7 @@ namespace CustomizePlus.UI.Windows.Debug
     {
         private readonly Dictionary<BoneData.BoneFamily, bool> _groupExpandedState = new();
         private readonly bool _modelFrozen = false;
-        private ModelBone.PosingSpace _targetPose;
+        private PosingSpace _targetPose;
         private bool _aggregateDeforms;
 
         private BoneAttribute _targetAttribute;
@@ -103,12 +103,12 @@ namespace CustomizePlus.UI.Windows.Debug
             ImGui.Spacing();
             ImGui.SameLine();
 
-            if (ImGui.RadioButton("Local", _targetPose == ModelBone.PosingSpace.Self))
-                _targetPose = ModelBone.PosingSpace.Self;
+            if (ImGui.RadioButton("Local", _targetPose == PosingSpace.Self))
+                _targetPose = PosingSpace.Self;
 
             ImGui.SameLine();
-            if (ImGui.RadioButton("Model", _targetPose == ModelBone.PosingSpace.Parent))
-                _targetPose = ModelBone.PosingSpace.Parent;
+            if (ImGui.RadioButton("Model", _targetPose == PosingSpace.Parent))
+                _targetPose = PosingSpace.Parent;
 
             //ImGui.SameLine();
             //if (ImGui.RadioButton("Reference", _targetPose == ModelBone.PoseType.Reference))
@@ -220,7 +220,7 @@ namespace CustomizePlus.UI.Windows.Debug
 
         private void RenderTransformationInfo(ModelBone bone, CharacterBase* cBase)
         {
-            if (bone.GetGameTransform(cBase, _targetPose) is FFXIVClientStructs.Havok.hkQsTransformf deform)
+            if (bone.GetGameTransform(cBase) is FFXIVClientStructs.Havok.hkQsTransformf deform)
             {
                 var displayName = bone.ToString();
 
