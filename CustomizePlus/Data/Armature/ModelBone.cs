@@ -65,6 +65,8 @@ namespace CustomizePlus.Data.Armature
         /// </summary>
         public BoneTransform CustomizedTransform { get; }
 
+        #region Model Bone Construction
+
         public ModelBone(Armature arm, string codeName, int partialIdx, int boneIdx)
         {
             MasterArmature = arm;
@@ -100,13 +102,15 @@ namespace CustomizePlus.Data.Armature
         }
 
         /// <summary>
-        /// Indicate a bone that acts as this model bone's mirror image, or "twin".
+        /// Indicate a bone that acts as this model bone's mirror image
         /// </summary>
         public void AddTwin(int twinPartialIdx, int twinBoneIdx)
         {
             _twinPartialIndex = twinPartialIdx;
             _twinBoneIndex = twinBoneIdx;
         }
+
+        #endregion
 
         private void UpdateTransformation(BoneTransform newTransform)
         {
@@ -129,51 +133,6 @@ namespace CustomizePlus.Data.Armature
         {
             //string numCopies = _copyIndices.Count > 0 ? $" ({_copyIndices.Count} copies)" : string.Empty;
             return $"{BoneName} ({BoneData.GetBoneDisplayName(BoneName)}) @ <{PartialSkeletonIndex}, {BoneIndex}>";
-        }
-
-        /// <summary>
-        /// Get the lineage of this model bone, going back to the skeleton's root bone.
-        /// </summary>
-        public IEnumerable<ModelBone> GetAncestors(bool includeSelf = true) => includeSelf
-            ? GetAncestors(new List<ModelBone>() { this })
-            : GetAncestors(new List<ModelBone>());
-
-        private IEnumerable<ModelBone> GetAncestors(List<ModelBone> tail)
-        {
-            tail.Add(this);
-            if (ParentBone is ModelBone mb && mb != null)
-            {
-                return mb.GetAncestors(tail);
-            }
-            else
-            {
-                return tail;
-            }
-        }
-
-        /// <summary>
-        /// Gets all model bones with a lineage that contains this one.
-        /// </summary>
-        public IEnumerable<ModelBone> GetDescendants(bool includeSelf = false) => includeSelf
-            ? GetDescendants(this)
-            : GetDescendants(null);
-
-        private IEnumerable<ModelBone> GetDescendants(ModelBone? first)
-        {
-            List<ModelBone> output = first != null
-                ? new List<ModelBone>() { first }
-                : new List<ModelBone>();
-
-            output.AddRange(ChildBones);
-
-            using (var iter = output.GetEnumerator())
-            {
-                while (iter.MoveNext())
-                {
-                    output.AddRange(iter.Current.ChildBones);
-                    yield return iter.Current;
-                }
-            }
         }
 
         /// <summary>
