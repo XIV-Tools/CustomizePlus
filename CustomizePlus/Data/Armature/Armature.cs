@@ -427,7 +427,7 @@ namespace CustomizePlus.Data.Armature
         {
             if (cBase != null && _partialSkeletons.Any() && _partialSkeletons.First().Any())
             {
-                _partialSkeletons[0][0].ApplyStraightModelTranslation(cBase);
+                _partialSkeletons[0][0].ApplyModelTranslationAsIs(cBase);
             }
         }
 
