@@ -2,7 +2,7 @@
 // Licensed under the MIT license.
 
 using System;
-using System.Numerics;
+using FFXIVClientStructs.FFXIV.Common.Math;
 using CustomizePlus.Anamnesis;
 using FFXIVClientStructs.Havok;
 
@@ -10,13 +10,6 @@ namespace CustomizePlus.Extensions
 {
     internal static class VectorExtensions
     {
-        public static bool IsApproximately(this hkVector4f vector, Vector3 other, float errorMargin = 0.001f)
-        {
-            return IsApproximately(vector.X, other.X, errorMargin)
-                   && IsApproximately(vector.Y, other.Y, errorMargin)
-                   && IsApproximately(vector.Z, other.Z, errorMargin);
-        }
-
         public static bool IsApproximately(this Vector3 vector, Vector3 other, float errorMargin = 0.001f)
         {
             return IsApproximately(vector.X, other.X, errorMargin)
@@ -40,40 +33,15 @@ namespace CustomizePlus.Extensions
 
         public static Vector3 ToEulerAngles(this Quaternion q)
         {
-            var nq = Vector4.Normalize(q.GetAsNumericsVector());
-
-            var rollX = MathF.Atan2(
-                2 * (nq.W * nq.X + nq.Y * nq.Z),
-                1 - 2 * (nq.X * nq.X + nq.Y * nq.Y));
-
-            var pitchY = 2 * MathF.Atan2(
-                MathF.Sqrt(1 + 2 * (nq.W * nq.Y - nq.X * nq.Z)),
-                MathF.Sqrt(1 - 2 * (nq.W * nq.Y - nq.X * nq.Z)));
-
-            var yawZ = MathF.Atan2(
-                2 * (nq.W * nq.Z + nq.X * nq.Y),
-                1 - 2 * (nq.Y * nq.Y + nq.Z * nq.Z));
-
-            return new Vector3(rollX, pitchY, yawZ);
+            return q.EulerAngles;
         }
 
-        public static Quaternion ToQuaternion(this Vector4 rotation)
+        public static Quaternion ToClientQuaternion(this hkQuaternionf rotation)
         {
             return new Quaternion(rotation.X, rotation.Y, rotation.Z, rotation.W);
         }
 
-        public static Quaternion ToQuaternion(this hkQuaternionf rotation)
-        {
-            return new Quaternion(rotation.X, rotation.Y, rotation.Z, rotation.W);
-        }
-
-        public static Quaternion ToQuaternion(this hkVector4f rotation)
-        {
-            return new Quaternion(rotation.X, rotation.Y, rotation.Z, rotation.W);
-        }
-
-
-        public static hkQuaternionf ToHavokRotation(this Quaternion rotation)
+        public static hkQuaternionf ToHavokQuaternion(this Quaternion rotation)
         {
             return new hkQuaternionf
             {
@@ -84,24 +52,18 @@ namespace CustomizePlus.Extensions
             };
         }
 
-        public static hkVector4f ToHavokTranslation(this Vector3 translation)
+        public static Vector4 ToClientVector(this Quaternion quat)
         {
-            return new hkVector4f
-            {
-                X = translation.X,
-                Y = translation.Y,
-                Z = translation.Z,
-                W = 0.0f
-            };
+            return new Vector4(quat.X, quat.Y, quat.Z, quat.W);
         }
 
-        public static hkVector4f ToHavokScaling(this Vector3 scaling)
+        public static hkVector4f ToHavokVector(this Vector3 vec)
         {
             return new hkVector4f
             {
-                X = scaling.X,
-                Y = scaling.Y,
-                Z = scaling.Z,
+                X = vec.X,
+                Y = vec.Y,
+                Z = vec.Z,
                 W = 1.0f
             };
         }
@@ -117,24 +79,24 @@ namespace CustomizePlus.Extensions
             };
         }
 
-        public static Vector3 GetAsNumericsVector(this PoseFile.Vector vec)
+        public static Vector3 ToClientVector3(this PoseFile.Vector vec)
         {
             return new Vector3(vec.X, vec.Y, vec.Z);
         }
 
-        public static Vector4 GetAsNumericsVector(this hkVector4f vec)
+        public static Vector3 ToClientVector3(this hkVector4f vec)
+        {
+            return new Vector3(vec.X, vec.Y, vec.Z);
+        }
+
+        public static Vector4 ToClientVector4(this hkVector4f vec)
         {
             return new Vector4(vec.X, vec.Y, vec.Z, vec.W);
         }
 
-        public static Vector4 GetAsNumericsVector(this Quaternion q)
+        public static Vector4 ToClientVector4(this Quaternion q)
         {
             return new Vector4(q.X, q.Y, q.Z, q.W);
-        }
-
-        public static Vector3 RemoveWTerm(this Vector4 vec)
-        {
-            return new Vector3(vec.X, vec.Y, vec.Z);
         }
 
         public static bool Equals(this hkVector4f first, hkVector4f second)

@@ -4,16 +4,16 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
+
 using CustomizePlus.Data.Profile;
-using CustomizePlus.Extensions;
 using CustomizePlus.Helpers;
+
+using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Logging;
+
 using FFXIVClientStructs.FFXIV.Client.Graphics.Render;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
-using Dalamud.Game.ClientState.Objects.Types;
 using FFXIVClientStructs.Havok;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.ToolTip;
 
 namespace CustomizePlus.Data.Armature
 {
@@ -194,7 +194,7 @@ namespace CustomizePlus.Data.Armature
             {
                 if (GameDataHelper.TryLookupCharacterBase(Profile.CharacterName, out CharacterBase* cBase)
                     && cBase != null)
-                { 
+                {
                     if (!Built || forceRebuild)
                     {
                         RebuildSkeleton(cBase);
@@ -245,7 +245,7 @@ namespace CustomizePlus.Data.Armature
         /// </summary>
         public void RebuildSkeleton(CharacterBase* cBase)
         {
-            if (cBase == null) 
+            if (cBase == null)
                 return;
 
             List<List<ModelBone>> newPartials = ParseBonesFromObject(this, cBase);

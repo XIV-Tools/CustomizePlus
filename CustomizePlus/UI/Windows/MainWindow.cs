@@ -4,7 +4,7 @@
 using System;
 using System.IO;
 using System.Linq;
-using System.Numerics;
+using FFXIVClientStructs.FFXIV.Common.Math;
 using System.Windows.Forms;
 using CustomizePlus.Data;
 using CustomizePlus.Data.Profile;

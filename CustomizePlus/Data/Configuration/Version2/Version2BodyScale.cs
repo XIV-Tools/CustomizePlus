@@ -3,7 +3,8 @@
 
 using System;
 using System.Collections.Generic;
-using System.Numerics;
+
+using FFXIVClientStructs.FFXIV.Common.Math;
 
 namespace CustomizePlus.Data.Configuration.Version2
 {

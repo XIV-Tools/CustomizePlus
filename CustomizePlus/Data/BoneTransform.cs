@@ -2,10 +2,10 @@
 // Licensed under the MIT license.
 
 using System;
-using System.Numerics;
 using System.Runtime.Serialization;
 using CustomizePlus.Extensions;
 using FFXIVClientStructs.Havok;
+using FFXIVClientStructs.FFXIV.Common.Math;
 
 namespace CustomizePlus.Data
 {
@@ -63,9 +63,9 @@ namespace CustomizePlus.Data
         internal void OnDeserialized(StreamingContext context)
         {
             //Sanitize all values on deserialization
-            _translation = ClampToDefaultLimits(_translation);
+            _translation = BoneTransform.ClampVector(_translation);
             _rotation = ClampAngles(_rotation);
-            _scaling = ClampToDefaultLimits(_scaling);
+            _scaling = BoneTransform.ClampVector(_scaling);
         }
 
         public bool IsEdited()
@@ -149,7 +149,7 @@ namespace CustomizePlus.Data
         /// <summary>
         /// Clamp all vector values to be within allowed limits.
         /// </summary>
-        private Vector3 ClampVector(Vector3 vector)
+        private static Vector3 ClampVector(Vector3 vector)
         {
             return new Vector3
             {
@@ -161,19 +161,20 @@ namespace CustomizePlus.Data
 
         private static Vector3 ClampAngles(Vector3 rotVec)
         {
-            static float Clamp(float angle)
+            static float Clamp_Helper(float angle)
             {
-                if (angle > 180)
+                while (angle > 180)
                     angle -= 360;
-                else if (angle < -180)
+
+                while (angle < -180)
                     angle += 360;
                 
                 return angle;
             }
 
-            rotVec.X = Clamp(rotVec.X);
-            rotVec.Y = Clamp(rotVec.Y);
-            rotVec.Z = Clamp(rotVec.Z);
+            rotVec.X = Clamp_Helper(rotVec.X);
+            rotVec.Y = Clamp_Helper(rotVec.Y);
+            rotVec.Z = Clamp_Helper(rotVec.Z);
 
             return rotVec;
         }
@@ -194,7 +195,7 @@ namespace CustomizePlus.Data
 
         public hkQsTransformf ModifyExistingRotation(hkQsTransformf tr)
         {
-            var newRotation = Quaternion.Multiply(tr.Rotation.ToQuaternion(), Rotation.ToQuaternion());
+            Quaternion newRotation = tr.Rotation.ToClientQuaternion() * Rotation.ToQuaternion();
             tr.Rotation.X = newRotation.X;
             tr.Rotation.Y = newRotation.Y;
             tr.Rotation.Z = newRotation.Z;
@@ -205,7 +206,7 @@ namespace CustomizePlus.Data
 
         public hkQsTransformf ModifyExistingTranslationWithRotation(hkQsTransformf tr)
         {
-            var adjustedTranslation = Vector4.Transform(Translation, tr.Rotation.ToQuaternion());
+            var adjustedTranslation = Vector4.Transform(Translation, tr.Rotation.ToClientQuaternion());
             tr.Translation.X += adjustedTranslation.X;
             tr.Translation.Y += adjustedTranslation.Y;
             tr.Translation.Z += adjustedTranslation.Z;
@@ -221,18 +222,6 @@ namespace CustomizePlus.Data
             tr.Translation.Z += Translation.Z;
 
             return tr;
-        }
-
-        /// <summary>
-        ///     Clamp all vector values to be within allowed limits.
-        /// </summary>
-        private static Vector3 ClampToDefaultLimits(Vector3 vector)
-        {
-            vector.X = Math.Clamp(vector.X, Constants.MinVectorValueLimit, Constants.MaxVectorValueLimit);
-            vector.Y = Math.Clamp(vector.Y, Constants.MinVectorValueLimit, Constants.MaxVectorValueLimit);
-            vector.Z = Math.Clamp(vector.Z, Constants.MinVectorValueLimit, Constants.MaxVectorValueLimit);
-
-            return vector;
         }
     }
 }
