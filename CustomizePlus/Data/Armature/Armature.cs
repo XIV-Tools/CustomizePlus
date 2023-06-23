@@ -196,7 +196,7 @@ namespace CustomizePlus.Data.Armature
             {
                 if (GameDataHelper.TryLookupCharacterBase(Profile.CharacterName, out CharacterBase* cBase)
                     && cBase != null)
-                { 
+                {
                     if (!Built || forceRebuild)
                     {
                         RebuildSkeleton(cBase);
@@ -247,7 +247,7 @@ namespace CustomizePlus.Data.Armature
         /// </summary>
         public void RebuildSkeleton(CharacterBase* cBase)
         {
-            if (cBase == null) 
+            if (cBase == null)
                 return;
 
             List<List<ModelBone>> newPartials = ParseBonesFromObject(this, cBase);

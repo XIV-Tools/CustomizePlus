@@ -2,7 +2,7 @@
 // Licensed under the MIT license.
 
 using System;
-using System.Numerics;
+using FFXIVClientStructs.FFXIV.Common.Math;
 using CustomizePlus.Anamnesis;
 using FFXIVClientStructs.Havok;
 
@@ -10,13 +10,6 @@ namespace CustomizePlus.Extensions
 {
     internal static class VectorExtensions
     {
-        public static bool IsApproximately(this hkVector4f vector, Vector3 other, float errorMargin = 0.001f)
-        {
-            return IsApproximately(vector.X, other.X, errorMargin)
-                && IsApproximately(vector.Y, other.Y, errorMargin)
-                && IsApproximately(vector.Z, other.Z, errorMargin);
-        }
-
         public static bool IsApproximately(this Vector3 vector, Vector3 other, float errorMargin = 0.001f)
         {
             return IsApproximately(vector.X, other.X, errorMargin)
@@ -56,59 +49,25 @@ namespace CustomizePlus.Extensions
 
         public static Vector3 ToEulerAngles(this Quaternion q)
         {
-            FFXIVClientStructs.FFXIV.Common.Math.Quaternion newQ = new FFXIVClientStructs.FFXIV.Common.Math.Quaternion()
-            {
-                X = q.X,
-                Y = q.Y,
-                Z = q.Z,
-                W = q.W
-            };
-
-            return newQ.EulerAngles;
+            return q.EulerAngles;
+        }
+        }
+        }
+        }
+        }
         }
 
-        public static Quaternion ToQuaternion(this Vector4 rotation)
+        public static Quaternion ToClientQuaternion(this hkQuaternionf rotation)
         {
             if (new Quaternion(rotation.X, rotation.Y, rotation.Z, rotation.W) is Quaternion q
                 && q.IsApproximately(Quaternion.Identity))
             {
-                return Quaternion.Identity;
-            }
-            return q;
-        }
-
-        public static Quaternion ToQuaternion(this hkQuaternionf rotation)
-        {
-            if (new Quaternion(rotation.X, rotation.Y, rotation.Z, rotation.W) is Quaternion q
-                && q.IsApproximately(Quaternion.Identity))
-            {
-                return Quaternion.Identity;
-            }
-            return q;
-        }
-
-        public static Quaternion ToQuaternion(this FFXIVClientStructs.FFXIV.Common.Math.Quaternion rotation)
-        {
-            if (new Quaternion(rotation.X, rotation.Y, rotation.Z, rotation.W) is Quaternion q
-                && q.IsApproximately(Quaternion.Identity))
-            {
-                return Quaternion.Identity;
-            }
-            return q;
-        }
-
-        public static Quaternion ToQuaternion(this hkVector4f rotation)
-        {
-            if (new Quaternion(rotation.X, rotation.Y, rotation.Z, rotation.W) is Quaternion q
-                && q.IsApproximately(Quaternion.Identity))
-            {
-                return Quaternion.Identity;
-            }
-            return q;
+        public static hkQuaternionf ToHavokQuaternion(this Quaternion rotation)
+            return new Quaternion(rotation.X, rotation.Y, rotation.Z, rotation.W);
         }
 
 
-        public static hkQuaternionf ToHavokRotation(this Quaternion rot)
+        public static hkQuaternionf ToHavokRotation(this Quaternion rotation)
         {
             return new hkQuaternionf
             {
@@ -125,23 +84,17 @@ namespace CustomizePlus.Extensions
             {
                 X = rot.X,
                 Y = rot.Y,
-                Z = rot.Z,
+        public static Vector4 ToClientVector(this Quaternion quat)
                 W = rot.W
-            };
-        }
-
+            return new Vector4(quat.X, quat.Y, quat.Z, quat.W);
+                X = translation.X,
+                Y = translation.Y,
         public static hkVector4f ToHavokVector(this Vector3 vec)
-        {
-            return new hkVector4f
-            {
-                X = vec.X,
-                Y = vec.Y,
-                Z = vec.Z,
-                W = 1.0f
+                W = 0.0f
             };
         }
 
-        public static hkVector4f ToHavokVector(this FFXIVClientStructs.FFXIV.Common.Math.Vector3 vec)
+        public static hkVector4f ToHavokScaling(this Vector3 scaling)
         {
             return new hkVector4f
             {
@@ -158,29 +111,8 @@ namespace CustomizePlus.Extensions
             {
                 X = vec.X,
                 Y = vec.Y,
-                Z = vec.Z,
+        public static Vector3 ToClientVector3(this PoseFile.Vector vec)
                 W = vec.W
-            };
-        }
-
-        public static hkVector4f ToHavokVector(this FFXIVClientStructs.FFXIV.Common.Math.Vector4 vec)
-        {
-            return new hkVector4f
-            {
-                X = vec.X,
-                Y = vec.Y,
-                Z = vec.Z,
-                W = 1.0f
-            };
-        }
-
-        public static FFXIVClientStructs.FFXIV.Common.Math.Vector3 ToClientVector(this Vector3 vec)
-        {
-            return new FFXIVClientStructs.FFXIV.Common.Math.Vector3()
-            {
-                X = vec.X,
-                Y = vec.Y,
-                Z = vec.Z
             };
         }
 
@@ -194,39 +126,24 @@ namespace CustomizePlus.Extensions
             }
             else if (v.IsApproximately(Vector3.One))
             {
-                return Vector3.One;
-            }
-            return v;
+        public static Vector3 ToClientVector3(this hkVector4f vec)
+        {
+            return new Vector3(vec.X, vec.Y, vec.Z);
         }
 
-        public static Vector3 GetAsNumericsVector(this hkVector4f vec)
+        public static Vector4 GetAsNumericsVector(this hkVector4f vec)
         {
-            Vector3 v = new Vector3(vec.X, vec.Y, vec.Z);
-
-            if (v.IsApproximately(Vector3.Zero))
-            {
-                return Vector3.Zero;
-            }
-            else if (v.IsApproximately(Vector3.One))
-            {
-                return Vector3.One;
-            }
-            return v;
+            return new Vector4(vec.X, vec.Y, vec.Z, vec.W);
         }
 
-        public static Vector4 GetAsNumericsVector(this Quaternion q)
+        public static Vector4 ToClientVector4(this Quaternion q)
         {
-            Vector4 v = new Vector4(q.X, q.Y, q.Z, q.W);
+            return new Vector4(q.X, q.Y, q.Z, q.W);
+        }
 
-            if (v.IsApproximately(Vector4.Zero))
-            {
-                return Vector4.Zero;
-            }
-            else if (v.IsApproximately(Vector4.One))
-            {
-                return Vector4.One;
-            }
-            return v;
+        public static Vector3 RemoveWTerm(this Vector4 vec)
+        {
+            return new Vector3(vec.X, vec.Y, vec.Z);
         }
 
         public static bool Equals(this hkVector4f first, hkVector4f second)

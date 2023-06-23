@@ -4,7 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
+using FFXIVClientStructs.FFXIV.Common.Math;
 using CustomizePlus.Data;
 using CustomizePlus.Data.Armature;
 using CustomizePlus.Data.Profile;
@@ -224,7 +224,7 @@ namespace CustomizePlus.UI.Windows.Debug
             {
                 var displayName = bone.ToString();
 
-                var rowVector = deform.GetAttribute(_targetAttribute);
+                Vector4 rowVector = deform.GetAttribute(_targetAttribute);
 
                 ImGui.PushID(bone.BoneName.GetHashCode());
 

@@ -70,8 +70,7 @@ namespace CustomizePlus.Data.Armature
         /// </summary>
         public BoneTransform CustomizedTransform { get; }
 
-        internal bool MainHandBone { get; set; } = false;
-        internal bool OffHandBone { get; set; } = false;
+        #region Model Bone Construction
 
         public ModelBone(Armature arm, string codeName, int partialIdx, int boneIdx)
         {
@@ -108,13 +107,15 @@ namespace CustomizePlus.Data.Armature
         }
 
         /// <summary>
-        /// Indicate a bone that acts as this model bone's mirror image, or "twin".
+        /// Indicate a bone that acts as this model bone's mirror image
         /// </summary>
         public void AddTwin(int twinPartialIdx, int twinBoneIdx)
         {
             _twinPartialIndex = twinPartialIdx;
             _twinBoneIndex = twinBoneIdx;
         }
+
+        #endregion
 
         private void UpdateTransformation(BoneTransform newTransform)
         {
@@ -148,51 +149,6 @@ namespace CustomizePlus.Data.Armature
         {
             //string numCopies = _copyIndices.Count > 0 ? $" ({_copyIndices.Count} copies)" : string.Empty;
             return $"{BoneName} ({BoneData.GetBoneDisplayName(BoneName)}) @ <{PartialSkeletonIndex}, {BoneIndex}>";
-        }
-
-        /// <summary>
-        /// Get the lineage of this model bone, going back to the skeleton's root bone.
-        /// </summary>
-        public IEnumerable<ModelBone> GetAncestors(bool includeSelf = true) => includeSelf
-            ? GetAncestors(new List<ModelBone>() { this })
-            : GetAncestors(new List<ModelBone>());
-
-        private IEnumerable<ModelBone> GetAncestors(List<ModelBone> tail)
-        {
-            tail.Add(this);
-            if (ParentBone is ModelBone mb && mb != null)
-            {
-                return mb.GetAncestors(tail);
-            }
-            else
-            {
-                return tail;
-            }
-        }
-
-        /// <summary>
-        /// Gets all model bones with a lineage that contains this one.
-        /// </summary>
-        public IEnumerable<ModelBone> GetDescendants(bool includeSelf = false) => includeSelf
-            ? GetDescendants(this)
-            : GetDescendants(null);
-
-        private IEnumerable<ModelBone> GetDescendants(ModelBone? first)
-        {
-            List<ModelBone> output = first != null
-                ? new List<ModelBone>() { first }
-                : new List<ModelBone>();
-
-            output.AddRange(ChildBones);
-
-            using (var iter = output.GetEnumerator())
-            {
-                while (iter.MoveNext())
-                {
-                    output.AddRange(iter.Current.ChildBones);
-                    yield return iter.Current;
-                }
-            }
         }
 
         /// <summary>
@@ -262,31 +218,11 @@ namespace CustomizePlus.Data.Armature
             }
         }
 
-        private static hkQsTransformf Subtract(hkQsTransformf termLeft, hkQsTransformf termRight)
-        {
-            return new hkQsTransformf()
-            {
-                Translation = (termLeft.Translation.GetAsNumericsVector() - termRight.Translation.GetAsNumericsVector()).ToHavokVector(),
-                Rotation = Quaternion.Divide(termLeft.Rotation.ToQuaternion(), termRight.Rotation.ToQuaternion()).ToHavokRotation(),
-                Scale = (termLeft.Scale.GetAsNumericsVector() - termRight.Scale.GetAsNumericsVector()).ToHavokVector()
-            };
-        }
-
-        private static hkQsTransformf Add(hkQsTransformf term1, hkQsTransformf term2)
-        {
-            return new hkQsTransformf()
-            {
-                Translation = (term1.Translation.GetAsNumericsVector() + term2.Translation.GetAsNumericsVector()).ToHavokVector(),
-                Rotation = Quaternion.Multiply(term1.Rotation.ToQuaternion(), term2.Rotation.ToQuaternion()).ToHavokRotation(),
-                Scale = (term1.Scale.GetAsNumericsVector() + term2.Scale.GetAsNumericsVector()).ToHavokVector()
-            };
-        }
-
         /// <summary>
         /// Given a character base to which this model bone's master armature (presumably) applies,
         /// return the game's transform value for this model's in-game sibling within the given reference frame.
         /// </summary>
-        public virtual hkQsTransformf GetGameTransform(CharacterBase* cBase, PosingSpace refFrame)
+        public virtual hkQsTransformf GetGameTransform(CharacterBase* cBase)
         {
 
             FFXIVClientStructs.FFXIV.Client.Graphics.Render.Skeleton* skelly = cBase->Skeleton;
@@ -296,14 +232,7 @@ namespace CustomizePlus.Data.Armature
 
             if (targetPose == null) return Constants.NullTransform;
 
-            return refFrame switch
-            {
-                PosingSpace.Self => targetPose->GetSyncedPoseLocalSpace()->Data[BoneIndex],
-                PosingSpace.Parent => localTransform,
-                PosingSpace.Character => targetPose->GetSyncedPoseModelSpace()->Data[BoneIndex],
-                _ => Constants.NullTransform
-                //TODO properly implement the other options
-            };
+            return targetPose->GetSyncedPoseModelSpace()->Data[BoneIndex];
         }
 
         protected virtual void SetGameTransform(CharacterBase* cBase, hkQsTransformf transform, PosingSpace refFrame)
@@ -340,7 +269,7 @@ namespace CustomizePlus.Data.Armature
         {
             if (cBase != null
                 && CustomizedTransform.IsEdited()
-                && GetGameTransform(cBase, PosingSpace.Parent) is hkQsTransformf gameTransform
+                && GetGameTransform(cBase) is hkQsTransformf gameTransform
                 && !gameTransform.Equals(Constants.NullTransform))
             {
                 if (CustomizedTransform.ModifyExistingTransform(gameTransform) is hkQsTransformf modTransform
@@ -360,7 +289,7 @@ namespace CustomizePlus.Data.Armature
         {
             if (cBase != null
                 && CustomizedTransform.IsEdited()
-                && GetGameTransform(cBase, PosingSpace.Parent) is hkQsTransformf gameTransform
+                && GetGameTransform(cBase) is hkQsTransformf gameTransform
                 && !gameTransform.Equals(Constants.NullTransform))
             {
                 hkQsTransformf modTransform = modTrans(gameTransform);

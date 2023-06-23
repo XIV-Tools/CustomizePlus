@@ -3,7 +3,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
+using FFXIVClientStructs.FFXIV.Common.Math;
 using CustomizePlus.Data;
 using CustomizePlus.Data.Armature;
 using CustomizePlus.Data.Profile;
