@@ -395,7 +395,9 @@ namespace CustomizePlus.Data.Armature
                 {
                     hkaPose* currentPose = cBase->Skeleton->PartialSkeletons[pSkeleIndex].GetHavokPose(Constants.TruePoseIndex);
 
-                    if (currentPose != null)
+                    //the right side of this condition is apparently a havok flag incidating
+                    //whether the model has been updated since the last frame
+                    if (currentPose != null && currentPose->ModelInSync != 0)
                     {
                         //if (SnapToReferencePose)
                         //{
@@ -408,13 +410,19 @@ namespace CustomizePlus.Data.Armature
                                 && mb != null
                                 && mb.BoneName == currentPose->Skeleton->Bones[boneIndex].Name.String)
                             {
-                                if (GameStateHelper.GameInPosingMode())
+                                if (mb != MainRootBone || obj.HasScalableRoot())
                                 {
                                     mb.ApplyModelScale(cBase);
                                 }
-                                else
+
+                                if (!GameStateHelper.GameInPosingModeWithFrozenRotation())
                                 {
-                                    mb.ApplyModelTransform(cBase);
+                                    mb.ApplyModelRotation(cBase);
+                                }
+
+                                if (!GameStateHelper.GameInPosingModeWithFrozenPosition())
+                                {
+                                    mb.ApplyModelTranslationAtAngle(cBase);
                                 }
                             }
                         }
