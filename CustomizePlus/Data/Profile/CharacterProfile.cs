@@ -119,5 +119,14 @@ namespace CustomizePlus.Data.Profile
 
             Bones[newTransform.BoneCodeName].UpdateAttribute(att, newTransform.TransformationValue);
         }
+
+        public string SerializeToJSON()
+        {
+            return JsonConvert.SerializeObject(this, Formatting.Indented, new JsonSerializerSettings()
+            {
+                ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
+                ContractResolver = Api.VectorContractResolver.Instance
+            });
+        }
     }
 }
