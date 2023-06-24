@@ -92,10 +92,14 @@ namespace CustomizePlus.Data.Profile
         ///     saves it to disk. If the profile already exists (and it is not forced to be new)
         ///     the given profile will overwrite the old one.
         /// </summary>
-        public void AddAndSaveProfile(CharacterProfile prof, bool forceNew = false)
+        public unsafe void AddAndSaveProfile(CharacterProfile prof, bool forceNew = false)
         {
             PruneIdempotentTransforms(prof);
-            prof.Armature = null;
+            if (prof.Armature != null
+                && prof.Armature.TryLinkSkeleton() == null)
+            {
+                prof.Armature = null;
+            }
 
             //if the profile is already in the list, simply replace it
             if (!forceNew && Profiles.Remove(prof))
@@ -206,14 +210,14 @@ namespace CustomizePlus.Data.Profile
 
                 AddAndSaveProfile(ProfileOpenInEditor);
 
+                //Send OnProfileUpdate if this is profile of the current player and it's enabled
+                if (ProfileOpenInEditor.CharacterName == GameDataHelper.GetPlayerName() && ProfileOpenInEditor.Enabled)
+                    Plugin.IPCManager.OnLocalPlayerProfileUpdate();
+
                 if (editingComplete)
                 {
                     StopEditing();
                 }
-
-                //Send OnProfileUpdate if this is profile of the current player and it's enabled
-                if (ProfileOpenInEditor.CharacterName == GameDataHelper.GetPlayerName() && ProfileOpenInEditor.Enabled)
-                    Plugin.IPCManager.OnLocalPlayerProfileUpdate();
             }
         }
 
