@@ -32,8 +32,15 @@ namespace CustomizePlus.Data.Armature
             }
         }
 
-        public void ConstructArmatureForProfile(CharacterProfile newProfile)
+        public void ConstructArmatureForProfile(CharacterProfile newProfile, bool forceNew = false)
         {
+            if (forceNew
+                && _armatures.FirstOrDefault(x => x.Profile == newProfile) is Armature arm
+                && arm != null)
+            {
+                _armatures.Remove(arm);
+            }
+
             if (!_armatures.Any(x => x.Profile == newProfile))
             {
                 var newArm = new Armature(newProfile);

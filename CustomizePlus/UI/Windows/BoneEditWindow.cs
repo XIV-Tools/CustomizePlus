@@ -378,6 +378,7 @@ namespace CustomizePlus.UI.Windows
                         () =>
                         {
                             Plugin.ProfileManager.RevertWorkingCopy();
+                            Plugin.ArmatureManager.ConstructArmatureForProfile(_settings.ProfileInProgress, true);
                             _dirty = false;
                         });
                 }
@@ -608,7 +609,7 @@ namespace CustomizePlus.UI.Windows
 
     public struct EditorSessionSettings
     {
-        public readonly CharacterProfile ProfileInProgress;
+        public CharacterProfile ProfileInProgress { get; private set; }
         private string? _originalCharName;
         private string? _originalProfName;
 
@@ -640,7 +641,7 @@ namespace CustomizePlus.UI.Windows
             _originalProfName = prof.ProfileName;
 
             ProfileInProgress.Enabled = true;
-            ShowLiveBones = true;
+            ShowLiveBones = ProfileInProgress.Enabled;
         }
     }
 }
