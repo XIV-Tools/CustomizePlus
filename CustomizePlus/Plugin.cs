@@ -250,36 +250,12 @@ namespace CustomizePlus
         }
 
         //todo: doesn't work in cutscenes, something getting called after this and resets changes
+        //TODO: fully remove, later?
         private unsafe static void OnGameObjectMove(IntPtr gameObjectPtr)
         {
             // Call the original function.
             _gameObjectMovementHook.Original(gameObjectPtr);
 
-            ////If GPose and a 3rd-party posing service are active simultneously, abort
-            //if (GameStateHelper.GameInPosingMode())
-            //{
-            //    return;
-            //}
-
-            //if (DalamudServices.ObjectTable.CreateObjectReference(gameObjectPtr) is var obj
-            //    && obj != null
-            //    && ProfileManager.GetProfilesByGameObject(obj) .FirstOrDefault(x => x.Enabled) is CharacterProfile prof
-            //    && prof != null
-            //    && prof.Armature != null)
-            //{
-            //    prof.Armature.ApplyRootTranslation(obj.ToCharacterBase());
-
-            //    //var objIndex = obj.ObjectIndex;
-
-            //    //var isForbiddenFiller = objIndex == Constants.ObjectTableFillerIndex;
-            //    //var isForbiddenCutsceneNPC = Constants.IsInObjectTableCutsceneNPCRange(objIndex)
-            //    //                             || !ConfigurationManager.Configuration.ApplyToNPCsInCutscenes;
-
-            //    //if (!isForbiddenFiller && !isForbiddenCutsceneNPC)
-            //    //{
-            //    //    ArmatureManager.RenderArmatureByObject(obj);
-            //    //}
-            //}
         }
     }
 }
