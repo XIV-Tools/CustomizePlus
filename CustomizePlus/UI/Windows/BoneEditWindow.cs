@@ -59,7 +59,12 @@ namespace CustomizePlus.UI.Windows
         /// <inheritdoc/>
         protected unsafe override void DrawContents()
         {
-            CharacterBase* targetObject = _settings.ArmatureInProgress.TryLinkSkeleton();
+            CharacterBase* targetObject = null;
+
+            if (_settings.ArmatureInProgress != null)
+            {
+                targetObject = _settings.ArmatureInProgress.TryLinkSkeleton();
+            }
 
             if (targetObject == null && _settings.ShowLiveBones)
             {
@@ -72,7 +77,7 @@ namespace CustomizePlus.UI.Windows
                 _dirty = true;
             }
 
-            if (ImGui.BeginTable("##Save/Close", 3, ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.NoClip))
+            if (ImGui.BeginTable("##ProfileSettings", 3, ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.NoClip))
             {
                 ImGui.TableSetupColumn("##CharName", ImGuiTableColumnFlags.WidthStretch);
                 ImGui.TableSetupColumn("##ProfName", ImGuiTableColumnFlags.WidthStretch);
