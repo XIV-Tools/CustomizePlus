@@ -34,7 +34,8 @@ namespace CustomizePlus.Data.Armature
         /// Gets the model bone corresponding to this model bone's parent, if it exists.
         /// (It should in all cases but the root of the skeleton)
         /// </summary>
-        public ModelBone? ParentBone => (_parentPartialIndex >= 0 && _parentBoneIndex >= 0)
+        public ModelBone? ParentBone => (_parentPartialIndex >= 0 && _parentPartialIndex < MasterArmature.PartialSkeletonCount
+                && _parentBoneIndex >= 0 && _parentBoneIndex < MasterArmature.GetBoneCountOfPartial(_parentPartialIndex))
             ? MasterArmature[_parentPartialIndex, _parentBoneIndex]
             : null;
         private int _parentPartialIndex = -1;
@@ -115,7 +116,7 @@ namespace CustomizePlus.Data.Armature
 
         #endregion
 
-        private void UpdateTransformation(BoneTransform newTransform)
+        protected virtual void UpdateTransformation(BoneTransform newTransform)
         {
             //update the transform locally
             CustomizedTransform.UpdateToMatch(newTransform);
@@ -144,7 +145,7 @@ namespace CustomizePlus.Data.Armature
         /// Update the transformation associated with this model bone. Optionally extend the transformation
         /// to the model bone's twin (in which case it will be appropriately mirrored) and/or children.
         /// </summary>
-        public void UpdateModel(BoneTransform newTransform, bool mirror = false, bool propagate = false)
+        public virtual void UpdateModel(BoneTransform newTransform, bool mirror = false, bool propagate = false, bool extendToClones = true)
         {
             if (mirror && TwinBone is ModelBone mb && mb != null)
             {
@@ -169,12 +170,16 @@ namespace CustomizePlus.Data.Armature
 
             UpdateTransformation(newTransform);
 
-            IEnumerable<ModelBone> clones = MasterArmature.GetAllBones()
-                .Where(x => x.BoneName == BoneName && !ReferenceEquals(x, this));
-
-            foreach (ModelBone clone in clones)
+            if (extendToClones)
             {
-                clone.UpdateModel(newTransform, mirror, propagate);
+                IEnumerable<ModelBone> clones = MasterArmature.GetAllBones()
+                    .Where(x => x is not ModelRootBone)
+                    .Where(x => x.BoneName == BoneName && !ReferenceEquals(x, this));
+
+                foreach (ModelBone clone in clones)
+                {
+                    clone.UpdateModel(newTransform, mirror, propagate, false);
+                }
             }
         }
 
@@ -206,7 +211,7 @@ namespace CustomizePlus.Data.Armature
 
             if (targetPose == null) return Constants.NullTransform;
 
-            return targetPose->GetSyncedPoseModelSpace()->Data[BoneIndex];
+            return targetPose->ModelPose.Data[BoneIndex];
         }
 
         /// <summary>
@@ -220,37 +225,18 @@ namespace CustomizePlus.Data.Armature
             hkaPose* targetPose = pSkelly.GetHavokPose(Constants.TruePoseIndex);
             //hkaPose* targetPose = cBase->Skeleton->PartialSkeletons[PartialSkeletonIndex].GetHavokPose(Constants.TruePoseIndex);
 
-            if (targetPose == null) return;
+            if (targetPose == null || targetPose->ModelInSync == 0) return;
 
-            targetPose->AccessSyncedPoseModelSpace()->Data[BoneIndex] = transform;
-            targetPose->BoneFlags[BoneIndex] = 1;
+            targetPose->ModelPose.Data[BoneIndex] = transform;
         }
 
-        /// <summary>
-        /// Apply this model bone's associated transformation to its in-game sibling within
-        /// the skeleton of the given character base.
-        /// </summary>
-        public virtual void ApplyModelTransform(CharacterBase* cBase)
-        {
-            if (cBase != null
-                && CustomizedTransform.IsEdited()
-                && GetGameTransform(cBase) is hkQsTransformf gameTransform
-                && !gameTransform.Equals(Constants.NullTransform))
-            {
-                if (CustomizedTransform.ModifyExistingTransform(gameTransform) is hkQsTransformf modTransform
-                    && !modTransform.Equals(Constants.NullTransform))
-                {
-                    SetGameTransform(cBase, modTransform);
-                }
-            }
-        }
 
         public void ApplyModelScale(CharacterBase* cBase) => ApplyTransFunc(cBase, CustomizedTransform.ModifyExistingScale);
         public void ApplyModelRotation(CharacterBase* cBase) => ApplyTransFunc(cBase, CustomizedTransform.ModifyExistingRotation);
         public void ApplyModelTranslationAtAngle(CharacterBase* cBase) => ApplyTransFunc(cBase, CustomizedTransform.ModifyExistingTranslationWithRotation);
         public void ApplyModelTranslationAsIs(CharacterBase* cBase) => ApplyTransFunc(cBase, CustomizedTransform.ModifyExistingTranslation);
 
-        private void ApplyTransFunc(CharacterBase* cBase, Func<hkQsTransformf, hkQsTransformf> modTrans)
+        protected virtual void ApplyTransFunc(CharacterBase* cBase, Func<hkQsTransformf, hkQsTransformf> modTrans)
         {
             if (cBase != null
                 && CustomizedTransform.IsEdited()

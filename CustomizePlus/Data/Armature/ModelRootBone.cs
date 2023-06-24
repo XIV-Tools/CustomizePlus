@@ -1,8 +1,10 @@
 ﻿// © Customize+.
 // Licensed under the MIT license.
 
+using System;
 using CustomizePlus.Extensions;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
+using FFXIVClientStructs.FFXIV.Common.Math;
 using FFXIVClientStructs.Havok;
 
 namespace CustomizePlus.Data.Armature
@@ -13,37 +15,73 @@ namespace CustomizePlus.Data.Armature
     /// </summary>
     internal unsafe class ModelRootBone : ModelBone
     {
-        public ModelRootBone(Armature arm, string codeName) : base(arm, codeName, 0, 0) { }
+        //private Vector3 _cachedGamePosition = Vector3.Zero;
+        //private Quaternion _cachedGameRotation = Quaternion.Identity;
+        //private Vector3 _cachedGameScale = Vector3.One;
+
+        //private Vector3 _moddedPosition;
+        //private Quaternion _moddedRotation;
+        //private Vector3 _moddedScale;
+
+        public ModelRootBone(Armature arm, string codeName) : base(arm, codeName, 0, 0)
+        {
+            //_moddedPosition = _cachedGamePosition;
+            //_moddedRotation = _cachedGameRotation;
+            //_moddedScale = _cachedGameScale;
+        }
 
         public override unsafe hkQsTransformf GetGameTransform(CharacterBase* cBase)
         {
-            return new hkQsTransformf()
-            {
-                Translation = cBase->DrawObject.Object.Position.ToHavokVector(),
-                Rotation = cBase->DrawObject.Object.Rotation.ToHavokQuaternion(),
-                Scale = cBase->DrawObject.Object.Scale.ToHavokVector()
-            };
-
             //return new hkQsTransformf()
             //{
-            //    Translation = cBase->Skeleton->Transform.Position.ToHavokVector(),
-            //    Rotation = cBase->Skeleton->Transform.Rotation.ToHavokQuaternion(),
-            //    Scale = cBase->Skeleton->Transform.Scale.ToHavokVector()
+            //    Translation = objPosition.ToHavokVector(),
+            //    Rotation = objRotation.ToHavokQuaternion(),
+            //    Scale = objScale.ToHavokVector()
             //};
+
+            return new hkQsTransformf()
+            {
+                Translation = cBase->Skeleton->Transform.Position.ToHavokVector(),
+                Rotation = cBase->Skeleton->Transform.Rotation.ToHavokQuaternion(),
+                Scale = cBase->Skeleton->Transform.Scale.ToHavokVector()
+            };
         }
 
         protected override unsafe void SetGameTransform(CharacterBase* cBase, hkQsTransformf transform)
         {
-            cBase->DrawObject.Object.Position = transform.Translation.ToClientVector3();
-            cBase->DrawObject.Object.Rotation = transform.Rotation.ToClientQuaternion();
-            cBase->DrawObject.Object.Scale = transform.Scale.ToClientVector3();
-
-            //cBase->Skeleton->Transform = new FFXIVClientStructs.FFXIV.Client.Graphics.Transform()
+            //if (_moddedPosition != transform.Translation.ToClientVector3())
             //{
-            //    Position = transform.Translation.ToClientVector3(),
-            //    Rotation = transform.Rotation.ToClientQuaternion(),
-            //    Scale = transform.Scale.ToClientVector3()
-            //};
+            //    _moddedPosition = transform.Translation.ToClientVector3();
+            //    cBase->DrawObject.Object.Position = _moddedPosition;
+            //}
+
+            //cBase->DrawObject.Object.Position = transform.Translation.ToClientVector3();
+            //cBase->DrawObject.Object.Rotation = transform.Rotation.ToClientQuaternion();
+            //cBase->DrawObject.Object.Scale = transform.Scale.ToClientVector3();
+
+            FFXIVClientStructs.FFXIV.Client.Graphics.Transform tr = new FFXIVClientStructs.FFXIV.Client.Graphics.Transform()
+            {
+                Position = transform.Translation.ToClientVector3(),
+                Rotation = transform.Rotation.ToClientQuaternion(),
+                Scale = transform.Scale.ToClientVector3()
+            };
+
+            cBase->Skeleton->Transform = tr;
+
+            //CharacterBase* child1 = (CharacterBase*)cBase->DrawObject.Object.ChildObject;
+            //if (child1 != null && child1->GetModelType() == CharacterBase.ModelType.Weapon)
+            //{
+            //    child1->Skeleton->Transform = tr;
+
+            //    CharacterBase* child2 = (CharacterBase*)child1->DrawObject.Object.NextSiblingObject;
+            //    if (child2 != child1 && child2 != null && child2->GetModelType() == CharacterBase.ModelType.Weapon)
+            //    {
+            //        child2->Skeleton->Transform = tr;
+            //    }
+            //}
+
+            //?
+            //cBase->VfxScale = MathF.Max(MathF.Max(transform.Scale.X, transform.Scale.Y), transform.Scale.Z);
         }
     }
 }

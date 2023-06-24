@@ -17,6 +17,14 @@ namespace CustomizePlus.Extensions
                    && IsApproximately(vector.Z, other.Z, errorMargin);
         }
 
+        public static bool IsApproximately(this Quaternion quat, Quaternion other, float errorMargin =0.001f)
+        {
+            return IsApproximately(quat.X, other.X, errorMargin)
+                   && IsApproximately(quat.Y, other.Y, errorMargin)
+                   && IsApproximately(quat.Z, other.Z, errorMargin)
+                   && IsApproximately(quat.W, other.W, errorMargin);
+        }
+
         private static bool IsApproximately(float a, float b, float errorMargin)
         {
             var d = MathF.Abs(a - b);

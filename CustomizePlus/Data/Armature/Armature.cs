@@ -51,8 +51,6 @@ namespace CustomizePlus.Data.Armature
         /// The root bone of a partial skeleton may also be a regular bone in a different partial skeleton.
         /// </summary>
         private ModelBone[][] _partialSkeletons;
-        private ModelBone[][] _weaponPartialsRight;
-        private ModelBone[][] _weaponPartialsLeft;
 
         #region Bone Accessors -------------------------------------------------------------------------------
 
@@ -206,20 +204,20 @@ namespace CustomizePlus.Data.Armature
                 if (GameDataHelper.TryLookupCharacterBase(Profile.CharacterName, out CharacterBase* cBase)
                     && cBase != null)
                 {
-                    if (!Built || forceRebuild)
+                    if (!Built || forceRebuild || NewBonesAvailable(cBase))
                     {
                         RebuildSkeleton(cBase);
                     }
-                    else if (NewBonesAvailable(cBase))
-                    {
-                        AugmentSkeleton(cBase);
-                    }
+                    //else if (NewBonesAvailable(cBase))
+                    //{
+                    //    AugmentSkeleton(cBase);
+                    //}
                     return cBase;
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                PluginLog.LogError($"Error occured while attempting to link skeleton: {this}");
+                PluginLog.LogError($"Error occured while attempting to link skeleton '{this}': {ex}");
             }
 
             return null;
@@ -327,7 +325,7 @@ namespace CustomizePlus.Data.Armature
                             }
                             else if (boneIndex == 0)
                             {
-                                ModelBone cloneOf = newPartials[0][currentPartial.ConnectedBoneIndex];
+                                ModelBone cloneOf = newPartials[0][currentPartial.ConnectedParentBoneIndex];
                                 newBone = new PartialRootBone(arm, cloneOf, boneName, pSkeleIndex);
                             }
                             else
@@ -397,7 +395,7 @@ namespace CustomizePlus.Data.Armature
 
                     //the right side of this condition is apparently a havok flag incidating
                     //whether the model has been updated since the last frame
-                    if (currentPose != null && currentPose->ModelInSync != 0)
+                    if (currentPose != null)
                     {
                         //if (SnapToReferencePose)
                         //{
@@ -410,7 +408,7 @@ namespace CustomizePlus.Data.Armature
                                 && mb != null
                                 && mb.BoneName == currentPose->Skeleton->Bones[boneIndex].Name.String)
                             {
-                                if (mb != MainRootBone || obj.HasScalableRoot())
+                                if (obj.HasScalableRoot())
                                 {
                                     mb.ApplyModelScale(cBase);
                                 }
@@ -431,13 +429,6 @@ namespace CustomizePlus.Data.Armature
             }
         }
 
-        public void ApplyRootTranslation(CharacterBase* cBase)
-        {
-            if (cBase != null && _partialSkeletons.Any() && _partialSkeletons.First().Any())
-            {
-                _partialSkeletons[0][0].ApplyModelTranslationAsIs(cBase);
-            }
-        }
 
         private static bool AreTwinnedNames(string name1, string name2)
         {
