@@ -5,7 +5,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
+using CustomizePlus.Extensions;
+
 using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
+using FFXIVClientStructs.FFXIV.Common.Math;
 using FFXIVClientStructs.Havok;
 
 //using CustomizePlus.Memory;
@@ -145,7 +148,7 @@ namespace CustomizePlus.Data.Armature
         /// Update the transformation associated with this model bone. Optionally extend the transformation
         /// to the model bone's twin (in which case it will be appropriately mirrored) and/or children.
         /// </summary>
-        public virtual void UpdateModel(BoneTransform newTransform, bool mirror = false, bool propagate = false, bool extendToClones = true)
+        public virtual void UpdateModel(BoneTransform newTransform, bool mirror = false, bool extendToClones = true)
         {
             if (mirror && TwinBone is ModelBone mb && mb != null)
             {
@@ -153,19 +156,7 @@ namespace CustomizePlus.Data.Armature
                     ? newTransform.GetSpecialReflection()
                     : newTransform.GetStandardReflection();
 
-                mb.UpdateModel(mirroredTransform, false, propagate);
-            }
-
-            if (propagate && this is not ModelRootBone)
-            {
-                BoneTransform delta = new BoneTransform()
-                {
-                    Translation = newTransform.Translation - CustomizedTransform.Translation,
-                    Rotation = newTransform.Rotation - CustomizedTransform.Rotation,
-                    Scaling = newTransform.Scaling - CustomizedTransform.Scaling
-                };
-
-                PropagateModelUpdate(delta);
+                mb.UpdateModel(mirroredTransform, false, false);
             }
 
             UpdateTransformation(newTransform);
@@ -178,30 +169,49 @@ namespace CustomizePlus.Data.Armature
 
                 foreach (ModelBone clone in clones)
                 {
-                    clone.UpdateModel(newTransform, mirror, propagate, false);
+                    clone.UpdateModel(newTransform, mirror, false);
                 }
             }
         }
 
-        private void PropagateModelUpdate(BoneTransform deltaTransform)
-        {
-            foreach (ModelBone mb in ChildBones)
-            {
-                BoneTransform modTransform = new(CustomizedTransform);
-                modTransform.Translation += deltaTransform.Translation;
-                modTransform.Rotation += deltaTransform.Rotation;
-                modTransform.Scaling += deltaTransform.Scaling;
+        //private void PropagateModelUpdate(bool mirror,
+        //    Vector3 translationDelta, Vector3 rotationDelta,
+        //    Vector3 accumulatedTranslation, Vector3 accumulatedRotation)
+        //{
+        //    foreach (ModelBone mb in ChildBones)
+        //    {
+        //        Vector3 accRotate = accumulatedRotation + mb.CustomizedTransform.BoneRotation;
+        //        Vector3 accTranslate = accumulatedTranslation + mb.CustomizedTransform.BoneTranslation;
 
-                mb.UpdateTransformation(modTransform);
-                mb.PropagateModelUpdate(deltaTransform);
-            }
-        }
+        //        BoneTransform modTransform = new(mb.CustomizedTransform);
+
+        //        //slide and rotate this bone back into the reference frame of the progenitor of the update
+        //        modTransform.BoneRotation -= accRotate;
+        //        modTransform.BoneTranslation -= Vector3.Transform(accTranslate, accRotate.ToQuaternion());
+
+        //        //apply the delta value
+        //        //remember, since the user can only update one attribute at a time
+        //        //only one of these wll have non-zero values
+        //        modTransform.BoneRotation += rotationDelta;
+        //        modTransform.BoneTranslation += translationDelta;
+
+        //        //reapply the accumulated translation in the updated direction
+        //        modTransform.BoneTranslation += Vector3.Transform(accTranslate, (accRotate + rotationDelta).ToQuaternion());
+
+        //        //reapply the accumulated rotation
+        //        modTransform.BoneRotation += accRotate;
+
+
+        //        mb.UpdateModel(modTransform, mirror, false, true);
+        //        mb.PropagateModelUpdate(mirror, translationDelta, rotationDelta, accTranslate, accRotate);
+        //    }
+        //}
 
         /// <summary>
         /// Given a character base to which this model bone's master armature (presumably) applies,
         /// return the game's current transform value for the bone corresponding to this model bone (in model space).
         /// </summary>
-        public virtual hkQsTransformf GetGameTransform(CharacterBase* cBase)
+        public virtual hkQsTransformf GetGameTransform(CharacterBase* cBase, bool? modelSpace = null)
         {
 
             FFXIVClientStructs.FFXIV.Client.Graphics.Render.Skeleton* skelly = cBase->Skeleton;
@@ -211,32 +221,60 @@ namespace CustomizePlus.Data.Armature
 
             if (targetPose == null) return Constants.NullTransform;
 
-            return targetPose->ModelPose.Data[BoneIndex];
+            if (modelSpace == null)
+            {
+                return targetPose->AccessUnsyncedPoseLocalSpace()->Data[BoneIndex];
+            }
+            else if (modelSpace == true)
+            { 
+                return targetPose->AccessSyncedPoseModelSpace()->Data[BoneIndex];
+            }
+            else
+            {
+                return targetPose->AccessSyncedPoseLocalSpace()->Data[BoneIndex];
+            }
         }
 
         /// <summary>
         /// Given a character base to which this model bone's master armature (presumably) applies,
         /// change to the given transform value the value for the bone corresponding to this model bone.
         /// </summary>
-        protected virtual void SetGameTransform(CharacterBase* cBase, hkQsTransformf transform)
+        protected virtual void SetLocalTransform(CharacterBase* cBase, hkQsTransformf transform)
         {
             FFXIVClientStructs.FFXIV.Client.Graphics.Render.Skeleton* skelly = cBase->Skeleton;
             FFXIVClientStructs.FFXIV.Client.Graphics.Render.PartialSkeleton pSkelly = skelly->PartialSkeletons[PartialSkeletonIndex];
             hkaPose* targetPose = pSkelly.GetHavokPose(Constants.TruePoseIndex);
             //hkaPose* targetPose = cBase->Skeleton->PartialSkeletons[PartialSkeletonIndex].GetHavokPose(Constants.TruePoseIndex);
 
-            if (targetPose == null || targetPose->ModelInSync == 0) return;
+            if (targetPose == null) return;
 
-            targetPose->ModelPose.Data[BoneIndex] = transform;
+            targetPose->AccessUnsyncedPoseLocalSpace()->Data[BoneIndex] = transform;
+
+            //targetPose->AccessSyncedPoseModelSpace()->Data[BoneIndex] = *targetPose->CalculateBoneModelSpace(BoneIndex);
         }
 
+        protected virtual void SetModelTransform(CharacterBase* cBase, hkQsTransformf transform)
+        {
+            FFXIVClientStructs.FFXIV.Client.Graphics.Render.Skeleton* skelly = cBase->Skeleton;
+            FFXIVClientStructs.FFXIV.Client.Graphics.Render.PartialSkeleton pSkelly = skelly->PartialSkeletons[PartialSkeletonIndex];
+            hkaPose* targetPose = pSkelly.GetHavokPose(Constants.TruePoseIndex);
 
-        public void ApplyModelScale(CharacterBase* cBase) => ApplyTransFunc(cBase, CustomizedTransform.ModifyExistingScale);
-        public void ApplyModelRotation(CharacterBase* cBase) => ApplyTransFunc(cBase, CustomizedTransform.ModifyExistingRotation);
-        public void ApplyModelTranslationAtAngle(CharacterBase* cBase) => ApplyTransFunc(cBase, CustomizedTransform.ModifyExistingTranslationWithRotation);
-        public void ApplyModelTranslationAsIs(CharacterBase* cBase) => ApplyTransFunc(cBase, CustomizedTransform.ModifyExistingTranslation);
+            if (targetPose == null) return;
 
-        protected virtual void ApplyTransFunc(CharacterBase* cBase, Func<hkQsTransformf, hkQsTransformf> modTrans)
+            targetPose->AccessSyncedPoseLocalSpace()->Data[BoneIndex] = transform;
+        }
+
+        public void ApplyScale(CharacterBase* cBase) => ApplyLocalTransform(cBase, CustomizedTransform.ModifyScale);
+
+        public void ApplyLocalRotation(CharacterBase* cBase) => ApplyLocalTransform(cBase, CustomizedTransform.ModifyBoneRotation);
+        public void ApplyModelRotation(CharacterBase* cBase) => ApplyModelTransform(cBase, CustomizedTransform.ModifyBoneRotation);
+
+        public void ApplyLocalTranslationAtAngle(CharacterBase* cBase) => ApplyLocalTransform(cBase, CustomizedTransform.ModifyBoneTranslationWithRotation);
+        public void ApplyModelTranslationAtAngle(CharacterBase* cBase) => ApplyModelTransform(cBase, CustomizedTransform.ModifyBoneTranslationWithRotation);
+        
+        //public void ApplyModelTranslationAsIs(CharacterBase* cBase) => ApplyLocalTransform(cBase, CustomizedTransform.ModifyBoneTranslation);
+
+        protected virtual void ApplyLocalTransform(CharacterBase* cBase, Func<hkQsTransformf, hkQsTransformf> modTrans)
         {
             if (cBase != null
                 && CustomizedTransform.IsEdited()
@@ -247,7 +285,23 @@ namespace CustomizePlus.Data.Armature
 
                 if (!modTransform.Equals(gameTransform) && !modTransform.Equals(Constants.NullTransform))
                 {
-                    SetGameTransform(cBase, modTransform);
+                    SetLocalTransform(cBase, modTransform);
+                }
+            }
+        }
+        
+        protected virtual void ApplyModelTransform(CharacterBase* cBase, Func<hkQsTransformf, hkQsTransformf> modTrans)
+        {
+            if (cBase != null
+                && CustomizedTransform.IsEdited()
+                && GetGameTransform(cBase) is hkQsTransformf gameTransform
+                && !gameTransform.Equals(Constants.NullTransform))
+            {
+                hkQsTransformf modTransform = modTrans(gameTransform);
+
+                if (!modTransform.Equals(gameTransform) && !modTransform.Equals(Constants.NullTransform))
+                {
+                    SetModelTransform(cBase, modTransform);
                 }
             }
         }
