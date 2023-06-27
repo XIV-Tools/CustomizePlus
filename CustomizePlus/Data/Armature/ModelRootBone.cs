@@ -47,7 +47,7 @@ namespace CustomizePlus.Data.Armature
             };
         }
 
-        protected override unsafe void SetLocalTransform(CharacterBase* cBase, hkQsTransformf transform)
+        protected override unsafe void SetGameTransform(CharacterBase* cBase, hkQsTransformf transform, bool propagate)
         {
             //if (_moddedPosition != transform.Translation.ToClientVector3())
             //{

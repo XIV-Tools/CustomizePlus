@@ -231,7 +231,7 @@ namespace CustomizePlus.Data.Armature
         /// Given a character base to which this model bone's master armature (presumably) applies,
         /// change to the given transform value the value for the bone corresponding to this model bone.
         /// </summary>
-        protected virtual void SetLocalTransform(CharacterBase* cBase, hkQsTransformf transform)
+        protected virtual void SetGameTransform(CharacterBase* cBase, hkQsTransformf transform, bool propagate)
         {
             FFXIVClientStructs.FFXIV.Client.Graphics.Render.Skeleton* skelly = cBase->Skeleton;
             FFXIVClientStructs.FFXIV.Client.Graphics.Render.PartialSkeleton pSkelly = skelly->PartialSkeletons[PartialSkeletonIndex];
@@ -240,61 +240,36 @@ namespace CustomizePlus.Data.Armature
 
             if (targetPose == null) return;
 
-            targetPose->AccessSyncedPoseLocalSpace()->Data[BoneIndex] = transform;
-
-            //targetPose->AccessSyncedPoseModelSpace()->Data[BoneIndex] = *targetPose->CalculateBoneModelSpace(BoneIndex);
-        }
-
-        protected virtual void SetModelTransform(CharacterBase* cBase, hkQsTransformf transform)
-        {
-            FFXIVClientStructs.FFXIV.Client.Graphics.Render.Skeleton* skelly = cBase->Skeleton;
-            FFXIVClientStructs.FFXIV.Client.Graphics.Render.PartialSkeleton pSkelly = skelly->PartialSkeletons[PartialSkeletonIndex];
-            hkaPose* targetPose = pSkelly.GetHavokPose(Constants.TruePoseIndex);
-
-            if (targetPose == null) return;
-
-            targetPose->AccessSyncedPoseModelSpace()->Data[BoneIndex] = transform;
-        }
-
-        public void ApplyIndividualScale(CharacterBase* cBase) => ApplyModelTransform(cBase, CustomizedTransform.ModifyScale);
-
-        public void ApplyInheritableRotation(CharacterBase* cBase) => ApplyLocalTransform(cBase, CustomizedTransform.ModifyKinematicRotation);
-        public void ApplyIndividualRotation(CharacterBase* cBase) => ApplyModelTransform(cBase, CustomizedTransform.ModifyRotation);
-
-        public void ApplyInheritableTranslationAtAngle(CharacterBase* cBase) => ApplyLocalTransform(cBase, CustomizedTransform.ModifyKineTranslationWithRotation);
-        public void ApplyIndividualTranslationAtAngle(CharacterBase* cBase) => ApplyModelTransform(cBase, CustomizedTransform.ModifyTranslationWithRotation);
-
-        public void ApplyInheritableTranslationAsIs(CharacterBase* cBase) => ApplyLocalTransform(cBase, CustomizedTransform.ModifyKineTranslation);
-        public void ApplyIndividualTranslationAsIs(CharacterBase* cBase) => ApplyModelTransform(cBase, CustomizedTransform.ModifyTranslationAsIs);
-
-        protected virtual void ApplyLocalTransform(CharacterBase* cBase, Func<hkQsTransformf, hkQsTransformf> modTrans)
-        {
-            if (cBase != null
-                && CustomizedTransform.IsEdited()
-                && GetGameTransform(cBase, false) is hkQsTransformf gameTransform
-                && !gameTransform.Equals(Constants.NullTransform))
+            if (propagate)
             {
-                hkQsTransformf modTransform = modTrans(gameTransform);
-
-                if (!modTransform.Equals(gameTransform) && !modTransform.Equals(Constants.NullTransform))
-                {
-                    SetLocalTransform(cBase, modTransform);
-                }
+                targetPose->AccessSyncedPoseLocalSpace()->Data[BoneIndex] = transform;
+            }
+            else
+            {
+                targetPose->AccessSyncedPoseModelSpace()->Data[BoneIndex] = transform;
             }
         }
-        
-        protected virtual void ApplyModelTransform(CharacterBase* cBase, Func<hkQsTransformf, hkQsTransformf> modTrans)
+
+        public void ApplyIndividualScale(CharacterBase* cBase) => ApplyTransform(cBase, CustomizedTransform.ModifyScale, false);
+        public void ApplyRotation(CharacterBase* cBase, bool propagate) => ApplyTransform(cBase,
+            propagate ? CustomizedTransform.ModifyKinematicRotation : CustomizedTransform.ModifyRotation, propagate);
+        public void ApplyTranslationAtAngle(CharacterBase* cBase, bool propagate) => ApplyTransform(cBase,
+            propagate ? CustomizedTransform.ModifyKineTranslationWithRotation : CustomizedTransform.ModifyTranslationWithRotation, propagate);
+        public void ApplyTranslationAsIs(CharacterBase* cBase, bool propagate) => ApplyTransform(cBase,
+            propagate ? CustomizedTransform.ModifyKineTranslationAsIs : CustomizedTransform.ModifyTranslationAsIs, propagate);
+
+        protected virtual void ApplyTransform(CharacterBase* cBase, Func<hkQsTransformf, hkQsTransformf> modTrans, bool propagate)
         {
             if (cBase != null
                 && CustomizedTransform.IsEdited()
-                && GetGameTransform(cBase, true) is hkQsTransformf gameTransform
+                && GetGameTransform(cBase, !propagate) is hkQsTransformf gameTransform
                 && !gameTransform.Equals(Constants.NullTransform))
             {
                 hkQsTransformf modTransform = modTrans(gameTransform);
 
                 if (!modTransform.Equals(gameTransform) && !modTransform.Equals(Constants.NullTransform))
                 {
-                    SetModelTransform(cBase, modTransform);
+                    SetGameTransform(cBase, modTransform, propagate);
                 }
             }
         }

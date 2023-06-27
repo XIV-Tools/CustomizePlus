@@ -305,7 +305,7 @@ namespace CustomizePlus.Data
             return tr;
         }
 
-        public hkQsTransformf ModifyKineTranslation(hkQsTransformf tr)
+        public hkQsTransformf ModifyKineTranslationAsIs(hkQsTransformf tr)
         {
             tr.Translation.X += KinematicTranslation.X;
             tr.Translation.Y += KinematicTranslation.Y;

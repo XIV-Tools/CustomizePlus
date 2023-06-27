@@ -416,12 +416,12 @@ namespace CustomizePlus.Data.Armature
 
                                 if (!GameStateHelper.GameInPosingModeWithFrozenRotation())
                                 {
-                                    mb.ApplyIndividualRotation(cBase);
+                                    mb.ApplyRotation(cBase, false);
                                 }
 
                                 if (!GameStateHelper.GameInPosingModeWithFrozenPosition())
                                 {
-                                    mb.ApplyIndividualTranslationAtAngle(cBase);
+                                    mb.ApplyTranslationAtAngle(cBase, false);
                                 }
 
                             }
@@ -440,12 +440,12 @@ namespace CustomizePlus.Data.Armature
 
                                 if (!GameStateHelper.GameInPosingModeWithFrozenRotation())
                                 {
-                                    mb.ApplyInheritableRotation(cBase);
+                                    mb.ApplyRotation(cBase, true);
                                 }
 
                                 if (!GameStateHelper.GameInPosingModeWithFrozenPosition())
                                 {
-                                    mb.ApplyInheritableTranslationAtAngle(cBase);
+                                    mb.ApplyTranslationAtAngle(cBase, true);
                                 }
 
                             }
