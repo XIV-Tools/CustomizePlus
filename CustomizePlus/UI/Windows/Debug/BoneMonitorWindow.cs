@@ -60,70 +60,55 @@ namespace CustomizePlus.UI.Windows.Debug
                 DisplayNoLinkMsg();
             }
 
-            ImGui.TextUnformatted($"Character Name: {_targetProfile.CharacterName}");
-
-            ImGui.SameLine();
-            ImGui.TextUnformatted("|");
-
-            ImGui.SameLine();
-            ImGui.TextUnformatted($"Profile Name: {_targetProfile.ProfileName}");
-
-            ImGui.SameLine();
-            ImGui.TextUnformatted("|");
-
-            ImGui.SameLine();
-            var tempEnabled = _targetProfile.Enabled;
-            if (CtrlHelper.Checkbox("Live", ref tempEnabled))
+            if (ImGui.BeginTable("Header", 4, ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.NoClip | ImGuiTableFlags.BordersInnerV))
             {
-                _targetProfile.Enabled = tempEnabled;
+                ImGui.TableSetupColumn("AttributeType", ImGuiTableColumnFlags.WidthFixed);
+                ImGui.TableSetupColumn("ReferenceFrame", ImGuiTableColumnFlags.WidthFixed);
+                ImGui.TableSetupColumn("Space", ImGuiTableColumnFlags.WidthStretch);
+                ImGui.TableSetupColumn("Reload", ImGuiTableColumnFlags.WidthFixed);
+
+                ImGui.TableNextRow();
+                ImGui.TableSetColumnIndex(0);
+
+                if (ImGui.RadioButton("Position", _targetAttribute == BoneAttribute.Position))
+                    _targetAttribute = BoneAttribute.Position;
+
+                ImGui.SameLine();
+                if (ImGui.RadioButton("Rotation", _targetAttribute == BoneAttribute.Rotation))
+                    _targetAttribute = BoneAttribute.Rotation;
+
+                ImGui.SameLine();
+                if (ImGui.RadioButton("Scale", _targetAttribute == BoneAttribute.Scale))
+                    _targetAttribute = BoneAttribute.Scale;
+
+                ImGui.TableNextColumn();
+
+                if (ImGui.RadioButton("Local", _targetPose == PosingSpace.Self))
+                    _targetPose = PosingSpace.Self;
+
+                ImGui.SameLine();
+                if (ImGui.RadioButton("Model", _targetPose == PosingSpace.Parent))
+                    _targetPose = PosingSpace.Parent;
+
+                ImGui.TableNextColumn();
+                ImGui.TableNextColumn();
+
+                if (!_targetProfile.Enabled) ImGui.BeginDisabled();
+
+                if (ImGui.Button("Reload Bone Data"))
+                    _targetArmature.RebuildSkeleton(targetObject);
+
+                if (!_targetProfile.Enabled) ImGui.EndDisabled();
+
+                ImGui.SameLine();
+                var tempEnabled = _targetProfile.Enabled;
+                if (CtrlHelper.Checkbox("Live", ref tempEnabled))
+                {
+                    _targetProfile.Enabled = tempEnabled;
+                }
+
+                ImGui.EndTable();
             }
-
-            CtrlHelper.AddHoverText("Hook the editor into the game to edit and preview live bone data");
-
-            ImGui.Separator();
-
-            if (ImGui.RadioButton("Position", _targetAttribute == BoneAttribute.Position))
-                _targetAttribute = BoneAttribute.Position;
-
-            ImGui.SameLine();
-            if (ImGui.RadioButton("Rotation", _targetAttribute == BoneAttribute.Rotation))
-                _targetAttribute = BoneAttribute.Rotation;
-
-            ImGui.SameLine();
-            if (ImGui.RadioButton("Scale", _targetAttribute == BoneAttribute.Scale))
-                _targetAttribute = BoneAttribute.Scale;
-
-            ImGui.SameLine();
-            ImGui.Spacing();
-            ImGui.SameLine();
-
-            ImGui.TextUnformatted("|");
-
-            ImGui.SameLine();
-            ImGui.Spacing();
-            ImGui.SameLine();
-
-            if (ImGui.RadioButton("Local", _targetPose == PosingSpace.Self))
-                _targetPose = PosingSpace.Self;
-
-            ImGui.SameLine();
-            if (ImGui.RadioButton("Model", _targetPose == PosingSpace.Parent))
-                _targetPose = PosingSpace.Parent;
-
-            //ImGui.SameLine();
-            //if (ImGui.RadioButton("Reference", _targetPose == ModelBone.PoseType.Reference))
-            //    _targetPose = ModelBone.PoseType.Reference;
-
-            //-------------
-
-            if (!_targetProfile.Enabled)
-                ImGui.BeginDisabled();
-
-            if (ImGui.Button("Reload Bone Data"))
-                _targetArmature.RebuildSkeleton(targetObject);
-
-            if (!_targetProfile.Enabled)
-                ImGui.EndDisabled();
 
             ImGui.Separator();
 
@@ -220,7 +205,7 @@ namespace CustomizePlus.UI.Windows.Debug
 
         private void RenderTransformationInfo(ModelBone bone, CharacterBase* cBase)
         {
-            if (bone.GetGameTransform(cBase) is FFXIVClientStructs.Havok.hkQsTransformf deform)
+            if (bone.GetGameTransform(cBase, _targetPose == PosingSpace.Parent) is FFXIVClientStructs.Havok.hkQsTransformf deform)
             {
                 var displayName = bone.ToString();
 
