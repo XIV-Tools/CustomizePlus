@@ -465,7 +465,7 @@ namespace CustomizePlus.Data.Armature
 
         public IEnumerable<TransformInfo> GetBoneTransformValues(BoneAttribute attribute, PosingSpace space)
         {
-            return GetAllEditableBones().Select(x => new TransformInfo(this, x, attribute, space));
+            return GetAllEditableBones().DistinctBy(x => x.BoneName).Select(x => new TransformInfo(this, x, attribute, space));
         }
 
         public void UpdateBoneTransformValue(TransformInfo newTransform, BoneAttribute attribute, bool mirrorChanges)
