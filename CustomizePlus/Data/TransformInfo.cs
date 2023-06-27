@@ -44,7 +44,9 @@ namespace CustomizePlus.Data
             TransformationValue = att switch
             {
                 BoneAttribute.Position => bt.Translation,
+                BoneAttribute.FKPosition => bt.KinematicTranslation,
                 BoneAttribute.Rotation => bt.Rotation,
+                BoneAttribute.FKRotation => bt.KinematicRotation,
                 _ => bt.Scaling
             };
         }
@@ -59,7 +61,9 @@ namespace CustomizePlus.Data
             TransformationValue = att switch
             {
                 BoneAttribute.Position => tr.Translation,
+                BoneAttribute.FKPosition => tr.KinematicTranslation,
                 BoneAttribute.Rotation => tr.Rotation,
+                BoneAttribute.FKRotation => tr.KinematicRotation,
                 _ => tr.Scaling
             };
         }
@@ -68,9 +72,9 @@ namespace CustomizePlus.Data
         /// Push this transformation info back to its source container, updating it with any changes made
         /// to the information since it was first retrieved.
         /// </summary>
-        public void PushChanges(BoneUpdateMode mode, bool mirrorChanges, bool propagateChanges = false)
+        public void PushChanges(BoneAttribute attribute, bool mirrorChanges)
         {
-            _sourceContainer.UpdateBoneTransformValue(this, mode, mirrorChanges, propagateChanges);
+            _sourceContainer.UpdateBoneTransformValue(this, attribute, mirrorChanges);
         }
     }
 }

@@ -19,6 +19,6 @@ namespace CustomizePlus.Data
         /// Given updated transformation info for a given bone (for the specific attribute, in the given posing space),
         /// update that bone's transformation values to reflect the updated info.
         /// </summary>
-        public void UpdateBoneTransformValue(TransformInfo newValue, BoneUpdateMode mode, bool mirrorChanges, bool propagateChanges = false);
+        public void UpdateBoneTransformValue(TransformInfo newValue, BoneAttribute mode, bool mirrorChanges);
     }
 }

@@ -13,11 +13,11 @@ namespace CustomizePlus.Data
     public enum BoneAttribute
     {
         //hard-coding the backing values for legacy purposes
-        BonePosition = 0,
-        BoneRotation = 1,
+        Position = 0,
+        Rotation = 1,
         Scale = 2,
-        LimbPosition = 3,
-        LimbRotation = 4
+        FKPosition = 3,
+        FKRotation = 4
     }
 
     [Serializable]
@@ -30,8 +30,12 @@ namespace CustomizePlus.Data
 
         public BoneTransform()
         {
-            BoneTranslation = Vector3.Zero;
-            BoneRotation = Vector3.Zero;
+            Translation = Vector3.Zero;
+            KinematicTranslation = Vector3.Zero;
+
+            Rotation = Vector3.Zero;
+            KinematicRotation = Vector3.Zero;
+
             Scaling = Vector3.One;
         }
 
@@ -40,51 +44,51 @@ namespace CustomizePlus.Data
             UpdateToMatch(original);
         }
 
-        private Vector3 _boneTranslation;
-        public Vector3 BoneTranslation
+        private Vector3 _translation = Vector3.Zero;
+        public Vector3 Translation
         {
-            get => _boneTranslation;
-            set => _boneTranslation = ClampVector(value);
+            get => _translation;
+            set => _translation = ClampVector(value);
         }
 
-        private Vector3 _boneRotation;
-        public Vector3 BoneRotation
+        private Vector3 _rotation = Vector3.Zero;
+        public Vector3 Rotation
         {
-            get => _boneRotation;
-            set => _boneRotation = ClampAngles(value);
+            get => _rotation;
+            set => _rotation = ClampAngles(value);
         }
 
-        private Vector3 _scaling;
+        private Vector3 _scaling = Vector3.One;
         public Vector3 Scaling
         {
             get => _scaling;
             set => _scaling = ClampVector(value);
         }
 
-        private Vector3 _limbTranslation;
-        public Vector3 LimbTranslation
+        private Vector3 _kinematicTranslation = Vector3.Zero;
+        public Vector3 KinematicTranslation
         {
-            get => _limbTranslation;
-            set => _limbTranslation = ClampVector(value);
+            get => _kinematicTranslation;
+            set => _kinematicTranslation = ClampVector(value);
         }
 
-        private Vector3 _limbRotation;
-        public Vector3 LimbRotation
+        private Vector3 _kinematicRotation = Vector3.Zero;
+        public Vector3 KinematicRotation
         {
-            get => _limbRotation;
-            set => _limbRotation = value;
+            get => _kinematicRotation;
+            set => _kinematicRotation = ClampAngles(value);
         }
 
         [OnDeserialized]
         internal void OnDeserialized(StreamingContext context)
         {
             //Sanitize all values on deserialization
-            _boneTranslation = ClampVector(_boneTranslation);
-            _boneRotation = ClampAngles(_boneRotation);
+            _translation = ClampVector(_translation);
+            _rotation = ClampAngles(_rotation);
             _scaling = ClampVector(_scaling);
 
-            _limbTranslation = ClampVector(_limbTranslation);
-            _limbRotation = ClampAngles(_limbRotation);
+            _kinematicTranslation = ClampVector(_kinematicTranslation);
+            _kinematicRotation = ClampAngles(_kinematicRotation);
         }
 
         private const float VectorUnitEpsilon = 0.00001f;
@@ -92,22 +96,22 @@ namespace CustomizePlus.Data
 
         public bool IsEdited()
         {
-            return !BoneTranslation.IsApproximately(Vector3.Zero, VectorUnitEpsilon)
-                   || !BoneRotation.IsApproximately(Vector3.Zero, AngleUnitEpsilon)
+            return !Translation.IsApproximately(Vector3.Zero, VectorUnitEpsilon)
+                   || !Rotation.IsApproximately(Vector3.Zero, AngleUnitEpsilon)
                    || !Scaling.IsApproximately(Vector3.One, VectorUnitEpsilon)
-                   || !LimbTranslation.IsApproximately(Vector3.Zero, VectorUnitEpsilon)
-                   || !LimbRotation.IsApproximately(Vector3.Zero, AngleUnitEpsilon);
+                   || !KinematicTranslation.IsApproximately(Vector3.Zero, VectorUnitEpsilon)
+                   || !KinematicRotation.IsApproximately(Vector3.Zero, AngleUnitEpsilon);
         }
 
         public BoneTransform DeepCopy()
         {
             return new BoneTransform
             {
-                BoneTranslation = BoneTranslation,
-                BoneRotation = BoneRotation,
-                Scaling = Scaling,
-                LimbTranslation = LimbTranslation,
-                LimbRotation = LimbRotation
+                Translation = _translation,
+                Rotation = _rotation,
+                Scaling = _scaling,
+                KinematicTranslation = _kinematicTranslation,
+                KinematicRotation = _kinematicRotation
             };
         }
 
@@ -115,20 +119,20 @@ namespace CustomizePlus.Data
         {
             switch (which)
             {
-                case BoneAttribute.BonePosition:
-                    BoneTranslation = newValue;
+                case BoneAttribute.Position:
+                    Translation = newValue;
                     break;
 
-                case BoneAttribute.LimbPosition:
-                    LimbTranslation = newValue;
+                case BoneAttribute.FKPosition:
+                    KinematicTranslation = newValue;
                     break;
 
-                case BoneAttribute.BoneRotation:
-                    BoneRotation = newValue;
+                case BoneAttribute.Rotation:
+                    Rotation = newValue;
                     break;
 
-                case BoneAttribute.LimbRotation:
-                    LimbRotation = newValue;
+                case BoneAttribute.FKRotation:
+                    KinematicRotation = newValue;
                     break;
 
                 case BoneAttribute.Scale:
@@ -142,11 +146,11 @@ namespace CustomizePlus.Data
 
         public void UpdateToMatch(BoneTransform newValues)
         {
-            BoneTranslation = newValues.BoneTranslation;
-            LimbTranslation = newValues.LimbTranslation;
+            Translation = newValues.Translation;
+            KinematicTranslation = newValues.KinematicTranslation;
 
-            BoneRotation = newValues.BoneRotation;
-            LimbRotation = newValues.LimbRotation;
+            Rotation = newValues.Rotation;
+            KinematicRotation = newValues.KinematicRotation;
 
             Scaling = newValues.Scaling;
         }
@@ -159,8 +163,8 @@ namespace CustomizePlus.Data
         {
             return new BoneTransform
             {
-                BoneTranslation = new Vector3(BoneTranslation.X, BoneTranslation.Y, -1 * BoneTranslation.Z),
-                BoneRotation = new Vector3(-1 * BoneRotation.X, -1 * BoneRotation.Y, BoneRotation.Z),
+                Translation = new Vector3(Translation.X, Translation.Y, -1 * Translation.Z),
+                Rotation = new Vector3(-1 * Rotation.X, -1 * Rotation.Y, Rotation.Z),
                 Scaling = Scaling
             };
         }
@@ -173,8 +177,8 @@ namespace CustomizePlus.Data
         {
             return new BoneTransform
             {
-                BoneTranslation = new Vector3(BoneTranslation.X, -1 * BoneTranslation.Y, BoneTranslation.Z),
-                BoneRotation = new Vector3(BoneRotation.X, -1 * BoneRotation.Y, -1 * BoneRotation.Z),
+                Translation = new Vector3(Translation.X, -1 * Translation.Y, Translation.Z),
+                Rotation = new Vector3(Rotation.X, -1 * Rotation.Y, -1 * Rotation.Z),
                 Scaling = Scaling
             };
         }
@@ -184,11 +188,11 @@ namespace CustomizePlus.Data
         /// </summary>
         private void Sanitize()
         {
-            _boneTranslation = ClampVector(_boneTranslation);
-            _limbTranslation = ClampVector(_limbTranslation);
+            _translation = ClampVector(_translation);
+            _kinematicTranslation = ClampVector(_kinematicTranslation);
 
-            _boneRotation = ClampAngles(_boneRotation);
-            _limbRotation = ClampAngles(_limbRotation);
+            _rotation = ClampAngles(_rotation);
+            _kinematicRotation = ClampAngles(_kinematicRotation);
 
             _scaling = ClampVector(_scaling);
         }
@@ -235,9 +239,9 @@ namespace CustomizePlus.Data
             return tr;
         }
 
-        public hkQsTransformf ModifyBoneRotation(hkQsTransformf tr)
+        public hkQsTransformf ModifyRotation(hkQsTransformf tr)
         {
-            Quaternion newRotation = tr.Rotation.ToClientQuaternion() * BoneRotation.ToQuaternion();
+            Quaternion newRotation = tr.Rotation.ToClientQuaternion() * Rotation.ToQuaternion();
             tr.Rotation.X = newRotation.X;
             tr.Rotation.Y = newRotation.Y;
             tr.Rotation.Z = newRotation.Z;
@@ -246,9 +250,9 @@ namespace CustomizePlus.Data
             return tr;
         }
 
-        public hkQsTransformf TransformLimbRotation(hkQsTransformf tr)
+        public hkQsTransformf ModifyKinematicRotation(hkQsTransformf tr)
         {
-            Quaternion newRotation = tr.Rotation.ToClientQuaternion() * LimbRotation.ToQuaternion();
+            Quaternion newRotation = tr.Rotation.ToClientQuaternion() * KinematicRotation.ToQuaternion();
             tr.Rotation.X = newRotation.X;
             tr.Rotation.Y = newRotation.Y;
             tr.Rotation.Z = newRotation.Z;
@@ -270,9 +274,9 @@ namespace CustomizePlus.Data
         //    return tr;
         //}
 
-        public hkQsTransformf ModifyBoneTranslationWithRotation(hkQsTransformf tr)
+        public hkQsTransformf ModifyTranslationWithRotation(hkQsTransformf tr)
         {
-            var adjustedTranslation = Vector4.Transform(BoneTranslation, tr.Rotation.ToClientQuaternion());
+            var adjustedTranslation = Vector4.Transform(Translation, tr.Rotation.ToClientQuaternion());
             tr.Translation.X += adjustedTranslation.X;
             tr.Translation.Y += adjustedTranslation.Y;
             tr.Translation.Z += adjustedTranslation.Z;
@@ -281,20 +285,31 @@ namespace CustomizePlus.Data
             return tr;
         }
 
-        public hkQsTransformf ModifyLimbTranslation(hkQsTransformf tr)
+        public hkQsTransformf ModifyTranslationAsIs(hkQsTransformf tr)
         {
-            tr.Translation.X += LimbTranslation.X;
-            tr.Translation.Y += LimbTranslation.Y;
-            tr.Translation.Z += LimbTranslation.Z;
+            tr.Translation.X += Translation.X;
+            tr.Translation.Y += Translation.Y;
+            tr.Translation.Z += Translation.Z;
 
             return tr;
         }
 
-        public hkQsTransformf ModifyBoneTranslation(hkQsTransformf tr)
+        public hkQsTransformf ModifyKineTranslationWithRotation(hkQsTransformf tr)
         {
-            tr.Translation.X += BoneTranslation.X;
-            tr.Translation.Y += BoneTranslation.Y;
-            tr.Translation.Z += BoneTranslation.Z;
+            var adjustedTranslation = Vector4.Transform(KinematicTranslation, tr.Rotation.ToClientQuaternion());
+            tr.Translation.X += adjustedTranslation.X;
+            tr.Translation.Y += adjustedTranslation.Y;
+            tr.Translation.Z += adjustedTranslation.Z;
+            tr.Translation.W += adjustedTranslation.W;
+
+            return tr;
+        }
+
+        public hkQsTransformf ModifyKineTranslation(hkQsTransformf tr)
+        {
+            tr.Translation.X += KinematicTranslation.X;
+            tr.Translation.Y += KinematicTranslation.Y;
+            tr.Translation.Z += KinematicTranslation.Z;
 
             return tr;
         }

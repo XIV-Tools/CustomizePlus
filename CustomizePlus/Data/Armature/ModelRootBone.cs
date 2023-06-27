@@ -30,7 +30,7 @@ namespace CustomizePlus.Data.Armature
             //_moddedScale = _cachedGameScale;
         }
 
-        public override unsafe hkQsTransformf GetGameTransform(CharacterBase* cBase)
+        public override unsafe hkQsTransformf GetGameTransform(CharacterBase* cBase, bool? modelSpace = null)
         {
             //return new hkQsTransformf()
             //{
@@ -47,7 +47,7 @@ namespace CustomizePlus.Data.Armature
             };
         }
 
-        protected override unsafe void SetGameTransform(CharacterBase* cBase, hkQsTransformf transform)
+        protected override unsafe void SetLocalTransform(CharacterBase* cBase, hkQsTransformf transform)
         {
             //if (_moddedPosition != transform.Translation.ToClientVector3())
             //{

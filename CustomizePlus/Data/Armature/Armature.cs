@@ -393,35 +393,61 @@ namespace CustomizePlus.Data.Armature
                 {
                     hkaPose* currentPose = cBase->Skeleton->PartialSkeletons[pSkeleIndex].GetHavokPose(Constants.TruePoseIndex);
 
-                    //the right side of this condition is apparently a havok flag incidating
-                    //whether the model has been updated since the last frame
                     if (currentPose != null)
                     {
-                        //if (SnapToReferencePose)
-                        //{
-                        //    currentPose->SetToReferencePose();
-                        //}
+                        if (SnapToReferencePose)
+                        {
+                            currentPose->SetToReferencePose();
+                            currentPose->SyncModelSpace();
+                        }
 
                         for (int boneIndex = 0; boneIndex < currentPose->Skeleton->Bones.Length; ++boneIndex)
                         {
                             if (GetBoneAt(pSkeleIndex, boneIndex) is ModelBone mb
                                 && mb != null
-                                && mb.BoneName == currentPose->Skeleton->Bones[boneIndex].Name.String)
+                                && mb.BoneName == currentPose->Skeleton->Bones[boneIndex].Name.String
+                                && mb.HasActiveTransform)
                             {
+
                                 if (obj.HasScalableRoot())
                                 {
-                                    mb.ApplyModelScale(cBase);
+                                    mb.ApplyIndividualScale(cBase);
                                 }
 
                                 if (!GameStateHelper.GameInPosingModeWithFrozenRotation())
                                 {
-                                    mb.ApplyModelRotation(cBase);
+                                    mb.ApplyIndividualRotation(cBase);
                                 }
 
                                 if (!GameStateHelper.GameInPosingModeWithFrozenPosition())
                                 {
-                                    mb.ApplyModelTranslationAtAngle(cBase);
+                                    mb.ApplyIndividualTranslationAtAngle(cBase);
                                 }
+
+                            }
+                        }
+
+                        currentPose->SyncModelSpace();
+                        currentPose->SyncLocalSpace();
+
+                        for (int boneIndex = 0; boneIndex < currentPose->Skeleton->Bones.Length; ++boneIndex)
+                        {
+                            if (GetBoneAt(pSkeleIndex, boneIndex) is ModelBone mb
+                                && mb != null
+                                && mb.BoneName == currentPose->Skeleton->Bones[boneIndex].Name.String
+                                && mb.HasActiveTransform)
+                            {
+
+                                if (!GameStateHelper.GameInPosingModeWithFrozenRotation())
+                                {
+                                    mb.ApplyInheritableRotation(cBase);
+                                }
+
+                                if (!GameStateHelper.GameInPosingModeWithFrozenPosition())
+                                {
+                                    mb.ApplyInheritableTranslationAtAngle(cBase);
+                                }
+
                             }
                         }
                     }
@@ -442,22 +468,26 @@ namespace CustomizePlus.Data.Armature
             return GetAllEditableBones().Select(x => new TransformInfo(this, x, attribute, space));
         }
 
-        public void UpdateBoneTransformValue(TransformInfo newTransform, BoneUpdateMode mode, bool mirrorChanges, bool propagateChanges)
+        public void UpdateBoneTransformValue(TransformInfo newTransform, BoneAttribute attribute, bool mirrorChanges)
         {
             if (GetAllBones().FirstOrDefault(x => x.BoneName == newTransform.BoneCodeName) is ModelBone mb
                 && mb != null)
             {
                 BoneTransform oldTransform = mb.GetTransformation();
+                oldTransform.UpdateAttribute(attribute, newTransform.TransformationValue);
+                mb.UpdateModel(oldTransform);
 
-                BoneAttribute att = mode switch
+                if (mirrorChanges && mb.TwinBone is ModelBone twin && twin != null)
                 {
-                    BoneUpdateMode.Position => BoneAttribute.Position,
-                    BoneUpdateMode.Rotation => BoneAttribute.Rotation,
-                    _ => BoneAttribute.Scale
-                };
-
-                oldTransform.UpdateAttribute(att, newTransform.TransformationValue);
-                mb.UpdateModel(oldTransform, mirrorChanges, propagateChanges);
+                    if (BoneData.IsIVCSBone(twin.BoneName))
+                    {
+                        twin.UpdateModel(oldTransform);
+                    }
+                    else
+                    {
+                        twin.UpdateModel(oldTransform);
+                    }
+                }
             }
         }
     }

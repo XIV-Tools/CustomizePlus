@@ -72,6 +72,8 @@ namespace CustomizePlus.Data.Armature
         /// </summary>
         protected virtual BoneTransform CustomizedTransform { get; }
 
+        public virtual bool HasActiveTransform { get => CustomizedTransform.IsEdited(); }
+
         #region Model Bone Construction
 
         public ModelBone(Armature arm, string codeName, int partialIdx, int boneIdx)
@@ -148,17 +150,8 @@ namespace CustomizePlus.Data.Armature
         /// Update the transformation associated with this model bone. Optionally extend the transformation
         /// to the model bone's twin (in which case it will be appropriately mirrored) and/or children.
         /// </summary>
-        public virtual void UpdateModel(BoneTransform newTransform, bool mirror = false, bool extendToClones = true)
+        public virtual void UpdateModel(BoneTransform newTransform, bool extendToClones = true)
         {
-            if (mirror && TwinBone is ModelBone mb && mb != null)
-            {
-                BoneTransform mirroredTransform = BoneData.IsIVCSBone(BoneName)
-                    ? newTransform.GetSpecialReflection()
-                    : newTransform.GetStandardReflection();
-
-                mb.UpdateModel(mirroredTransform, false, false);
-            }
-
             UpdateTransformation(newTransform);
 
             if (extendToClones)
@@ -169,7 +162,7 @@ namespace CustomizePlus.Data.Armature
 
                 foreach (ModelBone clone in clones)
                 {
-                    clone.UpdateModel(newTransform, mirror, false);
+                    clone.UpdateModel(newTransform, false);
                 }
             }
         }
@@ -213,7 +206,6 @@ namespace CustomizePlus.Data.Armature
         /// </summary>
         public virtual hkQsTransformf GetGameTransform(CharacterBase* cBase, bool? modelSpace = null)
         {
-
             FFXIVClientStructs.FFXIV.Client.Graphics.Render.Skeleton* skelly = cBase->Skeleton;
             FFXIVClientStructs.FFXIV.Client.Graphics.Render.PartialSkeleton pSkelly = skelly->PartialSkeletons[PartialSkeletonIndex];
             hkaPose* targetPose = pSkelly.GetHavokPose(Constants.TruePoseIndex);
@@ -248,7 +240,7 @@ namespace CustomizePlus.Data.Armature
 
             if (targetPose == null) return;
 
-            targetPose->AccessUnsyncedPoseLocalSpace()->Data[BoneIndex] = transform;
+            targetPose->AccessSyncedPoseLocalSpace()->Data[BoneIndex] = transform;
 
             //targetPose->AccessSyncedPoseModelSpace()->Data[BoneIndex] = *targetPose->CalculateBoneModelSpace(BoneIndex);
         }
@@ -261,24 +253,25 @@ namespace CustomizePlus.Data.Armature
 
             if (targetPose == null) return;
 
-            targetPose->AccessSyncedPoseLocalSpace()->Data[BoneIndex] = transform;
+            targetPose->AccessSyncedPoseModelSpace()->Data[BoneIndex] = transform;
         }
 
-        public void ApplyScale(CharacterBase* cBase) => ApplyLocalTransform(cBase, CustomizedTransform.ModifyScale);
+        public void ApplyIndividualScale(CharacterBase* cBase) => ApplyModelTransform(cBase, CustomizedTransform.ModifyScale);
 
-        public void ApplyLocalRotation(CharacterBase* cBase) => ApplyLocalTransform(cBase, CustomizedTransform.ModifyBoneRotation);
-        public void ApplyModelRotation(CharacterBase* cBase) => ApplyModelTransform(cBase, CustomizedTransform.ModifyBoneRotation);
+        public void ApplyInheritableRotation(CharacterBase* cBase) => ApplyLocalTransform(cBase, CustomizedTransform.ModifyKinematicRotation);
+        public void ApplyIndividualRotation(CharacterBase* cBase) => ApplyModelTransform(cBase, CustomizedTransform.ModifyRotation);
 
-        public void ApplyLocalTranslationAtAngle(CharacterBase* cBase) => ApplyLocalTransform(cBase, CustomizedTransform.ModifyBoneTranslationWithRotation);
-        public void ApplyModelTranslationAtAngle(CharacterBase* cBase) => ApplyModelTransform(cBase, CustomizedTransform.ModifyBoneTranslationWithRotation);
-        
-        //public void ApplyModelTranslationAsIs(CharacterBase* cBase) => ApplyLocalTransform(cBase, CustomizedTransform.ModifyBoneTranslation);
+        public void ApplyInheritableTranslationAtAngle(CharacterBase* cBase) => ApplyLocalTransform(cBase, CustomizedTransform.ModifyKineTranslationWithRotation);
+        public void ApplyIndividualTranslationAtAngle(CharacterBase* cBase) => ApplyModelTransform(cBase, CustomizedTransform.ModifyTranslationWithRotation);
+
+        public void ApplyInheritableTranslationAsIs(CharacterBase* cBase) => ApplyLocalTransform(cBase, CustomizedTransform.ModifyKineTranslation);
+        public void ApplyIndividualTranslationAsIs(CharacterBase* cBase) => ApplyModelTransform(cBase, CustomizedTransform.ModifyTranslationAsIs);
 
         protected virtual void ApplyLocalTransform(CharacterBase* cBase, Func<hkQsTransformf, hkQsTransformf> modTrans)
         {
             if (cBase != null
                 && CustomizedTransform.IsEdited()
-                && GetGameTransform(cBase) is hkQsTransformf gameTransform
+                && GetGameTransform(cBase, false) is hkQsTransformf gameTransform
                 && !gameTransform.Equals(Constants.NullTransform))
             {
                 hkQsTransformf modTransform = modTrans(gameTransform);
@@ -294,7 +287,7 @@ namespace CustomizePlus.Data.Armature
         {
             if (cBase != null
                 && CustomizedTransform.IsEdited()
-                && GetGameTransform(cBase) is hkQsTransformf gameTransform
+                && GetGameTransform(cBase, true) is hkQsTransformf gameTransform
                 && !gameTransform.Equals(Constants.NullTransform))
             {
                 hkQsTransformf modTransform = modTrans(gameTransform);

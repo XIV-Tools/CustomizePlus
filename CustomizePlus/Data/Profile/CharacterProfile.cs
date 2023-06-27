@@ -103,21 +103,14 @@ namespace CustomizePlus.Data.Profile
             return Bones.Select(x => new TransformInfo(this, x.Key, x.Value, attribute, space));
         }
 
-        public void UpdateBoneTransformValue(TransformInfo newTransform, BoneUpdateMode mode, bool mirrorChanges, bool propagateChanges = false)
+        public void UpdateBoneTransformValue(TransformInfo newTransform, BoneAttribute attribute, bool mirrorChanges)
         {
             if (!Bones.ContainsKey(newTransform.BoneCodeName))
             {
                 Bones[newTransform.BoneCodeName] = new BoneTransform();
             }
 
-            BoneAttribute att = mode switch
-            {
-                BoneUpdateMode.Position => BoneAttribute.Position,
-                BoneUpdateMode.Rotation => BoneAttribute.Rotation,
-                _ => BoneAttribute.Scale
-            };
-
-            Bones[newTransform.BoneCodeName].UpdateAttribute(att, newTransform.TransformationValue);
+            Bones[newTransform.BoneCodeName].UpdateAttribute(attribute, newTransform.TransformationValue);
         }
 
         public string SerializeToJSON()
