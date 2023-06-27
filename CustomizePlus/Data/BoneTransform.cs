@@ -164,7 +164,11 @@ namespace CustomizePlus.Data
             return new BoneTransform
             {
                 Translation = new Vector3(Translation.X, Translation.Y, -1 * Translation.Z),
+                KinematicTranslation = new Vector3(_kinematicTranslation.X, _kinematicTranslation.Y, -1 * _kinematicTranslation.Z),
+
                 Rotation = new Vector3(-1 * Rotation.X, -1 * Rotation.Y, Rotation.Z),
+                KinematicRotation = new Vector3(-1 * _kinematicRotation.X, -1 * _kinematicRotation.Y, _kinematicRotation.Z),
+
                 Scaling = Scaling
             };
         }
@@ -178,7 +182,11 @@ namespace CustomizePlus.Data
             return new BoneTransform
             {
                 Translation = new Vector3(Translation.X, -1 * Translation.Y, Translation.Z),
+                KinematicTranslation = new Vector3(_kinematicTranslation.X, -1 * _kinematicTranslation.Y, _kinematicTranslation.Z),
+
                 Rotation = new Vector3(Rotation.X, -1 * Rotation.Y, -1 * Rotation.Z),
+                KinematicRotation = new Vector3(_kinematicRotation.X, -1 * _kinematicRotation.Y, -1 * _kinematicRotation.Z),
+
                 Scaling = Scaling
             };
         }

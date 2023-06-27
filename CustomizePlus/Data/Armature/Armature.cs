@@ -481,11 +481,11 @@ namespace CustomizePlus.Data.Armature
                 {
                     if (BoneData.IsIVCSBone(twin.BoneName))
                     {
-                        twin.UpdateModel(oldTransform);
+                        twin.UpdateModel(oldTransform.GetSpecialReflection());
                     }
                     else
                     {
-                        twin.UpdateModel(oldTransform);
+                        twin.UpdateModel(oldTransform.GetStandardReflection());
                     }
                 }
             }
