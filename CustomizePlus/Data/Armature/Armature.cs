@@ -16,6 +16,8 @@ using FFXIVClientStructs.FFXIV.Client.Graphics.Render;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
 using FFXIVClientStructs.Havok;
 
+using CustomizePlus.Extensions;
+
 namespace CustomizePlus.Data.Armature
 {
     /// <summary>
@@ -148,7 +150,7 @@ namespace CustomizePlus.Data.Armature
 
         public Armature(CharacterProfile prof)
         {
-            _localId = _nextGlobalId++;
+            _localId = ++_nextGlobalId;
 
             _partialSkeletons = Array.Empty<ModelBone[]>();
 
@@ -173,8 +175,8 @@ namespace CustomizePlus.Data.Armature
         public override string ToString()
         {
             return Built
-                ? $"Armature (#{_localId}) on {Profile.CharacterName} with {TotalBoneCount} bone/s"
-                : $"Armature (#{_localId}) on {Profile.CharacterName} with no skeleton reference";
+                ? $"Armature (#{_localId:00000}) on {Profile.CharacterName} with {TotalBoneCount} bone/s"
+                : $"Armature (#{_localId:00000}) on {Profile.CharacterName} with no skeleton reference";
         }
 
         private bool GetReferenceSnap()
@@ -322,11 +324,13 @@ namespace CustomizePlus.Data.Armature
                             if (pSkeleIndex == 0 && boneIndex == 0)
                             {
                                 newBone = new ModelRootBone(arm, boneName);
+                                PluginLog.LogDebug($"Main root @ <{pSkeleIndex}, {boneIndex}> ({boneName})");
                             }
-                            else if (boneIndex == 0)
+                            else if (currentPartial.ConnectedBoneIndex == boneIndex)
                             {
                                 ModelBone cloneOf = newPartials[0][currentPartial.ConnectedParentBoneIndex];
                                 newBone = new PartialRootBone(arm, cloneOf, boneName, pSkeleIndex);
+                                PluginLog.LogDebug($"Partial root @ <{pSkeleIndex}, {boneIndex}> ({boneName})");
                             }
                             else
                             {
@@ -405,9 +409,12 @@ namespace CustomizePlus.Data.Armature
                         {
                             if (GetBoneAt(pSkeleIndex, boneIndex) is ModelBone mb
                                 && mb != null
+                                && mb is not PartialRootBone
                                 && mb.BoneName == currentPose->Skeleton->Bones[boneIndex].Name.String
                                 && mb.HasActiveTransform)
                             {
+                                //Partial root bones aren't guaranteed to be parented the way that would
+                                //logically make sense. For that reason, don't bother trying to transform them locally.
 
                                 if (obj.HasScalableRoot())
                                 {
@@ -437,6 +444,13 @@ namespace CustomizePlus.Data.Armature
                                 && mb.BoneName == currentPose->Skeleton->Bones[boneIndex].Name.String
                                 && mb.HasActiveTransform)
                             {
+                                if (mb is PartialRootBone prb)
+                                {
+                                    //In the case of partial root bones, simply copy the transform in model space
+                                    //wholesale from the bone that they're a copy of
+                                    prb.ApplyOriginalTransform(cBase);
+                                    continue;
+                                }
 
                                 if (!GameStateHelper.GameInPosingModeWithFrozenRotation())
                                 {
@@ -451,6 +465,13 @@ namespace CustomizePlus.Data.Armature
                             }
                         }
                     }
+                }
+
+                if (GetAllBones().FirstOrDefault(x => x.BoneName == "j_sebo_b") is ModelBone heightBone
+                    && heightBone.GetGameTransform(cBase, true) is hkQsTransformf spineTrans
+                    && !spineTrans.Equals(Constants.NullTransform))
+                {
+                    *cBase->Height() = MathF.Round(spineTrans.Scale.Y, 3);
                 }
             }
         }
@@ -470,8 +491,7 @@ namespace CustomizePlus.Data.Armature
 
         public void UpdateBoneTransformValue(TransformInfo newTransform, BoneAttribute attribute, bool mirrorChanges)
         {
-            if (GetAllBones().FirstOrDefault(x => x.BoneName == newTransform.BoneCodeName) is ModelBone mb
-                && mb != null)
+            foreach(ModelBone mb in GetAllBones().Where(x => x.BoneName == newTransform.BoneCodeName))
             {
                 BoneTransform oldTransform = mb.GetTransformation();
                 oldTransform.UpdateAttribute(attribute, newTransform.TransformationValue);

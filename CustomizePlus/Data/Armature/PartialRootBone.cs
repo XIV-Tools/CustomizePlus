@@ -20,17 +20,23 @@ namespace CustomizePlus.Data.Armature
         {
             PrimaryPartialBone = primaryBone;
 
+            //partial roots don't have ACTUAL parents, but for the sake of simplicty let's
+            //pretend that they're parented the same as their duplicates
             if (PrimaryPartialBone.ParentBone is ModelBone pBone && pBone != null)
             {
                 AddParent(pBone.PartialSkeletonIndex, pBone.BoneIndex);
             }
-
-            //if (PrimaryPartialBone.TwinBone is ModelBone tBone && tBone != null)
-            //{
-            //    AddTwin(tBone.PartialSkeletonIndex, tBone.BoneIndex);
-            //}
         }
 
         protected override BoneTransform CustomizedTransform { get => PrimaryPartialBone.GetTransformation(); }
+
+        /// <summary>
+        /// Reference this partial root bone's duplicate model bone and copy its model space transform
+        /// wholesale. This presumes that the duplicate model bone has first completed its own spacial calcs.
+        /// </summary>
+        public void ApplyOriginalTransform(CharacterBase *cBase)
+        {
+            SetGameTransform(cBase, PrimaryPartialBone.GetGameTransform(cBase, true), true);
+        }
     }
 }

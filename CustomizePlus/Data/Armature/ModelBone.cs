@@ -150,55 +150,10 @@ namespace CustomizePlus.Data.Armature
         /// Update the transformation associated with this model bone. Optionally extend the transformation
         /// to the model bone's twin (in which case it will be appropriately mirrored) and/or children.
         /// </summary>
-        public virtual void UpdateModel(BoneTransform newTransform, bool extendToClones = true)
+        public virtual void UpdateModel(BoneTransform newTransform)
         {
             UpdateTransformation(newTransform);
-
-            if (extendToClones)
-            {
-                IEnumerable<ModelBone> clones = MasterArmature.GetAllBones()
-                    .Where(x => x is not ModelRootBone)
-                    .Where(x => x.BoneName == BoneName && !ReferenceEquals(x, this));
-
-                foreach (ModelBone clone in clones)
-                {
-                    clone.UpdateModel(newTransform, false);
-                }
-            }
         }
-
-        //private void PropagateModelUpdate(bool mirror,
-        //    Vector3 translationDelta, Vector3 rotationDelta,
-        //    Vector3 accumulatedTranslation, Vector3 accumulatedRotation)
-        //{
-        //    foreach (ModelBone mb in ChildBones)
-        //    {
-        //        Vector3 accRotate = accumulatedRotation + mb.CustomizedTransform.BoneRotation;
-        //        Vector3 accTranslate = accumulatedTranslation + mb.CustomizedTransform.BoneTranslation;
-
-        //        BoneTransform modTransform = new(mb.CustomizedTransform);
-
-        //        //slide and rotate this bone back into the reference frame of the progenitor of the update
-        //        modTransform.BoneRotation -= accRotate;
-        //        modTransform.BoneTranslation -= Vector3.Transform(accTranslate, accRotate.ToQuaternion());
-
-        //        //apply the delta value
-        //        //remember, since the user can only update one attribute at a time
-        //        //only one of these wll have non-zero values
-        //        modTransform.BoneRotation += rotationDelta;
-        //        modTransform.BoneTranslation += translationDelta;
-
-        //        //reapply the accumulated translation in the updated direction
-        //        modTransform.BoneTranslation += Vector3.Transform(accTranslate, (accRotate + rotationDelta).ToQuaternion());
-
-        //        //reapply the accumulated rotation
-        //        modTransform.BoneRotation += accRotate;
-
-
-        //        mb.UpdateModel(modTransform, mirror, false, true);
-        //        mb.PropagateModelUpdate(mirror, translationDelta, rotationDelta, accTranslate, accRotate);
-        //    }
-        //}
 
         /// <summary>
         /// Given a character base to which this model bone's master armature (presumably) applies,
