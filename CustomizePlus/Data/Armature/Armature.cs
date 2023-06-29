@@ -24,35 +24,26 @@ namespace CustomizePlus.Data.Armature
     /// Represents a "copy" of the ingame skeleton upon which the linked character profile is meant to operate.
     /// Acts as an interface by which the in-game skeleton can be manipulated on a bone-by-bone basis.
     /// </summary>
-    public unsafe class Armature : IBoneContainer
+    public abstract unsafe class Armature : IBoneContainer
     {
-        /// <summary>
-        /// Gets the Customize+ profile for which this mockup applies transformations.
-        /// </summary>
-        public CharacterProfile Profile { get; init; }
-
         /// <summary>
         /// Gets or sets a value indicating whether or not this armature has any renderable objects on which it should act.
         /// </summary>
         public bool IsVisible { get; set; }
 
         /// <summary>
-        /// Gets a value indicating whether or not this armature has successfully built itself with bone information.
-        /// </summary>
-        public bool IsBuilt { get; private set; }
-
-        /// <summary>
         /// For debugging purposes, each armature is assigned a globally-unique ID number upon creation.
         /// </summary>
         private static uint _nextGlobalId;
-        private readonly uint _localId;
+        protected readonly uint _localId;
 
         /// <summary>
         /// Each skeleton is made up of several smaller "partial" skeletons.
         /// Each partial skeleton has its own list of bones, with a root bone at index zero.
         /// The root bone of a partial skeleton may also be a regular bone in a different partial skeleton.
         /// </summary>
-        private ModelBone[][] _partialSkeletons;
+        protected ModelBone[][] _partialSkeletons { get; set; }
+        protected Armature[] _subArmatures { get; set; }
 
         #region Bone Accessors -------------------------------------------------------------------------------
 
@@ -62,14 +53,6 @@ namespace CustomizePlus.Data.Armature
         public int PartialSkeletonCount => _partialSkeletons.Length;
 
         /// <summary>
-        /// Get the list of bones belonging to the partial skeleton at the given index.
-        /// </summary>
-        public ModelBone[] this[int i]
-        {
-            get => _partialSkeletons[i];
-        }
-
-        /// <summary>
         /// Returns the number of bones contained within the partial skeleton with the given index.
         /// </summary>
         public int GetBoneCountOfPartial(int partialIndex) => _partialSkeletons[partialIndex].Length;
@@ -77,10 +60,12 @@ namespace CustomizePlus.Data.Armature
         /// <summary>
         /// Get the bone at index 'j' within the partial skeleton at index 'i'.
         /// </summary>
-        public ModelBone this[int i, int j]
+        private ModelBone this[int i, int j]
         {
             get => _partialSkeletons[i][j];
         }
+
+        protected int BoneCount() => _partialSkeletons.Sum(x => x.Length) + _subArmatures.Sum(x => x.BoneCount());
 
         /// <summary>
         /// Return the bone at the given indices, if it exists
@@ -101,19 +86,10 @@ namespace CustomizePlus.Data.Armature
         /// </summary>
         public ModelBone GetRootBoneOfPartial(int partialIndex) => this[partialIndex, 0];
 
-        public ModelBone MainRootBone => GetRootBoneOfPartial(0);
-
         /// <summary>
-        /// Get the total number of bones in each partial skeleton combined.
+        /// Get all individual model bones making up this armature.
         /// </summary>
-        // In exactly one partial skeleton will the root bone be an independent bone. In all others, it's a reference to a separate, real bone.
-        // For that reason we must subtract the number of duplicate bones
-        public int TotalBoneCount => _partialSkeletons.Sum(x => x.Length);
-
-        /// <summary>
-        /// Get all individual model bones making up this armature
-        /// </summary>
-        public IEnumerable<ModelBone> GetAllBones()
+        public IEnumerable<ModelBone> GetLocalBones()
         {
             for (int i = 0; i < _partialSkeletons.Length; ++i)
             {
@@ -124,10 +100,18 @@ namespace CustomizePlus.Data.Armature
             }
         }
 
-        /// <summary>
-        /// Get all individual model bones making up this armature EXCEPT for partial root bones
-        /// </summary>
-        public IEnumerable<ModelBone> GetAllEditableBones() => GetAllBones().Where(x => x is not PartialRootBone);
+        public IEnumerable<ModelBone> GetLocalAndDownstreamBones()
+        {
+            foreach (ModelBone mb in GetLocalBones()) yield return mb;
+
+            foreach(Armature arm in _subArmatures)
+            {
+                foreach(ModelBone mbd in arm.GetLocalAndDownstreamBones())
+                {
+                    yield return mbd;
+                }
+            }
+        }
 
         /// <summary>
         /// Gets a value indicating whether this armature has yet built its skeleton.
@@ -141,165 +125,55 @@ namespace CustomizePlus.Data.Armature
         /// Gets or sets a value indicating whether or not this armature should snap all of its bones to their reference "bindposes".
         /// i.e. force the character ingame to assume their "default" pose.
         /// </summary>
-        public bool SnapToReferencePose
+        public bool FrozenPose
         {
-            get => GetReferenceSnap();
-            set => SetReferenceSnap(value);
+            get => GetFrozenStatus();
+            set => SetFrozenStatus(value);
         }
-        private bool _snapToReference;
+        private bool _frozenInDefaultPose;
 
-        public Armature(CharacterProfile prof)
+        public Armature()
         {
             _localId = ++_nextGlobalId;
 
             _partialSkeletons = Array.Empty<ModelBone[]>();
+            _subArmatures = Array.Empty<Armature>();
 
-            Profile = prof;
             IsVisible = false;
-
-            //cross-link the two, though I'm not positive the profile ever needs to refer back
-            Profile.Armature = this;
-
-            TryLinkSkeleton();
-
-            PluginLog.LogDebug($"Instantiated {this}, attached to {Profile}");
-
         }
-
-        /// <summary>
-        /// Returns whether or not this armature was designed to apply to an object with the given name.
-        /// </summary>
-        public bool AppliesTo(string objectName) => Profile.AppliesTo(objectName);
 
         /// <inheritdoc/>
-        public override string ToString()
+        public abstract override string ToString();
+
+        protected bool GetFrozenStatus()
         {
-            return Built
-                ? $"Armature (#{_localId:00000}) on {Profile.CharacterName} with {TotalBoneCount} bone/s"
-                : $"Armature (#{_localId:00000}) on {Profile.CharacterName} with no skeleton reference";
+            return _frozenInDefaultPose;
         }
 
-        private bool GetReferenceSnap()
+        protected virtual void SetFrozenStatus(bool value)
         {
-            if (Profile != Plugin.ProfileManager.ProfileOpenInEditor)
-                _snapToReference = false;
-
-            return _snapToReference;
+            _frozenInDefaultPose = value;
+            foreach(Armature arm in _subArmatures)
+            {
+                arm.SetFrozenStatus(value);
+            }
         }
 
-        private void SetReferenceSnap(bool value)
-        {
-            if (value && Profile == Plugin.ProfileManager.ProfileOpenInEditor)
-                _snapToReference = false;
-
-            _snapToReference = value;
-        }
-
-        /// <summary>
-        /// Returns whether or not a link can be established between the armature and an in-game object.
-        /// If unbuilt, the armature will use this opportunity to rebuild itself.
-        /// </summary>
-        public unsafe CharacterBase* TryLinkSkeleton(bool forceRebuild = false)
-        {
-            try
-            {
-                if (GameDataHelper.TryLookupCharacterBase(Profile.CharacterName, out CharacterBase* cBase)
-                    && cBase != null)
-                {
-                    if (!Built || forceRebuild || NewBonesAvailable(cBase))
-                    {
-                        RebuildSkeleton(cBase);
-                    }
-                    //else if (NewBonesAvailable(cBase))
-                    //{
-                    //    AugmentSkeleton(cBase);
-                    //}
-                    return cBase;
-                }
-            }
-            catch (Exception ex)
-            {
-                PluginLog.LogError($"Error occured while attempting to link skeleton '{this}': {ex}");
-            }
-
-            return null;
-        }
-
-        private bool NewBonesAvailable(CharacterBase* cBase)
-        {
-            if (cBase == null)
-            {
-                return false;
-            }
-            else if (cBase->Skeleton->PartialSkeletonCount > _partialSkeletons.Length)
-            {
-                return true;
-            }
-            else
-            {
-                for (int i = 0; i < cBase->Skeleton->PartialSkeletonCount; ++i)
-                {
-                    hkaPose* newPose = cBase->Skeleton->PartialSkeletons[i].GetHavokPose(Constants.TruePoseIndex);
-                    if (newPose != null
-                        && newPose->Skeleton->Bones.Length > _partialSkeletons[i].Length)
-                    {
-                        return true;
-                    }
-                }
-            }
-
-            return false;
-        }
+        public abstract void UpdateOrDeleteRecord(string recordKey, BoneTransform? trans);
 
         /// <summary>
         /// Rebuild the armature using the provided character base as a reference.
         /// </summary>
-        public void RebuildSkeleton(CharacterBase* cBase)
-        {
-            if (cBase == null)
-                return;
+        public abstract void RebuildSkeleton(CharacterBase* cBase);
 
-            List<List<ModelBone>> newPartials = ParseBonesFromObject(this, cBase);
-
-            _partialSkeletons = newPartials.Select(x => x.ToArray()).ToArray();
-
-            PluginLog.LogDebug($"Rebuilt {this}");
-        }
-
-        public void AugmentSkeleton(CharacterBase* cBase)
-        {
-            if (cBase == null)
-                return;
-
-            List<List<ModelBone>> oldPartials = _partialSkeletons.Select(x => x.ToList()).ToList();
-            List<List<ModelBone>> newPartials = ParseBonesFromObject(this, cBase);
-
-            //for each of the new partial skeletons discovered...
-            for (int i = 0; i < newPartials.Count; ++i)
-            {
-                //if the old skeleton doesn't contain the new partial at all, add the whole thing
-                if (i > oldPartials.Count)
-                {
-                    oldPartials.Add(newPartials[i]);
-                }
-                //otherwise, add every model bone the new partial has that the old one doesn't
-                else
-                {
-                    for (int j = oldPartials[i].Count; j < newPartials[i].Count; ++j)
-                    {
-                        oldPartials[i].Add(newPartials[i][j]);
-                    }
-                }
-            }
-
-            _partialSkeletons = oldPartials.Select(x => x.ToArray()).ToArray();
-
-            PluginLog.LogDebug($"Augmented {this} with new bones");
-        }
-
-        private static unsafe List<List<ModelBone>> ParseBonesFromObject(Armature arm, CharacterBase* cBase)
+        protected static unsafe List<List<ModelBone>> ParseBonesFromObject(Armature arm, CharacterBase* cBase, Dictionary<string, BoneTransform>? records)
         {
             List<List<ModelBone>> newPartials = new();
+
+            if (cBase == null)
+            {
+                return newPartials;
+            }
 
             try
             {
@@ -357,7 +231,7 @@ namespace CustomizePlus.Data.Armature
                                     }
                                 }
 
-                                if (arm.Profile.Bones.TryGetValue(boneName, out BoneTransform? bt)
+                                if (records != null && records.TryGetValue(boneName, out BoneTransform? bt)
                                     && bt != null)
                                 {
                                     newBone.UpdateModel(bt);
@@ -382,15 +256,38 @@ namespace CustomizePlus.Data.Armature
 
             return newPartials;
         }
+        //protected virtual bool NewBonesAvailable(CharacterBase* cBase)
+        //{
+        //    if (cBase == null)
+        //    {
+        //        return false;
+        //    }
+        //    else if (cBase->Skeleton->PartialSkeletonCount > _partialSkeletons.Length)
+        //    {
+        //        return true;
+        //    }
+        //    else
+        //    {
+        //        for (int i = 0; i < cBase->Skeleton->PartialSkeletonCount; ++i)
+        //        {
+        //            hkaPose* newPose = cBase->Skeleton->PartialSkeletons[i].GetHavokPose(Constants.TruePoseIndex);
+        //            if (newPose != null
+        //                && newPose->Skeleton->Bones.Length > _partialSkeletons[i].Length)
+        //            {
+        //                return true;
+        //            }
+        //        }
+        //    }
+
+        //    return false;
+        //}
 
         /// <summary>
         /// Iterate through this armature's model bones and apply their associated transformations
         /// to all of their in-game siblings.
         /// </summary>
-        public unsafe void ApplyTransformation(GameObject obj)
+        public virtual unsafe void ApplyTransformation(CharacterBase* cBase, bool applyScaling)
         {
-            CharacterBase* cBase = obj.ToCharacterBase();
-
             if (cBase != null)
             {
                 for (int pSkeleIndex = 0; pSkeleIndex < cBase->Skeleton->PartialSkeletonCount; ++pSkeleIndex)
@@ -399,7 +296,7 @@ namespace CustomizePlus.Data.Armature
 
                     if (currentPose != null)
                     {
-                        if (SnapToReferencePose)
+                        if (FrozenPose)
                         {
                             currentPose->SetToReferencePose();
                             currentPose->SyncModelSpace();
@@ -410,13 +307,14 @@ namespace CustomizePlus.Data.Armature
                             if (GetBoneAt(pSkeleIndex, boneIndex) is ModelBone mb
                                 && mb != null
                                 && mb is not PartialRootBone
-                                && mb.BoneName == currentPose->Skeleton->Bones[boneIndex].Name.String
+                                && (mb.BoneName == currentPose->Skeleton->Bones[boneIndex].Name.String
+                                    || mb.BoneName[3..] == currentPose->Skeleton->Bones[boneIndex].Name.String)
                                 && mb.HasActiveTransform)
                             {
                                 //Partial root bones aren't guaranteed to be parented the way that would
                                 //logically make sense. For that reason, don't bother trying to transform them locally.
 
-                                if (obj.HasScalableRoot())
+                                if (applyScaling)
                                 {
                                     mb.ApplyIndividualScale(cBase);
                                 }
@@ -467,11 +365,10 @@ namespace CustomizePlus.Data.Armature
                     }
                 }
 
-                if (GetAllBones().FirstOrDefault(x => x.BoneName == "j_sebo_b") is ModelBone heightBone
-                    && heightBone.GetGameTransform(cBase, true) is hkQsTransformf spineTrans
-                    && !spineTrans.Equals(Constants.NullTransform))
+                foreach(Armature subArm in _subArmatures)
                 {
-                    *cBase->Height() = MathF.Round(spineTrans.Scale.Y, 3);
+                    //subs are responsible for figuring out how they want to parse the character base
+                    subArm.ApplyTransformation(cBase, applyScaling);
                 }
             }
         }
@@ -484,14 +381,25 @@ namespace CustomizePlus.Data.Armature
                 && (name1[0..^1] == name2[0..^1]);
         }
 
-        public IEnumerable<TransformInfo> GetBoneTransformValues(BoneAttribute attribute, PosingSpace space)
+        public virtual IEnumerable<TransformInfo> GetBoneTransformValues(BoneAttribute attribute, PosingSpace space)
         {
-            return GetAllEditableBones().DistinctBy(x => x.BoneName).Select(x => new TransformInfo(this, x, attribute, space));
+            foreach(ModelBone mb in GetLocalBones().Where(x => x is not PartialRootBone))
+            {
+                yield return new TransformInfo(this, mb, attribute, space);
+            }
+
+            foreach(Armature arm in _subArmatures)
+            {
+                foreach(TransformInfo trInfo in arm.GetBoneTransformValues(attribute, space))
+                {
+                    yield return trInfo;
+                }
+            }
         }
 
         public void UpdateBoneTransformValue(TransformInfo newTransform, BoneAttribute attribute, bool mirrorChanges)
         {
-            foreach(ModelBone mb in GetAllBones().Where(x => x.BoneName == newTransform.BoneCodeName))
+            foreach(ModelBone mb in GetLocalBones().Where(x => x.BoneName == newTransform.BoneCodeName))
             {
                 BoneTransform oldTransform = mb.GetTransformation();
                 oldTransform.UpdateAttribute(attribute, newTransform.TransformationValue);

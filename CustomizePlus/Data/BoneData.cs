@@ -427,6 +427,8 @@ namespace CustomizePlus.Data
                 "armor" => BoneFamily.Armor,
                 "skirt" => BoneFamily.Skirt,
                 "equipment" => BoneFamily.Equipment,
+                "mainhand" => BoneFamily.MainHand,
+                "offhand" => BoneFamily.OffHand,
                 _ => BoneFamily.Unknown
             };
 

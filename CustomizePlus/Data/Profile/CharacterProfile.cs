@@ -22,7 +22,7 @@ namespace CustomizePlus.Data.Profile
 
         [NonSerialized] private readonly int _localId;
 
-        [NonSerialized] public Armature.Armature? Armature;
+        [NonSerialized] public CharacterArmature? Armature;
 
         [NonSerialized] public string? OriginalFilePath;
 
@@ -63,6 +63,8 @@ namespace CustomizePlus.Data.Profile
         [JsonIgnore] public int UniqueId => CreationDate.GetHashCode();
 
         public Dictionary<string, BoneTransform> Bones { get; init; } = new();
+        public Dictionary<string, BoneTransform> MHBones { get; init; } = new();
+        public Dictionary<string, BoneTransform> OHBones { get; init; } = new();
 
         /// <summary>
         /// Returns whether or not this profile applies to the object with the indicated name.

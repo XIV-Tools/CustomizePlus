@@ -187,11 +187,11 @@ namespace CustomizePlus.UI.Windows
                 ImGui.TableNextColumn();
                 ImGui.TableNextColumn();
 
-                var tempRefSnap = _settings.ArmatureInProgress?.SnapToReferencePose ?? false;
+                var tempRefSnap = _settings.ArmatureInProgress?.FrozenPose ?? false;
                 if (_settings.ArmatureInProgress != null && CtrlHelper.Checkbox("A-Pose", ref tempRefSnap))
                 {
                     ConfirmSkeletonConnection();
-                    _settings.ArmatureInProgress.SnapToReferencePose = tempRefSnap;
+                    _settings.ArmatureInProgress.FrozenPose = tempRefSnap;
                 }
                 CtrlHelper.AddHoverText($"Force character into their default reference pose");
 
@@ -256,7 +256,7 @@ namespace CustomizePlus.UI.Windows
                         : _settings.ProfileInProgress;
 
                     var groupedBones = container.GetBoneTransformValues(_settings.EditingAttribute, _settings.ReferenceFrame)
-                        .GroupBy(x => BoneData.GetBoneFamily(x.BoneCodeName)).ToList();
+                        .GroupBy(x => x.BoneFamilyName).ToList();
 
                     foreach (var boneGroup in groupedBones.OrderBy(x => (int)x.Key))
                     {
@@ -353,10 +353,10 @@ namespace CustomizePlus.UI.Windows
                     ConfirmationDialog.Show("Revert all unsaved work?",
                         () =>
                         {
-                            bool useAPose = _settings.ArmatureInProgress.SnapToReferencePose;
+                            bool useAPose = _settings.ArmatureInProgress.FrozenPose;
                             Plugin.ProfileManager.RevertWorkingCopy();
                             Plugin.ArmatureManager.ConstructArmatureForProfile(_settings.ProfileInProgress, true);
-                            _settings.ArmatureInProgress.SnapToReferencePose = useAPose;
+                            _settings.ArmatureInProgress.FrozenPose = useAPose;
                             _dirty = false;
                         });
                 }
@@ -585,7 +585,7 @@ namespace CustomizePlus.UI.Windows
         private string? _originalCharName;
         private string? _originalProfName;
 
-        public Armature ArmatureInProgress => ProfileInProgress.Armature;
+        public CharacterArmature ArmatureInProgress => ProfileInProgress.Armature;
 
         public bool ShowLiveBones = false;
         public bool MirrorModeEnabled = false;

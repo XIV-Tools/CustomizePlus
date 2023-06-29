@@ -39,7 +39,7 @@ namespace CustomizePlus.Data.Armature
         /// </summary>
         public ModelBone? ParentBone => (_parentPartialIndex >= 0 && _parentPartialIndex < MasterArmature.PartialSkeletonCount
                 && _parentBoneIndex >= 0 && _parentBoneIndex < MasterArmature.GetBoneCountOfPartial(_parentPartialIndex))
-            ? MasterArmature[_parentPartialIndex, _parentBoneIndex]
+            ? MasterArmature.GetBoneAt(_parentPartialIndex, _parentBoneIndex)
             : null;
         private int _parentPartialIndex = -1;
         private int _parentBoneIndex = -1;
@@ -48,7 +48,7 @@ namespace CustomizePlus.Data.Armature
         /// Gets each model bone for which this model bone corresponds to a direct parent thereof.
         /// A model bone may have zero children.
         /// </summary>
-        public IEnumerable<ModelBone> ChildBones => _childPartialIndices.Zip(_childBoneIndices, (x, y) => MasterArmature[x, y]);
+        public IEnumerable<ModelBone?> ChildBones => _childPartialIndices.Zip(_childBoneIndices, MasterArmature.GetBoneAt);
         private List<int> _childPartialIndices = new();
         private List<int> _childBoneIndices = new();
 
@@ -56,7 +56,7 @@ namespace CustomizePlus.Data.Armature
         /// Gets the model bone that forms a mirror image of this model bone, if one exists.
         /// </summary>
         public ModelBone? TwinBone => (_twinPartialIndex >= 0 && _twinBoneIndex >= 0)
-            ? MasterArmature[_twinPartialIndex, _twinBoneIndex]
+            ? MasterArmature.GetBoneAt(_twinPartialIndex, _twinBoneIndex)
             : null;
         private int _twinPartialIndex = -1;
         private int _twinBoneIndex = -1;
@@ -64,7 +64,8 @@ namespace CustomizePlus.Data.Armature
         /// <summary>
         /// The name of the bone within the in-game skeleton. Referred to in some places as its "code name".
         /// </summary>
-        public string BoneName;
+        public string BoneName { get; }
+        public BoneData.BoneFamily FamilyName;
 
         /// <summary>
         /// The transform that this model bone will impart upon its in-game sibling when the master armature
@@ -83,6 +84,7 @@ namespace CustomizePlus.Data.Armature
             BoneIndex = boneIdx;
 
             BoneName = codeName;
+            FamilyName = BoneData.GetBoneFamily(codeName);
 
             CustomizedTransform = new();
         }
@@ -128,14 +130,7 @@ namespace CustomizePlus.Data.Armature
 
             //the model bones should(?) be the same, by reference
             //but we still may need to delete them 
-            if (newTransform.IsEdited())
-            {
-                MasterArmature.Profile.Bones[BoneName] = new(newTransform);
-            }
-            else
-            {
-                MasterArmature.Profile.Bones.Remove(BoneName);
-            }
+            MasterArmature.UpdateOrDeleteRecord(BoneName, newTransform.IsEdited() ? newTransform : null);
         }
 
         public override string ToString()

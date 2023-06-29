@@ -18,7 +18,8 @@ namespace CustomizePlus.Data
         private IBoneContainer _sourceContainer;
 
         public string BoneCodeName { get; }
-        public string BoneDisplayName => BoneData.GetBoneDisplayName(BoneCodeName);
+        public string BoneDisplayName { get; set; }
+        public BoneData.BoneFamily BoneFamilyName { get; set; }
 
         public Vector3 TransformationValue { get; set; }
         public BoneAttribute Attribute { get; }
@@ -30,6 +31,9 @@ namespace CustomizePlus.Data
             BoneCodeName = codename;
             Attribute = att;
             ReferenceFrame = ps;
+
+            BoneDisplayName = BoneData.GetBoneDisplayName(BoneCodeName);
+            BoneFamilyName = BoneData.GetBoneFamily(BoneCodeName);
         }
 
         /// <summary>

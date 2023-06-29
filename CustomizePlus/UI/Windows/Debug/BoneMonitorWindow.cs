@@ -22,9 +22,7 @@ namespace CustomizePlus.UI.Windows.Debug
     internal unsafe class BoneMonitorWindow : WindowBase
     {
         private readonly Dictionary<BoneData.BoneFamily, bool> _groupExpandedState = new();
-        private readonly bool _modelFrozen = false;
         private PosingSpace _targetPose;
-        private bool _aggregateDeforms;
 
         private BoneAttribute _targetAttribute;
 
@@ -47,7 +45,7 @@ namespace CustomizePlus.UI.Windows.Debug
 
             editWnd._targetProfile = prof;
 
-            Plugin.ArmatureManager.RenderCharacterProfiles(prof);
+            //Plugin.ArmatureManager.RenderCharacterProfiles(prof);
             editWnd._targetArmature = prof.Armature;
         }
 
@@ -141,9 +139,9 @@ namespace CustomizePlus.UI.Windows.Debug
 
                 if (_targetArmature != null && targetObject != null)
                 {
-                    IEnumerable<ModelBone> relevantModelBones = _targetArmature.GetAllBones();
+                    IEnumerable<ModelBone> relevantModelBones = _targetArmature.GetLocalAndDownstreamBones();
 
-                    var groupedBones = relevantModelBones.GroupBy(x => BoneData.GetBoneFamily(x.BoneName));
+                    var groupedBones = relevantModelBones.GroupBy(x => x.FamilyName);
 
                     foreach (var boneGroup in groupedBones.OrderBy(x => (int)x.Key))
                     {
@@ -166,7 +164,9 @@ namespace CustomizePlus.UI.Windows.Debug
 
                         if (expanded)
                         {
-                            foreach (ModelBone mb in boneGroup.OrderBy(x => BoneData.GetBoneRanking(x.BoneName)))
+                            foreach (ModelBone mb in boneGroup
+                                .OrderBy(x => x.PartialSkeletonIndex)
+                                .ThenBy(x => x.BoneIndex))
                             {
                                 RenderTransformationInfo(mb, targetObject);
                             }
@@ -182,9 +182,34 @@ namespace CustomizePlus.UI.Windows.Debug
             ImGui.Separator();
 
             //----------------------------------
+            if (ImGui.BeginTable("Footer", 4, ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.NoClip))
+            {
+                ImGui.TableSetupColumn("HeightInfo", ImGuiTableColumnFlags.WidthFixed);
+                ImGui.TableSetupColumn("VarSpace", ImGuiTableColumnFlags.WidthStretch);
+                ImGui.TableSetupColumn("Close", ImGuiTableColumnFlags.WidthFixed);
+                ImGui.TableSetupColumn("Bumper", ImGuiTableColumnFlags.WidthFixed);
 
-            if (ImGui.Button("Cancel"))
-                Close();
+                ImGui.TableNextRow();
+                ImGui.TableSetColumnIndex(0);
+
+                if (targetObject != null)
+                {
+                    CtrlHelper.StaticLabel($"Character Height: {targetObject->Height()->ToString()}");
+                }
+
+                ImGui.TableNextColumn();
+                ImGui.TableNextColumn();
+
+                if (ImGui.Button("Close"))
+                    Close();
+
+                ImGui.TableNextColumn();
+
+                ImGui.Dummy(new(CtrlHelper.IconButtonWidth, 0));
+
+                ImGui.EndTable();
+            }
+
         }
 
         public void DisplayNoLinkMsg()
