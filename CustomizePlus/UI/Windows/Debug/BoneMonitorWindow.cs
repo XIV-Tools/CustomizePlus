@@ -55,7 +55,9 @@ namespace CustomizePlus.UI.Windows.Debug
                 && _targetProfile.Enabled)
             {
                 _targetProfile.Enabled = false;
-                DisplayNoLinkMsg();
+
+                // This is broken right now and will spam open an unclosable window. Since this is dev I just disabled it, Devs should know why bones dont show up.
+                //DisplayNoLinkMsg();
             }
 
             if (ImGui.BeginTable("Header", 4, ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.NoClip | ImGuiTableFlags.BordersInnerV))

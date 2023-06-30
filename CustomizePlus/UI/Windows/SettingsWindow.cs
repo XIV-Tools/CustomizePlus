@@ -1,9 +1,19 @@
 ﻿// © Customize+.
 // Licensed under the MIT license.
 
+using CustomizePlus.Data.Configuration;
 using CustomizePlus.Helpers;
+using CustomizePlus.UI.Windows.Debug;
 using Dalamud.Interface;
+using Dalamud.Interface.Components;
+using Dalamud.Interface.ImGuiFileDialog;
+using Dalamud.Logging;
 using ImGuiNET;
+using Newtonsoft.Json;
+using Penumbra.String.Classes;
+using System;
+using System.Diagnostics;
+using System.IO;
 
 namespace CustomizePlus.UI.Windows
 {
@@ -12,6 +22,8 @@ namespace CustomizePlus.UI.Windows
         protected override string Title => "Customize+ settings";
         protected override bool SingleInstance => true;
         protected override bool LockCloseButton => false;
+
+        private readonly FileDialogManager _importFilePicker = new();
 
         public static void Show()
         {
@@ -24,6 +36,8 @@ namespace CustomizePlus.UI.Windows
             DrawAdvancedSettings();
         }
 
+        #region General Settings
+        // General Settings
         private void DrawGeneralSettings()
         {
             var isShouldDraw = ImGui.CollapsingHeader("General");
@@ -32,6 +46,10 @@ namespace CustomizePlus.UI.Windows
                 return;
 
             DrawPluginEnabledCheckbox();
+            DrawExportLegacyConfig();
+            DrawOpenConfigLocation();
+            ImGui.SameLine();
+            DrawRediscover();
         }
 
         private void DrawPluginEnabledCheckbox()
@@ -47,6 +65,52 @@ namespace CustomizePlus.UI.Windows
             }
         }
 
+        private void DrawExportLegacyConfig() {
+            // Draw the File Picker
+            _importFilePicker.Draw();
+
+            if (ImGui.Button("Export V2 Legacy Configuration File")) {
+                Data.Configuration.Version2.Version2Configuration oldConfig =
+                    Data.Configuration.Version2.Version2Configuration.ConvertFromLatestVersion(Plugin.ConfigurationManager.Configuration);
+
+                _importFilePicker.SaveFileDialog("Export Legacy Configuration", ".json", "CustomizePlus_Backup", ".json", (isSuccess, path) =>
+                {
+                    if (isSuccess) {
+                        var json = JsonConvert.SerializeObject(oldConfig, Formatting.Indented);
+
+                        File.WriteAllText(path, json);
+                    }
+                }, DalamudServices.PluginInterface.ConfigFile.DirectoryName);
+            }
+            CtrlHelper.AddHoverText("Export V2 Legacy Configuration File");
+        }
+
+        private void DrawRediscover() {
+            if (ImGui.Button("Rediscover Profiles")) {
+                Plugin.ProfileManager.CheckForNewProfiles();
+            }
+            CtrlHelper.AddHoverText("Rediscover profiles.");
+        }
+
+        private void DrawOpenConfigLocation() {
+            var path = DalamudServices.PluginInterface.GetPluginConfigDirectory();
+            if (ImGui.Button("Open Config Folder")) {
+                try {
+
+                    if (Path.Exists(path)) {
+                        Process.Start("explorer.exe", path);
+                    }
+                } catch (Exception e) {
+                    PluginLog.Error($"Failed to open Config Location at {path} due to:\n{e}");
+                }
+            }
+            CtrlHelper.AddHoverText("Open Config Folder");
+        }
+
+        #endregion
+
+        #region Advanced Settings
+        // Advanced Settings
         private void DrawAdvancedSettings()
         {
             var isShouldDraw = ImGui.CollapsingHeader("Advanced");
@@ -60,6 +124,7 @@ namespace CustomizePlus.UI.Windows
             ImGui.NewLine();
 
             DrawEnableRootPositionCheckbox();
+            DrawIPCTest();
         }
 
         private void DrawEnableRootPositionCheckbox()
@@ -72,5 +137,19 @@ namespace CustomizePlus.UI.Windows
                 Plugin.ConfigurationManager.SaveConfiguration();
             }
         }
+
+        // This Entire window needs a serious rework at some point, its useless right now.
+        private void DrawIPCTest() {
+            // IPC Testing Window - Hidden unless enabled in json.
+            var isChecked = Plugin.ConfigurationManager.Configuration.DebuggingModeEnabled;
+            if (isChecked) {
+                if (ImGui.Button("D: IPC Test Window BROKEN")) {
+                    IPCTestWindow.Show(DalamudServices.PluginInterface);
+                }
+                CtrlHelper.AddHoverText("D: Test IPC");
+            }
+        }
+
+        #endregion
     }
 }

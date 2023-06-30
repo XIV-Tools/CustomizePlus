@@ -368,8 +368,7 @@ namespace CustomizePlus.Data.Armature
                                 {
                                     mb.ApplyRotation(cBase, true);
                                 }
-
-                                if (!GameStateHelper.GameInPosingModeWithFrozenPosition())
+                                else if (GameStateHelper.GameInPosingMode())
                                 {
                                     mb.ApplyTranslationAtAngle(cBase, true);
                                 }

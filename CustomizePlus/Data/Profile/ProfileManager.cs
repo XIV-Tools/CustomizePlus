@@ -337,7 +337,7 @@ namespace CustomizePlus.Data.Profile
         /// </summary>
         public IEnumerable<CharacterProfile> GetProfilesByGameObject(Dalamud.Game.ClientState.Objects.Types.GameObject obj)
         {
-            string name = Helpers.GameDataHelper.GetObjectName(obj);
+            var name = GameDataHelper.GetObjectName(obj);
 
             List<CharacterProfile> output = new();
 
@@ -353,9 +353,9 @@ namespace CustomizePlus.Data.Profile
                 }
             }
 
-            if (Profiles.Any(x => x.CharacterName == name))
+            if (Profiles.Concat(TempLocalProfiles.Select(p => p.Value)).Any(x => x.CharacterName == name))
             {
-                return output.Concat(Profiles.Where(x => x.CharacterName == name));
+                return output.Concat(Profiles).Concat(TempLocalProfiles.Select(p => p.Value)).Where(x => x.CharacterName == name);
             }
             else
             {

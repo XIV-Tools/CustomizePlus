@@ -128,44 +128,7 @@ namespace CustomizePlus.UI.Windows
 
                 ImGui.TableNextColumn();
 
-                // IPC Testing Window - Hidden unless enabled in json.
-                if (Plugin.ConfigurationManager.Configuration.DebuggingModeEnabled)
-                {
-                    ImGui.SameLine();
-                    if (ImGuiComponents.IconButton(FontAwesomeIcon.Pen))
-                    {
-                        IPCTestWindow.Show(DalamudServices.PluginInterface);
-                    }
-                    CtrlHelper.AddHoverText("D: Test IPC");
-                    ImGui.SameLine();
-                }
-
-                ImGui.Dummy(new(CtrlHelper.IconButtonWidth, 0));
-                ImGui.SameLine();
-                if (ImGuiComponents.IconButton(FontAwesomeIcon.BusinessTime))
-                {
-                    Data.Configuration.Version2.Version2Configuration oldConfig =
-                        Data.Configuration.Version2.Version2Configuration.ConvertFromLatestVersion(Plugin.ConfigurationManager.Configuration);
-
-                    _importFilePicker.SaveFileDialog("Export Legacy Configuration", ".json", "CustomizePlus_Backup", ".json", (isSuccess, path) =>
-                    {
-                        if (isSuccess)
-                        {
-                            var json = JsonConvert.SerializeObject(oldConfig, Formatting.Indented);
-
-                            File.WriteAllText(path, json);
-                        }
-                    }, DalamudServices.PluginInterface.ConfigFile.DirectoryName);
-                }
-                CtrlHelper.AddHoverText("Export V2 Legacy Configuration File");
-
-                ImGui.TableNextColumn();
-
-                if (ImGuiComponents.IconButton(FontAwesomeIcon.MagnifyingGlassArrowRight))
-                {
-                    Plugin.ProfileManager.CheckForNewProfiles();
-                }
-                CtrlHelper.AddHoverText("Rediscover profiles.");
+                ImGui.Dummy(new(ImGui.GetColumnWidth() - CtrlHelper.IconButtonWidth, 0));
 
                 ImGui.SameLine();
 

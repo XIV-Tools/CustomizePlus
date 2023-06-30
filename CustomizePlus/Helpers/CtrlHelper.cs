@@ -119,7 +119,7 @@ namespace CustomizePlus.Helpers
             ImGui.Text(icon.ToIconString());
             ImGui.PopFont();
             ImGui.SameLine();
-            ImGui.Text(text);
+            ImGui.TextWrapped(text);
         }
     }
 }

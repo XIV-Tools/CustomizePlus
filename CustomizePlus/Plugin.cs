@@ -249,13 +249,11 @@ namespace CustomizePlus
             return original(a1, a2, a3, a4);
         }
 
-        //todo: doesn't work in cutscenes, something getting called after this and resets changes
         //TODO: fully remove, later?
         private unsafe static void OnGameObjectMove(IntPtr gameObjectPtr)
         {
             // Call the original function.
             _gameObjectMovementHook.Original(gameObjectPtr);
-
         }
     }
 }

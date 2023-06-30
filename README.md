@@ -23,3 +23,6 @@ Customize+ has been able to become what it is today only thanks to work of many 
 Since this is a project many different people are working on, we expect contributed code to adhere to the code style of already existing code. All pull requests will be checked for being in line with it and you will be expected to fix any issues related to it before your pull request will be allowed to be merged into this repository.
 
 We also expect contributors to provide us reasonably well tested code which does not conflict with existing features.
+
+## License
+All files in this repository are licensed under the license listed in LICENSE.md file unless stated otherwise. By contributing the code into this repository you agreeing with licensing submitted code under this license.

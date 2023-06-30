@@ -169,6 +169,7 @@ namespace CustomizePlus.UI.Windows
                 ImGui.TableSetColumnIndex(0);
 
                 if (GameStateHelper.GameInPosingMode()) ImGui.BeginDisabled();
+                
                 if (ImGui.RadioButton("Kinematic Position", _settings.EditingAttribute == BoneAttribute.FKPosition))
                 {
                     _settings.EditingAttribute = BoneAttribute.FKPosition;
