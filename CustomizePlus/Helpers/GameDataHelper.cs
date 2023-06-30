@@ -84,7 +84,7 @@ namespace CustomizePlus.Helpers
                 cBase = anyObj.ToCharacterBase();
                 return true;
             }
-            else if (FindModelByName(name) is DalamudObject obj
+            else if (FindGameObjectByName(name) is DalamudObject obj
                 && obj.Address is nint objPtr
                 && objPtr != nint.Zero)
             {
