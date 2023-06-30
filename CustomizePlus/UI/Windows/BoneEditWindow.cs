@@ -205,6 +205,7 @@ namespace CustomizePlus.UI.Windows
                 }
                 CtrlHelper.AddHoverText($"Bone changes will be reflected from left to right and vice versa");
 
+                if (!_settings.ShowLiveBones) ImGui.EndDisabled();
                 //ImGui.TableNextColumn();
 
                 //if (CtrlHelper.Checkbox("Parenting Mode", ref _settings.ParentingEnabled))

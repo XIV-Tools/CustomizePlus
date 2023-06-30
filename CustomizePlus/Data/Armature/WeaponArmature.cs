@@ -71,8 +71,6 @@ namespace CustomizePlus.Data.Armature
             {
                 mb.FamilyName = _mainHand ? BoneData.BoneFamily.MainHand : BoneData.BoneFamily.OffHand;
             }
-
-            PluginLog.LogDebug($"Rebuilt {this}");
         }
 
         public override void ApplyTransformation(CharacterBase* cBase, bool applyScaling)
@@ -83,9 +81,10 @@ namespace CustomizePlus.Data.Armature
         /// <inheritdoc/>
         public override string ToString()
         {
-            return Built
-                ? $"Armature (#{_localId:00000}) on {ParentArmature.Profile.CharacterName}'s weapon with {BoneCount()} bone/s"
-                : $"Armature (#{_localId:00000}) on {ParentArmature.Profile.CharacterName}'s weapon with no skeleton reference";
+            string wep = _mainHand ? "MH" : "OH";
+            string bInf = Built ? $"{BoneCount()} bone/s" : "no skeleton reference";
+
+            return $"Armature (#{_localId:00000}) on {ParentArmature.Profile.CharacterName}'s {wep} weapon with {bInf}";
         }
 
         public override IEnumerable<TransformInfo> GetBoneTransformValues(BoneAttribute attribute, PosingSpace space)

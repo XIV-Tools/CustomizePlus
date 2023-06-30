@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 using CustomizePlus.Data.Profile;
+using CustomizePlus.Extensions;
 using CustomizePlus.Helpers;
 
 using Dalamud.Game.ClientState.Objects.Types;
@@ -98,8 +99,6 @@ namespace CustomizePlus.Data.Armature
                 weapons.Add(off);
 
             if (weapons.Any()) _subArmatures = weapons.ToArray();
-
-            PluginLog.LogDebug($"Rebuilt {this}");
         }
     }
 }

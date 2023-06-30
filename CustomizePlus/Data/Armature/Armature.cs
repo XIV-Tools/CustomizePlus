@@ -248,6 +248,20 @@ namespace CustomizePlus.Data.Armature
                 }
 
                 BoneData.LogNewBones(newPartials.SelectMany(x => x.Select(y => y.BoneName)).ToArray());
+
+                if (newPartials.Any())
+                {
+                    PluginLog.LogDebug($"Rebuilt {arm}");
+                    PluginLog.LogDebug($"Height: {cBase->Height()}");
+                    PluginLog.LogDebug($"Attachment Info:");
+                    PluginLog.LogDebug($"\t  Type: {cBase->AttachType()}");
+                    PluginLog.LogDebug($"\tTarget: {(cBase->AttachTarget() == null ? "N/A" : cBase->AttachTarget()->PartialSkeletonCount)} partial/s");
+                    PluginLog.LogDebug($"\tParent: {(cBase->AttachParent() == null ? "N/A" : cBase->AttachParent()->PartialSkeletonCount)} partial/s");
+                    PluginLog.LogDebug($"\t Count: {cBase->AttachCount()}");
+                    PluginLog.LogDebug($"\tBoneID: {cBase->AttachBoneID()}");
+                    PluginLog.LogDebug($"\t Scale: {cBase->AttachBoneScale()}");
+                }
+
             }
             catch (Exception ex)
             {

@@ -194,7 +194,7 @@ namespace CustomizePlus.UI.Windows.Debug
 
                 if (targetObject != null)
                 {
-                    CtrlHelper.StaticLabel($"Character Height: {targetObject->Height()->ToString()}");
+                    CtrlHelper.StaticLabel($"Character Height: {targetObject->Height().ToString()}");
                 }
 
                 ImGui.TableNextColumn();

@@ -68,6 +68,11 @@ namespace CustomizePlus.Data.Armature
 
             cBase->Skeleton->Transform = tr;
 
+            //if (cBase->AttachType() == 4 && cBase->AttachCount() == 1)
+            //{
+            //    cBase->Skeleton->Transform.Scale *= cBase->AttachBoneScale() * cBase->AttachParent()->Owner->Height();
+            //}
+
             //CharacterBase* child1 = (CharacterBase*)cBase->DrawObject.Object.ChildObject;
             //if (child1 != null && child1->GetModelType() == CharacterBase.ModelType.Weapon)
             //{
