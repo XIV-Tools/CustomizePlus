@@ -12,6 +12,7 @@ using Dalamud.Logging;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Ipc;
 using ImGuiNET;
+using Lumina.Excel.GeneratedSheets;
 using Newtonsoft.Json;
 
 namespace CustomizePlus.UI.Windows.Debug
@@ -54,9 +55,13 @@ namespace CustomizePlus.UI.Windows.Debug
         //private readonly ICallGateSubscriber<string>? _getApiVersion;
         //private readonly ICallGateSubscriber<string?, object?>? _onScaleUpdate;
 
+        private ICallGateSubscriber<(int, int)>? _getVersion;
+        private string? _version;
+
         protected CharacterProfile? Scale { get; private set; }
 
-        protected override string Title => $"(WIP) IPC Test: {_newScaleCharacter}";
+        private string? _title;
+        protected override string Title => _title;
         protected CharacterProfile? ScaleUpdated { get; private set; }
 
         private void SubscribeEvents()
@@ -91,11 +96,21 @@ namespace CustomizePlus.UI.Windows.Debug
                 localPlugin.GetIpcSubscriber<string, string, object>("CustomizePlus.SetCharacterProfile");
             //localPlugin.GetIpcSubscriber<string, Character?, object> ProviderSetCharacterProfileToCharacter;
             editWnd._revert = localPlugin.GetIpcSubscriber<string, object>("CustomizePlus.Revert");
+            editWnd._getVersion = localPlugin.GetIpcSubscriber<(int, int)>("CustomizePlus.GetApiVersion");
             //localPlugin.GetIpcSubscriber<Character?, object>? ProviderRevertCharacter;
             //_getApiVersion = localPlugin.GetIpcSubscriber<string>("CustomizePlus.GetApiVersion");
             //_onScaleUpdate = localPlugin.GetIpcSubscriber<string?, object?>("CustomizePlus.OnScaleUpdate"); ;
             //UnsubscribeEvents();
-
+            (int majorVer, int minorVer) = (-1, -1);
+            try
+            {
+                (majorVer, minorVer) = editWnd._getVersion.InvokeFunc();
+            }
+            catch (Exception ex)
+            {
+                PluginLog.Error($"IPC Error for GetApiVersion: {ex}");
+            }
+            editWnd._title = $"(WIP) IPC Test: {editWnd._newScaleCharacter}, IPC version: {majorVer}.{minorVer}";
 
             var prof = new CharacterProfile();
             editWnd.Scale = prof;
