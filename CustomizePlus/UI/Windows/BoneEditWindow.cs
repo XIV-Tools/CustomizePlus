@@ -3,7 +3,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
+using FFXIVClientStructs.FFXIV.Common.Math;
 using CustomizePlus.Data;
 using CustomizePlus.Data.Armature;
 using CustomizePlus.Data.Profile;
@@ -23,23 +23,14 @@ namespace CustomizePlus.UI.Windows
     public class BoneEditWindow : WindowBase
     {
         private bool _dirty;
-        private string? _originalCharName;
-        private string? _originalProfName;
         private int _precision = 3;
-
-        private Armature _targetArmature => _profileInProgress.Armature;
-
-        /// <summary>
-        /// The character profile being edited.
-        /// </summary>
-        private CharacterProfile _profileInProgress = null!;
 
         /// <summary>
         /// User-selected settings for this instance of the bone edit window.
         /// </summary>
         private EditorSessionSettings _settings;
         /// <inheritdoc/>
-        protected override string Title => $"Edit Profile: {_profileInProgress.ProfileName}";
+        protected override string Title => $"Edit Profile: {_settings.ProfileInProgress.ProfileName}";
         /// <inheritdoc/>
         protected override bool SingleInstance => true;
 
@@ -62,37 +53,31 @@ namespace CustomizePlus.UI.Windows
         {
             var editWnd = Plugin.InterfaceManager.Show<BoneEditWindow>();
 
-            editWnd._profileInProgress = prof;
-            editWnd._originalCharName = prof.CharacterName;
-            editWnd._originalProfName = prof.ProfileName;
-
-            //By having the armature manager to do its checks on this profile,
-            //	we force it to generate and track a new armature for it
-            Plugin.ArmatureManager.ConstructArmatureForProfile(prof);
-
-            editWnd._settings = new EditorSessionSettings(prof.Armature);
-
-            //editWnd.ConfirmSkeletonConnection();
+            editWnd._settings = new EditorSessionSettings(prof);
         }
 
         /// <inheritdoc/>
         protected unsafe override void DrawContents()
         {
             CharacterBase* targetObject = null;
-            if (_profileInProgress.Enabled
-                && !GameDataHelper.TryLookupCharacterBase(_profileInProgress.CharacterName, out targetObject))
+
+            if (_settings.ArmatureInProgress != null)
             {
-                _profileInProgress.Enabled = false;
+                targetObject = _settings.ArmatureInProgress.TryLinkSkeleton();
+            }
+
+            if (targetObject == null && _settings.ShowLiveBones)
+            {
+                _settings.ToggleLiveBones(false);
                 DisplayNoLinkMsg();
             }
 
-            if (_profileInProgress.CharacterName != _originalCharName
-                || _profileInProgress.ProfileName != _originalProfName)
+            if (_settings.ProfileRenamed())
             {
                 _dirty = true;
             }
 
-            if (ImGui.BeginTable("##Save/Close", 3, ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.NoClip))
+            if (ImGui.BeginTable("##ProfileSettings", 3, ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.NoClip))
             {
                 ImGui.TableSetupColumn("##CharName", ImGuiTableColumnFlags.WidthStretch);
                 ImGui.TableSetupColumn("##ProfName", ImGuiTableColumnFlags.WidthStretch);
@@ -103,15 +88,15 @@ namespace CustomizePlus.UI.Windows
 
                 CtrlHelper.StaticLabel("Character Name", CtrlHelper.TextAlignment.Center);
                 CtrlHelper.TextPropertyBox("##Character Name",
-                    () => _profileInProgress.CharacterName,
-                    (s) => _profileInProgress.CharacterName = s);
+                    () => _settings.ProfileInProgress.CharacterName,
+                    (s) => _settings.ProfileInProgress.CharacterName = s);
 
                 ImGui.TableNextColumn();
 
                 CtrlHelper.StaticLabel("Profile Name", CtrlHelper.TextAlignment.Center);
                 CtrlHelper.TextPropertyBox("##Profile Name",
-                    () => _profileInProgress.ProfileName,
-                    (s) => _profileInProgress.ProfileName = s);
+                    () => _settings.ProfileInProgress.ProfileName,
+                    (s) => _settings.ProfileInProgress.ProfileName = s);
 
                 ImGui.TableNextColumn();
 
@@ -128,95 +113,25 @@ namespace CustomizePlus.UI.Windows
 
             ImGui.Separator();
 
-            int numColumns = Plugin.ConfigurationManager.Configuration.DebuggingModeEnabled ? 5 : 3;
-
-            if (ImGui.BeginTable("Checkboxes", numColumns, ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.NoClip))
+            if (ImGui.BeginTable("EditingOptions", 3, ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.NoClip))
             {
-                ImGui.TableSetupColumn("CheckEnabled", ImGuiTableColumnFlags.WidthStretch);
-                ImGui.TableSetupColumn("CheckLive", ImGuiTableColumnFlags.WidthStretch);
-                if (Plugin.ConfigurationManager.Configuration.DebuggingModeEnabled)
-                    ImGui.TableSetupColumn("CheckAPose", ImGuiTableColumnFlags.WidthStretch);
-                ImGui.TableSetupColumn("CheckMirrored", ImGuiTableColumnFlags.WidthStretch);
-                if (Plugin.ConfigurationManager.Configuration.DebuggingModeEnabled)
-                    ImGui.TableSetupColumn("CheckParented", ImGuiTableColumnFlags.WidthStretch);
-
-                ImGui.TableNextRow();
-                ImGui.TableSetColumnIndex(0);
-
-                var tempEnabled = _profileInProgress.Enabled;
-                if (CtrlHelper.Checkbox("Enable Preview", ref tempEnabled))
-                {
-                    _profileInProgress.Enabled = tempEnabled;
-                    ConfirmSkeletonConnection();
-                }
-                CtrlHelper.AddHoverText($"Hook the editor into the game to edit and preview live bone data");
-
-                ImGui.TableNextColumn();
-
-                if (!_profileInProgress.Enabled) ImGui.BeginDisabled();
-
-                if (CtrlHelper.Checkbox("Show Live Bones", ref _settings.ShowLiveBones))
-                {
-                    ConfirmSkeletonConnection();
-                }
-                CtrlHelper.AddHoverText($"If selected, present for editing all bones found in the game data,\nelse show only bones for which the profile already contains edits.");
-
-                if (Plugin.ConfigurationManager.Configuration.DebuggingModeEnabled)
-                {
-                    ImGui.TableNextColumn();
-
-                    var tempRefSnap = _targetArmature?.SnapToReferencePose ?? false;
-                    if (_targetArmature != null && CtrlHelper.Checkbox("A-Pose", ref tempRefSnap))
-                    {
-                        ConfirmSkeletonConnection();
-                        _targetArmature.SnapToReferencePose = tempRefSnap;
-                    }
-                    CtrlHelper.AddHoverText($"D: Force character into their default reference pose");
-                }
-
-                ImGui.TableNextColumn();
-
-                if (CtrlHelper.Checkbox("Mirror Mode", ref _settings.MirrorModeEnabled))
-                {
-                    ConfirmSkeletonConnection();
-                }
-                CtrlHelper.AddHoverText($"Bone changes will be reflected from left to right and vice versa");
-
-                if (Plugin.ConfigurationManager.Configuration.DebuggingModeEnabled)
-                {
-                    ImGui.TableNextColumn();
-
-                    if (CtrlHelper.Checkbox("Parenting Mode", ref _settings.ParentingEnabled))
-                    {
-                        ConfirmSkeletonConnection();
-                    }
-                    CtrlHelper.AddHoverText($"D: Changes will propagate \"outward\" from edited bones");
-                }
-
-                if (!_profileInProgress.Enabled) ImGui.EndDisabled();
-                ImGui.EndTable();
-            }
-
-            ImGui.Separator();
-
-            if (ImGui.BeginTable("Misc", 3, ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.NoClip))
-            {
-                ImGui.TableSetupColumn("Attributes", ImGuiTableColumnFlags.WidthFixed);
+                ImGui.TableSetupColumn("RadioButtons", ImGuiTableColumnFlags.WidthFixed);
                 ImGui.TableSetupColumn("Space", ImGuiTableColumnFlags.WidthStretch);
-                ImGui.TableSetupColumn("ReloadButton", ImGuiTableColumnFlags.WidthFixed);
+                ImGui.TableSetupColumn("Checkboxes", ImGuiTableColumnFlags.WidthFixed);
 
                 ImGui.TableNextRow();
                 ImGui.TableSetColumnIndex(0);
 
                 if (GameStateHelper.GameInPosingMode()) ImGui.BeginDisabled();
-                if (ImGui.RadioButton("Position", _settings.EditingAttribute == BoneAttribute.Position))
+                if (ImGui.RadioButton("Static Position", _settings.EditingAttribute == BoneAttribute.Position))
                 {
                     _settings.EditingAttribute = BoneAttribute.Position;
                 }
                 CtrlHelper.AddHoverText($"May have unintended effects. Edit at your own risk!");
 
                 ImGui.SameLine();
-                if (ImGui.RadioButton("Rotation", _settings.EditingAttribute == BoneAttribute.Rotation))
+
+                if (ImGui.RadioButton("Static Rotation", _settings.EditingAttribute == BoneAttribute.Rotation))
                 {
                     _settings.EditingAttribute = BoneAttribute.Rotation;
                 }
@@ -232,52 +147,92 @@ namespace CustomizePlus.UI.Windows
                 ImGui.TableNextColumn();
                 ImGui.TableNextColumn();
 
-                if (!_profileInProgress.Enabled || targetObject == null) ImGui.BeginDisabled();
+                if (CtrlHelper.Checkbox("Show Live Bones", ref _settings.ShowLiveBones))
+                {
+                    _settings.ToggleLiveBones(_settings.ShowLiveBones);
+                    ConfirmSkeletonConnection();
+                }
+                CtrlHelper.AddHoverText($"If selected, present for editing all bones found in the game data,\nelse show only bones for which the profile already contains edits.");
+
+                ImGui.SameLine();
+
+                if (!_settings.ShowLiveBones || targetObject == null) ImGui.BeginDisabled();
                 if (ImGui.Button("Reload Bone Data"))
                 {
-                    _targetArmature.RebuildSkeleton(targetObject);
+                    _settings.ArmatureInProgress.RebuildSkeleton(targetObject);
                 }
                 CtrlHelper.AddHoverText("Refresh the skeleton data obtained from in-game");
-                if (!_profileInProgress.Enabled || targetObject == null) ImGui.EndDisabled();
+                if (!_settings.ShowLiveBones || targetObject == null) ImGui.EndDisabled();
+
+
+                ImGui.TableNextRow();
+                ImGui.TableSetColumnIndex(0);
+
+                if (GameStateHelper.GameInPosingMode()) ImGui.BeginDisabled();
+                
+                if (ImGui.RadioButton("Kinematic Position", _settings.EditingAttribute == BoneAttribute.FKPosition))
+                {
+                    _settings.EditingAttribute = BoneAttribute.FKPosition;
+                }
+                CtrlHelper.AddHoverText($"May have unintended effects. Edit at your own risk!");
+
+                ImGui.SameLine();
+
+                if (ImGui.RadioButton("Kinematic Rotation", _settings.EditingAttribute == BoneAttribute.FKRotation))
+                {
+                    _settings.EditingAttribute = BoneAttribute.FKRotation;
+                }
+                CtrlHelper.AddHoverText($"May have unintended effects. Edit at your own risk!");
+                if (GameStateHelper.GameInPosingMode()) ImGui.EndDisabled();
+
+                ImGui.TableNextColumn();
+                ImGui.TableNextColumn();
+
+                var tempRefSnap = _settings.ArmatureInProgress?.FrozenPose ?? false;
+                if (_settings.ArmatureInProgress != null && CtrlHelper.Checkbox("A-Pose", ref tempRefSnap))
+                {
+                    ConfirmSkeletonConnection();
+                    _settings.ArmatureInProgress.FrozenPose = tempRefSnap;
+                }
+                CtrlHelper.AddHoverText($"Force character into their default reference pose");
+
+                ImGui.SameLine();
+
+                if (!_settings.ShowLiveBones) ImGui.BeginDisabled();
+
+                if (CtrlHelper.Checkbox("Mirror Mode", ref _settings.MirrorModeEnabled))
+                {
+                    ConfirmSkeletonConnection();
+                }
+                CtrlHelper.AddHoverText($"Bone changes will be reflected from left to right and vice versa");
+
+                if (!_settings.ShowLiveBones) ImGui.EndDisabled();
+                //ImGui.TableNextColumn();
+
+                //if (CtrlHelper.Checkbox("Parenting Mode", ref _settings.ParentingEnabled))
+                //{
+                //    ConfirmSkeletonConnection();
+                //}
+                //CtrlHelper.AddHoverText($"Propagate changes \"outward\" from edited bones");
 
                 ImGui.EndTable();
             }
-
-            //if (!Settings.EditStack.UndoPossible()) ImGui.BeginDisabled();
-            //if (ImGuiComponents.IconButton(FontAwesomeIcon.UndoAlt))
-            //{
-            //    Settings.EditStack.Undo();
-            //}
-            //CtrlHelper.AddHoverText("Undo last edit");
-            //if (!Settings.EditStack.UndoPossible()) ImGui.EndDisabled();
-
-            //ImGui.SameLine();
-
-            //if (!Settings.EditStack.RedoPossible()) ImGui.BeginDisabled();
-            //if (ImGuiComponents.IconButton(FontAwesomeIcon.RedoAlt))
-            //{
-            //    Settings.EditStack.Redo();
-            //}
-            //CtrlHelper.AddHoverText("Redo next edit");
-            //if (!Settings.EditStack.RedoPossible()) ImGui.EndDisabled();
-
 
             ImGui.Separator();
 
             //CompleteBoneEditor("n_root");
 
-            var col1Label = _settings.EditingAttribute == BoneAttribute.Rotation
-                ? "Roll"
-                : "X";
-            var col2Label = _settings.EditingAttribute == BoneAttribute.Rotation
-                ? "Pitch"
-                : "Y";
-            var col3Label = _settings.EditingAttribute == BoneAttribute.Rotation
-                ? "Yaw"
-                : "Z";
-            var col4Label = _settings.EditingAttribute == BoneAttribute.Scale
-                ? "All"
-                : "N/A";
+            string col1Label = "X";
+            string col2Label = "Y";
+            string col3Label = "Z";
+            string col4Label = _settings.EditingAttribute == BoneAttribute.Scale ? "All" : "N/A";
+
+            if (_settings.EditingAttribute == BoneAttribute.Rotation || _settings.EditingAttribute == BoneAttribute.FKRotation)
+            {
+                col1Label = "Roll";
+                col2Label = "Pitch";
+                col3Label = "Yaw";
+            }
 
             if (ImGui.BeginTable("Bones", 6, ImGuiTableFlags.BordersOuterH | ImGuiTableFlags.BordersV | ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.ScrollY,
                 new Vector2(0, ImGui.GetFrameHeightWithSpacing() - 56)))
@@ -296,17 +251,18 @@ namespace CustomizePlus.UI.Windows
 
                 ImGui.TableHeadersRow();
 
-                if (_profileInProgress != null || _targetArmature != null)
+                if (_settings.ArmatureInProgress != null || _settings.ProfileInProgress != null)
                 {
-                    IEnumerable<EditRowParams> relevantModelBones = _settings.ShowLiveBones && _targetArmature != null
-                        ? _targetArmature.GetAllBones().DistinctBy(x => x.BoneName).Select(x => new EditRowParams(x))
-                        : _profileInProgress.Bones.Select(x => new EditRowParams(x.Key, x.Value));
+                    IBoneContainer container = _settings.ShowLiveBones && _settings.ArmatureInProgress != null
+                        ? _settings.ArmatureInProgress
+                        : _settings.ProfileInProgress;
 
-                    var groupedBones = relevantModelBones.GroupBy(x => BoneData.GetBoneFamily(x.BoneCodeName));
+                    var groupedBones = container.GetBoneTransformValues(_settings.EditingAttribute, _settings.ReferenceFrame)
+                        .GroupBy(x => x.BoneFamilyName).ToList();
 
                     foreach (var boneGroup in groupedBones.OrderBy(x => (int)x.Key))
                     {
-                        //Hide root bone if it's not enabled in settings
+                        //Hide root bone group if it's not enabled in settings
                         if (boneGroup.Key == BoneData.BoneFamily.Root &&
                             !Plugin.ConfigurationManager.Configuration.RootPositionEditingEnabled)
                             continue;
@@ -338,9 +294,9 @@ namespace CustomizePlus.UI.Windows
 
                         if (expanded)
                         {
-                            foreach (EditRowParams erp in boneGroup.OrderBy(x => BoneData.GetBoneRanking(x.BoneCodeName)))
+                            foreach (TransformInfo trInfo in boneGroup.OrderBy(x => BoneData.GetBoneRanking(x.BoneCodeName)))
                             {
-                                CompleteBoneEditor(erp);
+                                CompleteBoneEditor(trInfo);
                             }
                         }
 
@@ -369,7 +325,7 @@ namespace CustomizePlus.UI.Windows
                 {
                     if (_dirty)
                     {
-                        Plugin.ProfileManager.SaveWorkingCopy(_profileInProgress, false);
+                        Plugin.ProfileManager.SaveWorkingCopy(false);
                         _dirty = false;
                     }
                 }
@@ -381,7 +337,7 @@ namespace CustomizePlus.UI.Windows
                 {
                     if (_dirty)
                     {
-                        Plugin.ProfileManager.SaveWorkingCopy(_profileInProgress, true);
+                        Plugin.ProfileManager.SaveWorkingCopy(true);
                         _dirty = false;
                     }
 
@@ -399,7 +355,10 @@ namespace CustomizePlus.UI.Windows
                     ConfirmationDialog.Show("Revert all unsaved work?",
                         () =>
                         {
-                            Plugin.ProfileManager.RevertWorkingCopy(_profileInProgress);
+                            bool useAPose = _settings.ArmatureInProgress.FrozenPose;
+                            Plugin.ProfileManager.RevertWorkingCopy();
+                            Plugin.ArmatureManager.ConstructArmatureForProfile(_settings.ProfileInProgress, true);
+                            _settings.ArmatureInProgress.FrozenPose = useAPose;
                             _dirty = false;
                         });
                 }
@@ -415,16 +374,14 @@ namespace CustomizePlus.UI.Windows
                         ConfirmationDialog.Show("Close editor and abandon all unsaved work?",
                             () =>
                             {
-                                Plugin.ProfileManager.RevertWorkingCopy(_profileInProgress);
-                                Plugin.ProfileManager.StopEditing(_profileInProgress);
-                                _dirty = false;
+                                Plugin.ProfileManager.StopEditing();
                                 Close();
                             });
                     }
                     else
                     {
                         //convenient data handling means we just drop it
-                        Plugin.ProfileManager.StopEditing(_profileInProgress);
+                        Plugin.ProfileManager.StopEditing();
                         Close();
                     }
                 }
@@ -442,27 +399,21 @@ namespace CustomizePlus.UI.Windows
         /// </summary>
         public unsafe void ConfirmSkeletonConnection()
         {
-            if (_targetArmature == null || !_targetArmature.TryLinkSkeleton())
+            if (_settings.ArmatureInProgress == null || _settings.ArmatureInProgress.TryLinkSkeleton() == null)
             {
-                _profileInProgress.Enabled = false;
-
-                _settings.ShowLiveBones = false;
-                _settings.MirrorModeEnabled = false;
-                _settings.ParentingEnabled = false;
-                DisplayNoLinkMsg();
-            }
-            else if (!_profileInProgress.Enabled)
-            {
-                _settings.ShowLiveBones = false;
-                _settings.MirrorModeEnabled = false;
-                _settings.ParentingEnabled = false;
+                if (_settings.ShowLiveBones)
+                {
+                    _settings.ToggleLiveBones(false);
+                    _settings.MirrorModeEnabled = false;
+                    DisplayNoLinkMsg();
+                }
             }
         }
 
         public void DisplayNoLinkMsg()
         {
             var msg =
-                $"The editor can't find {_profileInProgress.CharacterName} or their bone data in the game's memory.\nCertain editing features will be unavailable.";
+                $"The editor can't find {_settings.ProfileInProgress.CharacterName} or their bone data in the game's memory.\nAs a result, certain editing features will be unavailable.";
             MessageDialog.Show(msg);
         }
 
@@ -496,21 +447,28 @@ namespace CustomizePlus.UI.Windows
             {
                 //if the backup scale doesn't contain bone values to revert TO, then just reset it
 
-                value = Plugin.ProfileManager.Profiles.TryGetValue(_profileInProgress, out var oldProf)
+                if (Plugin.ProfileManager.GetProfileByUniqueId(_settings.ProfileInProgress.UniqueId) is CharacterProfile oldProf
                         && oldProf != null
                         && oldProf.Bones.TryGetValue(codename, out var bec)
-                        && bec != null
-                    ? _settings.EditingAttribute switch
+                        && bec != null)
+                {
+                    value = _settings.EditingAttribute switch
                     {
                         BoneAttribute.Position => bec.Translation,
+                        BoneAttribute.FKPosition => bec.KinematicTranslation,
                         BoneAttribute.Rotation => bec.Rotation,
+                        BoneAttribute.FKRotation => bec.KinematicRotation,
                         _ => bec.Scaling
-                    }
-                    : _settings.EditingAttribute switch
+                    };
+                }
+                else
+                {
+                    value = _settings.EditingAttribute switch
                     {
                         BoneAttribute.Scale => Vector3.One,
                         _ => Vector3.Zero
                     };
+                }
             }
 
             return output;
@@ -518,9 +476,9 @@ namespace CustomizePlus.UI.Windows
 
         private bool FullBoneSlider(string label, ref Vector3 value)
         {
-            float velocity = _settings.EditingAttribute == BoneAttribute.Rotation ? 0.1f : 0.001f;
-            float minValue = _settings.EditingAttribute == BoneAttribute.Rotation ? -360.0f : -10.0f;
-            float maxValue = _settings.EditingAttribute == BoneAttribute.Rotation ? 360.0f : 10.0f;
+            float velocity = _settings.EditingRotation ? 0.1f : 0.001f;
+            float minValue = _settings.EditingRotation ? -360.0f : -10.0f;
+            float maxValue = _settings.EditingRotation ? 360.0f : 10.0f;
 
             float temp = _settings.EditingAttribute switch
             {
@@ -542,9 +500,9 @@ namespace CustomizePlus.UI.Windows
 
         private bool SingleValueSlider(string label, ref float value)
         {
-            var velocity = _settings.EditingAttribute == BoneAttribute.Rotation ? 0.1f : 0.001f;
-            var minValue = _settings.EditingAttribute == BoneAttribute.Rotation ? -360.0f : -10.0f;
-            var maxValue = _settings.EditingAttribute == BoneAttribute.Rotation ? 360.0f : 10.0f;
+            var velocity = _settings.EditingRotation ? 0.1f : 0.001f;
+            var minValue = _settings.EditingRotation ? -360.0f : -10.0f;
+            var maxValue = _settings.EditingRotation ? 360.0f : 10.0f;
 
             ImGui.PushItemWidth(ImGui.GetColumnWidth());
             var temp = value;
@@ -557,20 +515,14 @@ namespace CustomizePlus.UI.Windows
             return false;
         }
 
-        private void CompleteBoneEditor(EditRowParams bone)
+        private void CompleteBoneEditor(TransformInfo trInfo)
         {
-            string codename = bone.BoneCodeName;
-            string displayName = bone.BoneDisplayName;
-            BoneTransform transform = new BoneTransform(bone.Transform);
+            string codename = trInfo.BoneCodeName;
+            string displayName = trInfo.BoneDisplayName;
 
             bool flagUpdate = false;
 
-            Vector3 newVector = _settings.EditingAttribute switch
-            {
-                BoneAttribute.Position => transform.Translation,
-                BoneAttribute.Rotation => transform.Rotation,
-                _ => transform.Scaling
-            };
+            Vector3 newVector = trInfo.TransformationValue;
 
             ImGui.PushID(codename);
 
@@ -583,6 +535,9 @@ namespace CustomizePlus.UI.Windows
             flagUpdate |= ResetBoneButton(codename, ref newVector);
             ImGui.SameLine();
             flagUpdate |= RevertBoneButton(codename, ref newVector);
+
+            //TODO the sliders need to cache their value at the instant they're clicked into
+            //then transforms can be adjusted using the delta in relation to that cached value
 
             //----------------------------------
             ImGui.TableNextColumn();
@@ -617,33 +572,9 @@ namespace CustomizePlus.UI.Windows
             {
                 _dirty = true;
 
-                //var whichValue = FrameStackManager.Axis.X;
-                //if (originalVector.Y != newVector.Y)
-                //{
-                //    whichValue = FrameStackManager.Axis.Y;
-                //}
+                trInfo.TransformationValue = newVector;
 
-                //if (originalVector.Z != newVector.Z)
-                //{
-                //    whichValue = FrameStackManager.Axis.Z;
-                //}
-
-                //_settings.EditStack.Do(codename, Settings.EditingAttribute, whichValue, originalVector, newVector);
-
-                transform.UpdateAttribute(_settings.EditingAttribute, newVector);
-
-                //if we have access to the armature, then use it to push the values through
-                //as the bone information allows us to propagate them to siblings and children
-                //otherwise access them through the profile directly
-
-                if (_profileInProgress.Enabled && _settings.ShowLiveBones)
-                {
-                    bone.Basis.UpdateModel(transform, _settings.MirrorModeEnabled, _settings.ParentingEnabled);
-                }
-                else
-                {
-                    _profileInProgress.Bones[codename].UpdateToMatch(transform);
-                }
+                trInfo.PushChanges(_settings.EditingAttribute, _settings.MirrorModeEnabled);
             }
         }
 
@@ -652,43 +583,41 @@ namespace CustomizePlus.UI.Windows
 
     public struct EditorSessionSettings
     {
+        public CharacterProfile ProfileInProgress { get; private set; }
+        private string? _originalCharName;
+        private string? _originalProfName;
+
+        public CharacterArmature ArmatureInProgress => ProfileInProgress.Armature;
+
         public bool ShowLiveBones = false;
         public bool MirrorModeEnabled = false;
-        public bool ParentingEnabled = false;
+
         public BoneAttribute EditingAttribute = BoneAttribute.Scale;
+        public PosingSpace ReferenceFrame = PosingSpace.Self;
 
         public Dictionary<BoneData.BoneFamily, bool> GroupExpandedState = new();
 
-        public EditorSessionSettings(Armature armRef)
-        {
-            //EditStack = new FrameStackManager(armRef);
-            ShowLiveBones = armRef.Profile.Enabled;
-        }
-    }
+        public bool EditingRotation => EditingAttribute == BoneAttribute.Rotation || EditingAttribute == BoneAttribute.FKRotation;
 
-    /// <summary>
-    /// Simple structure for representing arguments to the editor table.
-    /// Can be constructed with or without access to a live armature.
-    /// </summary>
-    internal struct EditRowParams
-    {
-        public string BoneCodeName;
-        public string BoneDisplayName => BoneData.GetBoneDisplayName(BoneCodeName);
-        public BoneTransform Transform;
-        public ModelBone? Basis = null;
-
-        public EditRowParams(ModelBone mb)
+        public void ToggleLiveBones(bool setTo)
         {
-            BoneCodeName = mb.BoneName;
-            Transform = mb.CustomizedTransform;
-            Basis = mb;
+            ShowLiveBones = setTo;
+            ProfileInProgress.Enabled = setTo;
         }
 
-        public EditRowParams(string codename, BoneTransform tr)
+        public bool ProfileRenamed() => _originalCharName != ProfileInProgress.CharacterName
+            || _originalProfName != ProfileInProgress.ProfileName;
+
+        public EditorSessionSettings(CharacterProfile prof)
         {
-            BoneCodeName = codename;
-            Transform = tr;
-            Basis = null;
+            ProfileInProgress = prof;
+            Plugin.ArmatureManager.ConstructArmatureForProfile(prof);
+
+            _originalCharName = prof.CharacterName;
+            _originalProfName = prof.ProfileName;
+
+            ProfileInProgress.Enabled = true;
+            ShowLiveBones = ProfileInProgress.Enabled;
         }
     }
 }

@@ -2,7 +2,11 @@
 // Licensed under the MIT license.
 
 using System;
+using System.Linq;
 using System.Collections.Generic;
+
+using CustomizePlus.Data.Armature;
+
 using Newtonsoft.Json;
 
 namespace CustomizePlus.Data.Profile
@@ -12,13 +16,13 @@ namespace CustomizePlus.Data.Profile
     ///     the information that gets saved to disk by the plugin.
     /// </summary>
     [Serializable]
-    public sealed class CharacterProfile
+    public sealed class CharacterProfile : IBoneContainer
     {
         [NonSerialized] private static int _nextGlobalId;
 
         [NonSerialized] private readonly int _localId;
 
-        [NonSerialized] public Armature.Armature? Armature;
+        [NonSerialized] public CharacterArmature? Armature;
 
         [NonSerialized] public string? OriginalFilePath;
 
@@ -59,6 +63,8 @@ namespace CustomizePlus.Data.Profile
         [JsonIgnore] public int UniqueId => CreationDate.GetHashCode();
 
         public Dictionary<string, BoneTransform> Bones { get; init; } = new();
+        public Dictionary<string, BoneTransform> MHBones { get; init; } = new();
+        public Dictionary<string, BoneTransform> OHBones { get; init; } = new();
 
         /// <summary>
         /// Returns whether or not this profile applies to the object with the indicated name.
@@ -92,6 +98,30 @@ namespace CustomizePlus.Data.Profile
         public override int GetHashCode()
         {
             return UniqueId;
+        }
+
+        public IEnumerable<TransformInfo> GetBoneTransformValues(BoneAttribute attribute, PosingSpace space)
+        {
+            return Bones.Select(x => new TransformInfo(this, x.Key, x.Value, attribute, space));
+        }
+
+        public void UpdateBoneTransformValue(TransformInfo newTransform, BoneAttribute attribute, bool mirrorChanges)
+        {
+            if (!Bones.ContainsKey(newTransform.BoneCodeName))
+            {
+                Bones[newTransform.BoneCodeName] = new BoneTransform();
+            }
+
+            Bones[newTransform.BoneCodeName].UpdateAttribute(attribute, newTransform.TransformationValue);
+        }
+
+        public string SerializeToJSON()
+        {
+            return JsonConvert.SerializeObject(this, Formatting.Indented, new JsonSerializerSettings()
+            {
+                ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
+                ContractResolver = Api.VectorContractResolver.Instance
+            });
         }
     }
 }

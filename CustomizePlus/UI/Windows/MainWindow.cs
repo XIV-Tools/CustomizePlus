@@ -4,7 +4,7 @@
 using System;
 using System.IO;
 using System.Linq;
-using System.Numerics;
+using FFXIVClientStructs.FFXIV.Common.Math;
 using System.Windows.Forms;
 using CustomizePlus.Data;
 using CustomizePlus.Data.Profile;
@@ -281,7 +281,7 @@ namespace CustomizePlus.UI.Windows
                     // Edit
                     ImGui.TableNextColumn();
                     if (ImGuiComponents.IconButton(FontAwesomeIcon.Pen)
-                        && Plugin.ProfileManager.GetWorkingCopy(prof, out var profCopy)
+                        && Plugin.ProfileManager.GetWorkingCopy(prof) is CharacterProfile profCopy
                         && profCopy != null)
                     {
                         BoneEditWindow.Show(profCopy);
@@ -294,15 +294,10 @@ namespace CustomizePlus.UI.Windows
 
                     // Dupe
                     ImGui.SameLine();
-                    if (ImGuiComponents.IconButton(FontAwesomeIcon.Copy)
-                        && Plugin.ProfileManager.GetWorkingCopy(prof, out var dupe)
-                        && dupe != null)
+                    if (ImGuiComponents.IconButton(FontAwesomeIcon.Copy))
                     {
                         var newProfileName = ValidateProfileName(characterName, inputProfName);
-                        dupe.ProfileName = newProfileName;
-
-                        Plugin.ProfileManager.StopEditing(dupe);
-                        Plugin.ProfileManager.AddAndSaveProfile(dupe, true);
+                        Plugin.ProfileManager.DuplicateProfile(prof, characterName, newProfileName);
                     }
 
                     CtrlHelper.AddHoverText("Duplicate Profile");

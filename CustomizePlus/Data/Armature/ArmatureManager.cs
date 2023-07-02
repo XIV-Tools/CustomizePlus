@@ -16,7 +16,7 @@ namespace CustomizePlus.Data.Armature
     public sealed class ArmatureManager
     {
         private Armature? _defaultArmature = null;
-        private readonly HashSet<Armature> _armatures = new();
+        private readonly HashSet<CharacterArmature> _armatures = new();
 
         public void RenderCharacterProfiles(params CharacterProfile[] profiles)
         {
@@ -32,11 +32,18 @@ namespace CustomizePlus.Data.Armature
             }
         }
 
-        public void ConstructArmatureForProfile(CharacterProfile newProfile)
+        public void ConstructArmatureForProfile(CharacterProfile newProfile, bool forceNew = false)
         {
+            if (forceNew
+                && _armatures.FirstOrDefault(x => x.Profile == newProfile) is CharacterArmature arm
+                && arm != null)
+            {
+                _armatures.Remove(arm);
+            }
+
             if (!_armatures.Any(x => x.Profile == newProfile))
             {
-                var newArm = new Armature(newProfile);
+                var newArm = new CharacterArmature(newProfile);
                 _armatures.Add(newArm);
                 PluginLog.LogDebug($"Added '{newArm}' to cache");
             }
@@ -59,11 +66,11 @@ namespace CustomizePlus.Data.Armature
         }
 
 
-        private void RefreshArmatureVisibility()
+        private unsafe void RefreshArmatureVisibility()
         {
             foreach (var arm in _armatures)
             {
-                arm.IsVisible = arm.Profile.Enabled && arm.TryLinkSkeleton();
+                arm.IsVisible = arm.Profile.Enabled && arm.TryLinkSkeleton() != null;
             }
         }
 
@@ -79,7 +86,7 @@ namespace CustomizePlus.Data.Armature
                     && prof.Armature != null
                     && prof.Armature.IsVisible)
                 {
-                    prof.Armature.ApplyPiecewiseTransformation(obj);
+                    prof.Armature.ApplyTransformation(obj.ToCharacterBase(), obj.HasScalableRoot());
                 }
             }
         }

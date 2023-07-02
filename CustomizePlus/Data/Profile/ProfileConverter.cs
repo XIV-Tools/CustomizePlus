@@ -4,7 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
+using FFXIVClientStructs.FFXIV.Common.Math;
 using CustomizePlus.Anamnesis;
 using CustomizePlus.Data.Configuration.Version0;
 using CustomizePlus.Data.Configuration.Version2;
@@ -54,7 +54,7 @@ namespace CustomizePlus.Data.Profile
             {
                 var bt = new BoneTransform
                 {
-                    Scaling = kvp.Value.Scale!.GetAsNumericsVector()
+                    Scaling = kvp.Value.Scale!.ToClientVector3()
                 };
 
                 output.Bones[kvp.Key] = bt;
@@ -65,14 +65,14 @@ namespace CustomizePlus.Data.Profile
             var validRoot = pose.Bones.TryGetValue(Constants.RootBoneName, out var root)
                             && root != null
                             && root.Scale != null
-                            && root.Scale.GetAsNumericsVector() != Vector3.Zero
-                            && root.Scale.GetAsNumericsVector() != Vector3.One;
+                            && root.Scale.ToClientVector3() != Vector3.Zero
+                            && root.Scale.ToClientVector3() != Vector3.One;
 
             if (validRoot)
             {
                 output.Bones[Constants.RootBoneName] = new BoneTransform
                 {
-                    Scaling = root.Scale!.GetAsNumericsVector()
+                    Scaling = root.Scale!.ToClientVector3()
                 };
             }
 

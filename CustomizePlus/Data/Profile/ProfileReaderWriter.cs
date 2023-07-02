@@ -45,7 +45,7 @@ namespace CustomizePlus.Data.Profile
 
                 if (!archival)
                 {
-                    var json = JsonConvert.SerializeObject(prof, Formatting.Indented);
+                    string json = prof.SerializeToJSON();
 
                     File.WriteAllText(newFilePath, json);
                 }

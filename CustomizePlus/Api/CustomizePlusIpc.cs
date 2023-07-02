@@ -226,7 +226,7 @@ namespace CustomizePlus.Api
                 CharacterProfile? profile = Plugin.ProfileManager.GetProfileByCharacterName(name, true);
 
                 PluginLog.Debug($"Sending local player update message: {profile?.ProfileName ?? "no profile"} - {profile?.CharacterName ?? "no profile"}");
-                ProviderOnLocalPlayerProfileUpdate?.SendMessage(profile != null ? JsonConvert.SerializeObject(profile) : null);
+                ProviderOnLocalPlayerProfileUpdate?.SendMessage(profile != null ? profile.SerializeToJSON() : null);
             }
         }
 

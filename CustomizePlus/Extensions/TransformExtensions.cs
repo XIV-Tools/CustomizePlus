@@ -2,7 +2,7 @@
 // Licensed under the MIT license.
 
 using System;
-using System.Numerics;
+using FFXIVClientStructs.FFXIV.Common.Math;
 using CustomizePlus.Data;
 using FFXIVClientStructs.Havok;
 
@@ -24,35 +24,13 @@ namespace CustomizePlus.Extensions
             return t.Equals(Constants.NullTransform);
         }
 
-        public static hkQsTransformf ToHavokTransform(this BoneTransform bt)
-        {
-            return new hkQsTransformf
-            {
-                Translation = bt.Translation.ToHavokTranslation(),
-                Rotation = bt.Rotation.ToQuaternion().ToHavokRotation(),
-                Scale = bt.Scaling.ToHavokScaling()
-            };
-        }
-
-        public static BoneTransform ToBoneTransform(this hkQsTransformf t)
-        {
-            var rotVec = Quaternion.Divide(t.Translation.ToQuaternion(), t.Rotation.ToQuaternion());
-
-            return new BoneTransform
-            {
-                Translation = new Vector3(rotVec.X / rotVec.W, rotVec.Y / rotVec.W, rotVec.Z / rotVec.W),
-                Rotation = t.Rotation.ToQuaternion().ToEulerAngles(),
-                Scaling = new Vector3(t.Scale.X, t.Scale.Y, t.Scale.Z)
-            };
-        }
-
-        public static hkVector4f GetAttribute(this hkQsTransformf t, BoneAttribute att)
+        public static Vector4 GetAttribute(this hkQsTransformf t, BoneAttribute att)
         {
             return att switch
             {
-                BoneAttribute.Position => t.Translation,
-                BoneAttribute.Rotation => t.Rotation.ToQuaternion().GetAsNumericsVector().ToHavokVector(),
-                BoneAttribute.Scale => t.Scale,
+                BoneAttribute.Position => t.Translation.ToClientVector4(),
+                BoneAttribute.Rotation => t.Rotation.ToClientQuaternion().ToClientVector4(),
+                BoneAttribute.Scale => t.Scale.ToClientVector4(),
                 _ => throw new NotImplementedException()
             };
         }

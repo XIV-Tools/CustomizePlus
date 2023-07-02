@@ -84,7 +84,9 @@ namespace CustomizePlus.Helpers
                 cBase = anyObj.ToCharacterBase();
                 return true;
             }
-            else if (FindGameObjectByName(name) is DalamudObject obj)
+            else if (FindGameObjectByName(name) is DalamudObject obj
+                && obj.Address is nint objPtr
+                && objPtr != nint.Zero)
             {
                 cBase = (CharacterBase*)((FFXIVClientObject*)obj.Address)->DrawObject;
                 return true;
@@ -209,7 +211,7 @@ namespace CustomizePlus.Helpers
 
         //            // Check if in pvp intro sequence, which uses 240-244 for the 5 players, and only affect the first if so
         //            // TODO: Ensure player side only. First group, where one of the node textures is blue. Alternately, look for hidden party list UI and get names from there.
-        //            if (DalamudServices.GameGui.GetAddonByName("PvPMKSIntroduction", 1) == IntPtr.Zero)
+        //            if (DalamudServices.GameGui.GetAddonByName("PvPMKSIntroduction", 1) == nint.Zero)
         //            {
         //                actualName = obj->ObjectIndex switch
         //                {
@@ -294,8 +296,8 @@ namespace CustomizePlus.Helpers
             var customize2 = ((FFXIVClientCharacter*)player.Address)->CustomizeData;
             for (var i = 0; i < 26; i++)
             {
-                var data1 = Marshal.ReadByte((IntPtr)customize1, i);
-                var data2 = Marshal.ReadByte((IntPtr)customize2, i);
+                var data1 = Marshal.ReadByte((nint)customize1, i);
+                var data2 = Marshal.ReadByte((nint)customize2, i);
                 if (data1 != data2)
                 {
                     customizeEqual = false;
@@ -309,7 +311,7 @@ namespace CustomizePlus.Helpers
         public static unsafe string? GetInspectName()
         {
             var addon = DalamudServices.GameGui.GetAddonByName("CharacterInspect");
-            if (addon == IntPtr.Zero)
+            if (addon == nint.Zero)
             {
                 return null;
             }
@@ -354,7 +356,7 @@ namespace CustomizePlus.Helpers
         public static string? GetGlamourName()
         {
             var addon = DalamudServices.GameGui.GetAddonByName("MiragePrismMiragePlate");
-            return addon == IntPtr.Zero ? null : GetPlayerName();
+            return addon == nint.Zero ? null : GetPlayerName();
         }
 
         public static string? GetPlayerName()
@@ -370,8 +372,8 @@ namespace CustomizePlus.Helpers
             //and then make sure that the target in question is actually something with a skeleton
 
             if (target != null
-                && target.Address is IntPtr tgtPtr
-                && tgtPtr != IntPtr.Zero)
+                && target.Address is nint tgtPtr
+                && tgtPtr != nint.Zero)
             {
                 var clientObj = (FFXIVClientObject*)tgtPtr;
                 if (clientObj != null)

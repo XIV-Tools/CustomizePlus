@@ -4,7 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
+using FFXIVClientStructs.FFXIV.Common.Math;
 using CustomizePlus.Data;
 using CustomizePlus.Data.Armature;
 using CustomizePlus.Data.Profile;
@@ -22,9 +22,7 @@ namespace CustomizePlus.UI.Windows.Debug
     internal unsafe class BoneMonitorWindow : WindowBase
     {
         private readonly Dictionary<BoneData.BoneFamily, bool> _groupExpandedState = new();
-        private readonly bool _modelFrozen = false;
-        private ModelBone.PoseType _targetPose;
-        private bool _aggregateDeforms;
+        private PosingSpace _targetPose;
 
         private BoneAttribute _targetAttribute;
 
@@ -47,13 +45,14 @@ namespace CustomizePlus.UI.Windows.Debug
 
             editWnd._targetProfile = prof;
 
-            Plugin.ArmatureManager.RenderCharacterProfiles(prof);
+            //Plugin.ArmatureManager.RenderCharacterProfiles(prof);
             editWnd._targetArmature = prof.Armature;
         }
 
         protected override void DrawContents()
         {
-            if (!GameDataHelper.TryLookupCharacterBase(_targetProfile.CharacterName, out CharacterBase* targetObject))
+            if (!GameDataHelper.TryLookupCharacterBase(_targetProfile.CharacterName, out CharacterBase* targetObject)
+                && _targetProfile.Enabled)
             {
                 _targetProfile.Enabled = false;
 
@@ -61,74 +60,59 @@ namespace CustomizePlus.UI.Windows.Debug
                 //DisplayNoLinkMsg();
             }
 
-            ImGui.TextUnformatted($"Character Name: {_targetProfile.CharacterName}");
-
-            ImGui.SameLine();
-            ImGui.TextUnformatted("|");
-
-            ImGui.SameLine();
-            ImGui.TextUnformatted($"Profile Name: {_targetProfile.ProfileName}");
-
-            ImGui.SameLine();
-            ImGui.TextUnformatted("|");
-
-            ImGui.SameLine();
-            var tempEnabled = _targetProfile.Enabled;
-            if (CtrlHelper.Checkbox("Live", ref tempEnabled))
+            if (ImGui.BeginTable("Header", 4, ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.NoClip | ImGuiTableFlags.BordersInnerV))
             {
-                _targetProfile.Enabled = tempEnabled;
+                ImGui.TableSetupColumn("AttributeType", ImGuiTableColumnFlags.WidthFixed);
+                ImGui.TableSetupColumn("ReferenceFrame", ImGuiTableColumnFlags.WidthFixed);
+                ImGui.TableSetupColumn("Space", ImGuiTableColumnFlags.WidthStretch);
+                ImGui.TableSetupColumn("Reload", ImGuiTableColumnFlags.WidthFixed);
+
+                ImGui.TableNextRow();
+                ImGui.TableSetColumnIndex(0);
+
+                if (ImGui.RadioButton("Position", _targetAttribute == BoneAttribute.Position))
+                    _targetAttribute = BoneAttribute.Position;
+
+                ImGui.SameLine();
+                if (ImGui.RadioButton("Rotation", _targetAttribute == BoneAttribute.Rotation))
+                    _targetAttribute = BoneAttribute.Rotation;
+
+                ImGui.SameLine();
+                if (ImGui.RadioButton("Scale", _targetAttribute == BoneAttribute.Scale))
+                    _targetAttribute = BoneAttribute.Scale;
+
+                ImGui.TableNextColumn();
+
+                if (ImGui.RadioButton("Local", _targetPose == PosingSpace.Self))
+                    _targetPose = PosingSpace.Self;
+
+                ImGui.SameLine();
+                if (ImGui.RadioButton("Model", _targetPose == PosingSpace.Parent))
+                    _targetPose = PosingSpace.Parent;
+
+                ImGui.TableNextColumn();
+                ImGui.TableNextColumn();
+
+                if (!_targetProfile.Enabled) ImGui.BeginDisabled();
+
+                if (ImGui.Button("Reload Bone Data"))
+                    _targetArmature.RebuildSkeleton(targetObject);
+
+                if (!_targetProfile.Enabled) ImGui.EndDisabled();
+
+                ImGui.SameLine();
+                var tempEnabled = _targetProfile.Enabled;
+                if (CtrlHelper.Checkbox("Live", ref tempEnabled))
+                {
+                    _targetProfile.Enabled = tempEnabled;
+                }
+
+                ImGui.EndTable();
             }
 
-            CtrlHelper.AddHoverText("Hook the editor into the game to edit and preview live bone data");
-
             ImGui.Separator();
 
-            if (ImGui.RadioButton("Position", _targetAttribute == BoneAttribute.Position))
-                _targetAttribute = BoneAttribute.Position;
-
-            ImGui.SameLine();
-            if (ImGui.RadioButton("Rotation", _targetAttribute == BoneAttribute.Rotation))
-                _targetAttribute = BoneAttribute.Rotation;
-
-            ImGui.SameLine();
-            if (ImGui.RadioButton("Scale", _targetAttribute == BoneAttribute.Scale))
-                _targetAttribute = BoneAttribute.Scale;
-
-            ImGui.SameLine();
-            ImGui.Spacing();
-            ImGui.SameLine();
-
-            ImGui.TextUnformatted("|");
-
-            ImGui.SameLine();
-            ImGui.Spacing();
-            ImGui.SameLine();
-
-            if (ImGui.RadioButton("Local", _targetPose == ModelBone.PoseType.Local))
-                _targetPose = ModelBone.PoseType.Local;
-
-            ImGui.SameLine();
-            if (ImGui.RadioButton("Model", _targetPose == ModelBone.PoseType.Model))
-                _targetPose = ModelBone.PoseType.Model;
-
-            //ImGui.SameLine();
-            //if (ImGui.RadioButton("Reference", _targetPose == ModelBone.PoseType.Reference))
-            //    _targetPose = ModelBone.PoseType.Reference;
-
-            //-------------
-
-            if (!_targetProfile.Enabled)
-                ImGui.BeginDisabled();
-
-            if (ImGui.Button("Reload Bone Data"))
-                _targetArmature.RebuildSkeleton(targetObject);
-
-            if (!_targetProfile.Enabled)
-                ImGui.EndDisabled();
-
-            ImGui.Separator();
-
-            if (ImGui.BeginTable("Bones", 9,
+            if (ImGui.BeginTable("Bones", 10,
                     ImGuiTableFlags.Borders | ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.ScrollY,
                     new Vector2(0, ImGui.GetFrameHeightWithSpacing() - 56)))
             {
@@ -148,15 +132,18 @@ namespace CustomizePlus.UI.Windows.Debug
                 ImGui.TableSetupColumn("Bone Name",
                     ImGuiTableColumnFlags.NoReorder | ImGuiTableColumnFlags.WidthStretch);
 
+                ImGui.TableSetupColumn("Parent Bone",
+                    ImGuiTableColumnFlags.NoReorder | ImGuiTableColumnFlags.WidthStretch);
+
                 ImGui.TableSetupScrollFreeze(0, 1);
 
                 ImGui.TableHeadersRow();
 
                 if (_targetArmature != null && targetObject != null)
                 {
-                    IEnumerable<ModelBone> relevantModelBones = _targetArmature.GetAllBones();
+                    IEnumerable<ModelBone> relevantModelBones = _targetArmature.GetLocalAndDownstreamBones();
 
-                    var groupedBones = relevantModelBones.GroupBy(x => BoneData.GetBoneFamily(x.BoneName));
+                    var groupedBones = relevantModelBones.GroupBy(x => x.FamilyName);
 
                     foreach (var boneGroup in groupedBones.OrderBy(x => (int)x.Key))
                     {
@@ -179,7 +166,9 @@ namespace CustomizePlus.UI.Windows.Debug
 
                         if (expanded)
                         {
-                            foreach (ModelBone mb in boneGroup.OrderBy(x => BoneData.GetBoneRanking(x.BoneName)))
+                            foreach (ModelBone mb in boneGroup
+                                .OrderBy(x => x.PartialSkeletonIndex)
+                                .ThenBy(x => x.BoneIndex))
                             {
                                 RenderTransformationInfo(mb, targetObject);
                             }
@@ -195,9 +184,34 @@ namespace CustomizePlus.UI.Windows.Debug
             ImGui.Separator();
 
             //----------------------------------
+            if (ImGui.BeginTable("Footer", 4, ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.NoClip))
+            {
+                ImGui.TableSetupColumn("HeightInfo", ImGuiTableColumnFlags.WidthFixed);
+                ImGui.TableSetupColumn("VarSpace", ImGuiTableColumnFlags.WidthStretch);
+                ImGui.TableSetupColumn("Close", ImGuiTableColumnFlags.WidthFixed);
+                ImGui.TableSetupColumn("Bumper", ImGuiTableColumnFlags.WidthFixed);
 
-            if (ImGui.Button("Cancel"))
-                Close();
+                ImGui.TableNextRow();
+                ImGui.TableSetColumnIndex(0);
+
+                if (targetObject != null)
+                {
+                    CtrlHelper.StaticLabel($"Character Height: {targetObject->Height().ToString()}");
+                }
+
+                ImGui.TableNextColumn();
+                ImGui.TableNextColumn();
+
+                if (ImGui.Button("Close"))
+                    Close();
+
+                ImGui.TableNextColumn();
+
+                ImGui.Dummy(new(CtrlHelper.IconButtonWidth, 0));
+
+                ImGui.EndTable();
+            }
+
         }
 
         public void DisplayNoLinkMsg()
@@ -218,11 +232,11 @@ namespace CustomizePlus.UI.Windows.Debug
 
         private void RenderTransformationInfo(ModelBone bone, CharacterBase* cBase)
         {
-            if (bone.GetGameTransform(cBase, _targetPose) is FFXIVClientStructs.Havok.hkQsTransformf deform)
+            if (bone.GetGameTransform(cBase, _targetPose == PosingSpace.Parent) is FFXIVClientStructs.Havok.hkQsTransformf deform)
             {
                 var displayName = bone.ToString();
 
-                var rowVector = deform.GetAttribute(_targetAttribute).GetAsNumericsVector();
+                Vector4 rowVector = deform.GetAttribute(_targetAttribute);
 
                 ImGui.PushID(bone.BoneName.GetHashCode());
 
@@ -260,6 +274,11 @@ namespace CustomizePlus.UI.Windows.Debug
 
                 ImGui.TableNextColumn();
                 CtrlHelper.StaticLabel(BoneData.GetBoneDisplayName(bone.BoneName));
+
+                ImGui.TableNextColumn();
+                CtrlHelper.StaticLabel(BoneData.GetBoneDisplayName(bone.ParentBone?.BoneName ?? "N/A"),
+                    CtrlHelper.TextAlignment.Left,
+                    bone.ParentBone?.ToString() ?? "N/A");
 
                 ImGui.PopFont();
 
