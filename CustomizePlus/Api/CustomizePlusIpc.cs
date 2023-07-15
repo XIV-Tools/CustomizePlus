@@ -15,6 +15,7 @@ using Dalamud.Plugin;
 using Dalamud.Plugin.Ipc;
 using Newtonsoft.Json;
 using CustomizePlus.Helpers;
+using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
 
 namespace CustomizePlus.Api
 {
@@ -35,7 +36,7 @@ namespace CustomizePlus.Api
         public const string RevertCharacterLabel = $"CustomizePlus.{nameof(RevertCharacter)}";
         [Obsolete("To be removed in later versions after mare switches to new endpoints")]
         public const string OnOnLocalPlayerProfileLegacyLabel = "CustomizePlus.OnScaleUpdate";
-        public const string OnLocalPlayerProfileUpdateLabel = $"CustomizePlus.{nameof(OnLocalPlayerProfileUpdate)}";
+        public const string OnProfileUpdateLabel = $"CustomizePlus.{nameof(OnProfileUpdate)}";
         public static readonly (int, int) ApiVersion = (3, 0);
         private readonly ObjectTable _objectTable;
         private readonly DalamudPluginInterface _pluginInterface;
@@ -50,7 +51,7 @@ namespace CustomizePlus.Api
         //If no profile is applied sends null
         [Obsolete("To be removed in later versions after mare switches to new endpoints")]
         internal ICallGateProvider<string?, object?>? ProviderOnLocalPlayerProfileLegacyUpdate;
-        internal ICallGateProvider<string?, object?>? ProviderOnLocalPlayerProfileUpdate;
+        internal ICallGateProvider<string?, string?, object?>? ProviderOnProfileUpdate;
 
         internal ICallGateProvider<string, object>? ProviderRevert;
         internal ICallGateProvider<Character?, object>? ProviderRevertCharacter;
@@ -86,7 +87,7 @@ namespace CustomizePlus.Api
             ProviderRevert?.UnregisterAction();
             ProviderRevertCharacter?.UnregisterAction();
             ProviderGetApiVersion?.UnregisterFunc();
-            ProviderOnLocalPlayerProfileUpdate?.UnregisterFunc();
+            ProviderOnProfileUpdate?.UnregisterFunc();
         }
 
         private void InitializeProviders()
@@ -210,24 +211,19 @@ namespace CustomizePlus.Api
 
             try
             {
-                ProviderOnLocalPlayerProfileUpdate = _pluginInterface.GetIpcProvider<string?, object?>(OnLocalPlayerProfileUpdateLabel);
+                ProviderOnProfileUpdate = _pluginInterface.GetIpcProvider<string?, string?, object?>(OnProfileUpdateLabel);
             }
             catch (Exception ex)
             {
-                PluginLog.Error(ex, $"Error registering IPC provider for {OnLocalPlayerProfileUpdateLabel}.");
+                PluginLog.Error(ex, $"Error registering IPC provider for {OnProfileUpdateLabel}.");
             }
         }
 
-        public void OnLocalPlayerProfileUpdate()
+        public void OnProfileUpdate(CharacterProfile profile)
         {
             //Get player's body profile string and send IPC message
-            if (GameDataHelper.GetPlayerName() is string name && name != null)
-            {
-                CharacterProfile? profile = Plugin.ProfileManager.GetProfileByCharacterName(name, true);
-
-                PluginLog.Debug($"Sending local player update message: {profile?.ProfileName ?? "no profile"} - {profile?.CharacterName ?? "no profile"}");
-                ProviderOnLocalPlayerProfileUpdate?.SendMessage(profile != null ? JsonConvert.SerializeObject(profile) : null);
-            }
+            PluginLog.Debug($"Sending local player update message: {profile.ProfileName ?? "no profile"} - {profile.CharacterName ?? "no profile"}");
+            ProviderOnProfileUpdate?.SendMessage(profile.CharacterName, JsonConvert.SerializeObject(profile));
         }
 
         private static (int, int) GetApiVersion()
@@ -265,6 +261,25 @@ namespace CustomizePlus.Api
             }
         }
 
+        private void SetCharacterProfile(string profileJson, nint address)
+        {
+            try
+            {
+                var prof = JsonConvert.DeserializeObject<CharacterProfile>(profileJson);
+                if (prof != null)
+                {
+                    if (prof.ConfigVersion != Constants.ConfigurationVersion)
+                        throw new Exception("Incompatible version");
+
+                    Plugin.ProfileManager.AddTemporaryProfile(address, prof);
+                }
+            }
+            catch (Exception ex)
+            {
+                PluginLog.Warning($"Unable to set body profile. Address: {address}, exception: {ex}, debug data: {GetBase64String(profileJson)}");
+            }
+        }
+
         private void SetProfileToCharacter(string profileJson, Character? character)
         {
             if (character == null)
@@ -272,7 +287,7 @@ namespace CustomizePlus.Api
                 return;
             }
 
-            SetCharacterProfile(profileJson, character.Name.ToString());
+            SetCharacterProfile(profileJson, character.Address);
         }
 
         private void Revert(string characterName)
@@ -292,7 +307,7 @@ namespace CustomizePlus.Api
                 return;
             }
 
-            Revert(character.Name.ToString());
+            Plugin.ProfileManager.RemoveTemporaryProfile(character.Address);
         }
 
         private Character? FindCharacterByName(string? characterName)

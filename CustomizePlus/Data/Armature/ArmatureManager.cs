@@ -69,6 +69,8 @@ namespace CustomizePlus.Data.Armature
 
         private unsafe void ApplyArmatureTransforms()
         {
+            Plugin.ProfileManager.ResetTempCharacters();
+
             foreach(GameObject obj in DalamudServices.ObjectTable)
             {
                 CharacterProfile? prof = Plugin.ProfileManager
@@ -82,6 +84,8 @@ namespace CustomizePlus.Data.Armature
                     prof.Armature.ApplyPiecewiseTransformation(obj);
                 }
             }
+
+            Plugin.ProfileManager.ClearUnusedTempCharacters();
         }
     }
 }

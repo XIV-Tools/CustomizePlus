@@ -147,7 +147,8 @@ namespace CustomizePlus
                     _renderManagerHook.Enable();
 
                     //Send current player's profile update message to IPC
-                    IPCManager.OnLocalPlayerProfileUpdate();
+                    // todo: send all active profiles to ipc
+                    //IPCManager.OnProfileUpdate();
                 }
                 else
                 {
