@@ -36,10 +36,10 @@ namespace CustomizePlus.Api
         [Obsolete("To be removed in later versions after mare switches to new endpoints")]
         public const string OnOnLocalPlayerProfileLegacyLabel = "CustomizePlus.OnScaleUpdate";
         public const string OnLocalPlayerProfileUpdateLabel = $"CustomizePlus.{nameof(OnLocalPlayerProfileUpdate)}";
-        public static readonly string ApiVersion = "2.0";
+        public static readonly (int, int) ApiVersion = (3, 0);
         private readonly ObjectTable _objectTable;
         private readonly DalamudPluginInterface _pluginInterface;
-        internal ICallGateProvider<string>? ProviderGetApiVersion;
+        internal ICallGateProvider<(int, int)>? ProviderGetApiVersion;
 
         [Obsolete("To be removed in later versions after mare switches to new endpoints")]
         internal ICallGateProvider<string, string?>? ProviderGetCharacterProfileLegacy;
@@ -94,7 +94,7 @@ namespace CustomizePlus.Api
             PluginLog.Debug("Initializing c+ ipc providers.");
             try
             {
-                ProviderGetApiVersion = _pluginInterface.GetIpcProvider<string>(ProviderApiVersionLabel);
+                ProviderGetApiVersion = _pluginInterface.GetIpcProvider<(int, int)>(ProviderApiVersionLabel);
                 ProviderGetApiVersion.RegisterFunc(GetApiVersion);
             }
             catch (Exception ex)
@@ -230,7 +230,7 @@ namespace CustomizePlus.Api
             }
         }
 
-        private static string GetApiVersion()
+        private static (int, int) GetApiVersion()
         {
             return ApiVersion;
         }
