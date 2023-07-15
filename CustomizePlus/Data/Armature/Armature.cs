@@ -428,10 +428,6 @@ namespace CustomizePlus.Data.Armature
 
                                     mb.ApplyModelRotation(cBase);
                                 }
-                                else if (GameStateHelper.GameInPosingMode())
-                                {
-                                    mb.ApplyModelScale(cBase);
-                                }
                                 else
                                 {
                                     mb.ApplyModelTransform(cBase);

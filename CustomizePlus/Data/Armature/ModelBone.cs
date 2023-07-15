@@ -243,7 +243,7 @@ namespace CustomizePlus.Data.Armature
             hkaPose* targetPose = pSkelly.GetHavokPose(Constants.TruePoseIndex);
             //hkaPose* targetPose = cBase->Skeleton->PartialSkeletons[PartialSkeletonIndex].GetHavokPose(Constants.TruePoseIndex);
 
-            if (targetPose == null) return;
+            if (targetPose == null || targetPose->ModelInSync == 0) return;
 
             switch (refFrame)
             {
