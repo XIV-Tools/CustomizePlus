@@ -272,34 +272,6 @@ namespace CustomizePlus.Data.Profile
             }
         }
 
-        public void AddTemporaryProfile(string characterName, CharacterProfile prof)
-        {
-            var key = TempLocalProfiles.Keys.FirstOrDefault(f => f.Name == characterName);
-            if (key != null)
-            {
-                Dalamud.Logging.PluginLog.LogInformation("Replacing temp profile for chara {chara}", characterName);
-                TempLocalProfiles[key] = prof;
-            }
-            else
-            {
-                Dalamud.Logging.PluginLog.LogInformation("Setting temp profile for chara {chara}", characterName);
-                TempLocalProfiles[new TempCharacter(characterName, null)] = prof;
-            }
-        }
-
-        public void RemoveTemporaryProfile(string characterName)
-        {
-            var key = TempLocalProfiles.Keys.FirstOrDefault(f => f.Name == characterName);
-            if (key != default)
-            {
-                Dalamud.Logging.PluginLog.LogInformation("Removing temp profile for chara {chara}", characterName);
-                if(!TempLocalProfiles.Remove(key))
-                {
-                    Dalamud.Logging.PluginLog.LogInformation("Could not remove chara {chara}", characterName);
-                }
-            }
-        }
-
         public void RemoveTemporaryProfile(nint address)
         {
             var key = TempLocalProfiles.Keys.FirstOrDefault(f => f.Address == address);
