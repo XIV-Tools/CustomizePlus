@@ -417,7 +417,7 @@ namespace CustomizePlus.Data.Armature
                             {
                                 if (mb == MainRootBone)
                                 {
-                                    if (obj.HasScalableRoot() && cBase->DrawObject.IsVisible)
+                                    if (obj.HasScalableRoot())
                                         cBase->DrawObject.Object.Scale= mb.CustomizedTransform.Scaling;
                                 }
                                 else
