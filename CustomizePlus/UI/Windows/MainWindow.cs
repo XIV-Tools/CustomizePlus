@@ -151,12 +151,13 @@ namespace CustomizePlus.UI.Windows
             //TODO there's probably some imgui functionality to sort the table when you click on the headers
 
             var fontScale = ImGui.GetIO().FontGlobalScale;
-            if (ImGui.BeginTable("Config", 5,
+            if (ImGui.BeginTable("Config", 6,
                     ImGuiTableFlags.Borders | ImGuiTableFlags.Resizable | ImGuiTableFlags.ScrollY |
                     ImGuiTableFlags.Sortable,
                     new Vector2(0, ImGui.GetFrameHeightWithSpacing() - 70 * fontScale)))
             {
                 ImGui.TableSetupColumn("Enabled", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize);
+                ImGui.TableSetupColumn("Only Owned", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize);
                 ImGui.TableSetupColumn("Character",
                     ImGuiTableColumnFlags.WidthStretch | ImGuiTableColumnFlags.DefaultSort);
                 ImGui.TableSetupColumn("Profile Name", ImGuiTableColumnFlags.WidthStretch);
@@ -172,8 +173,9 @@ namespace CustomizePlus.UI.Windows
                 Func<CharacterProfile, IComparable> sortByAttribute = sortSpecs.ColumnIndex switch
                 {
                     0 => x => x.Enabled ? 0 : 1,
-                    1 => x => x.CharacterName,
-                    2 => x => x.ProfileName,
+                    1 => x => x.OwnedOnly ? 0 : 1,
+                    2 => x => x.CharacterName,
+                    3 => x => x.ProfileName,
                     _ => x => x.CharacterName
                 };
 
@@ -204,13 +206,28 @@ namespace CustomizePlus.UI.Windows
                         prof.Enabled = tempEnabled;
 
                         //Send OnProfileUpdate if this is profile of the current player
-                        if (prof.CharacterName == GameDataHelper.GetPlayerName())
-                            Plugin.IPCManager.OnLocalPlayerProfileUpdate();
+                        Plugin.IPCManager.OnProfileUpdate(prof);
                     }
 
                     if (ImGui.IsItemHovered())
                     {
                         ImGui.SetTooltip("Enable and disable profile.\nOnly one profile can be active per character.");
+                    }
+
+                    // Owned only
+                    ImGui.TableNextColumn();
+                    ImGui.Dummy(new Vector2((ImGui.GetContentRegionAvail().X - (ImGui.GetStyle().CellPadding.X * 2) - CtrlHelper.IconButtonWidth) / 2, 0));
+                    ImGui.SameLine();
+                    var ownedOnly = prof.OwnedOnly;
+                    if (ImGui.Checkbox("##OwnedOnly", ref ownedOnly))
+                    {
+                        prof.OwnedOnly = ownedOnly;
+                    }
+
+
+                    if (ImGui.IsItemHovered())
+                    {
+                        ImGui.SetTooltip("This will only apply to player owned objects, like Pets, Minions, etc.");
                     }
 
                     // ---

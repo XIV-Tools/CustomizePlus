@@ -37,6 +37,7 @@ namespace CustomizePlus.Data.Profile
             ProfileName = original.ProfileName;
             ConfigVersion = original.ConfigVersion;
             Enabled = original.Enabled;
+            OwnedOnly = original.OwnedOnly;
             CreationDate = original.CreationDate;
             ModifiedDate = DateTime.Now;
             OriginalFilePath = original.OriginalFilePath;
@@ -51,6 +52,7 @@ namespace CustomizePlus.Data.Profile
 
         public string CharacterName { get; set; } = "Default";
         public string ProfileName { get; set; } = "Profile";
+        public bool OwnedOnly { get; set; } = false;
         public int ConfigVersion { get; set; } = Constants.ConfigurationVersion;
         public bool Enabled { get; set; }
         public DateTime CreationDate { get; set; } = DateTime.Now;

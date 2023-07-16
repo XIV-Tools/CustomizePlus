@@ -5,11 +5,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CustomizePlus.Data.Profile;
-using CustomizePlus.Helpers;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Logging;
-
-using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
 
 namespace CustomizePlus.Data.Armature
 {
@@ -49,7 +46,7 @@ namespace CustomizePlus.Data.Armature
                 ConstructArmatureForProfile(prof);
             }
 
-            foreach(var arm in _armatures.Except(profiles.Select(x => x.Armature)))
+            foreach (var arm in _armatures.Except(profiles.Select(x => x.Armature)))
             {
                 if (arm != null && _armatures.Remove(arm))
                 {
@@ -69,7 +66,9 @@ namespace CustomizePlus.Data.Armature
 
         private unsafe void ApplyArmatureTransforms()
         {
-            foreach(GameObject obj in DalamudServices.ObjectTable)
+            Plugin.ProfileManager.ResetTempCharacters();
+
+            foreach (GameObject obj in DalamudServices.ObjectTable)
             {
                 CharacterProfile? prof = Plugin.ProfileManager
                     .GetProfilesByGameObject(obj)
@@ -77,11 +76,15 @@ namespace CustomizePlus.Data.Armature
 
                 if (prof != null
                     && prof.Armature != null
-                    && prof.Armature.IsVisible)
+                    && prof.Armature.IsVisible 
+                    && (!prof.OwnedOnly
+                        || (prof.OwnedOnly && Services.PlayerOwnedObjectsService.Instance.PlayerOwnedObjects.Contains(obj.Address))))
                 {
                     prof.Armature.ApplyPiecewiseTransformation(obj);
                 }
             }
+
+            Plugin.ProfileManager.ClearUnusedTempCharacters();
         }
     }
 }

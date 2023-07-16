@@ -22,6 +22,7 @@ namespace CustomizePlus.Core
             Add<GPoseService>();
             Add<GPoseAmnesisKtisisWarningService>();
             Add<PosingModeDetectService>();
+            Add<PlayerOwnedObjectsService>();
         }
 
         //--------

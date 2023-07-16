@@ -3,11 +3,9 @@
 
 using System;
 using System.Collections.Generic;
-using System.Collections.Concurrent;
 using System.Linq;
 using CustomizePlus.Helpers;
 using Dalamud.Game.ClientState.Objects.Enums;
-using Newtonsoft.Json;
 
 namespace CustomizePlus.Data.Profile
 {
@@ -16,6 +14,17 @@ namespace CustomizePlus.Data.Profile
     /// </summary>
     public class ProfileManager
     {
+        private class TempCharacter
+        {
+            public TempCharacter(nint address)
+            {
+                Address = address;
+            }
+
+            public nint Address { get; init; }
+            public bool Processed { get; set; }
+        }
+
         /// <summary>
         ///     Config is loaded before the profile manager is necessarily instantiated.
         ///     In the case that a legacy config needs to be converted, this container can
@@ -27,12 +36,31 @@ namespace CustomizePlus.Data.Profile
 
         public readonly HashSet<CharacterProfile> Profiles = new(new ProfileEquality());
 
-        public readonly Dictionary<string, CharacterProfile> TempLocalProfiles = new();
+        private readonly Dictionary<TempCharacter, CharacterProfile> TempLocalProfiles = new();
 
         private bool _initializationComplete = false;
 
         //public readonly HashSet<CharacterProfile> ProfilesOpenInEditor = new(new ProfileEquality());
         public CharacterProfile? ProfileOpenInEditor { get; private set; }
+
+        public void ResetTempCharacters()
+        {
+            foreach (var item in TempLocalProfiles.Keys)
+            {
+                item.Processed = false;
+            }
+        }
+
+        public void ClearUnusedTempCharacters()
+        {
+            foreach (var item in TempLocalProfiles.Keys.ToList())
+            {
+                if (!item.Processed)
+                {
+                    TempLocalProfiles.Remove(item);
+                }
+            }
+        }
 
         public void CompleteInitialization() => _initializationComplete = true;
 
@@ -193,8 +221,8 @@ namespace CustomizePlus.Data.Profile
                 }
 
                 //Send OnProfileUpdate if this is profile of the current player and it's enabled
-                if (prof.CharacterName == GameDataHelper.GetPlayerName() && prof.Enabled)
-                    Plugin.IPCManager.OnLocalPlayerProfileUpdate();
+                if (prof.Enabled)
+                    Plugin.IPCManager.OnProfileUpdate(prof);
             }
         }
 
@@ -227,14 +255,32 @@ namespace CustomizePlus.Data.Profile
             ProfileOpenInEditor = null;
         }
 
-        public void AddTemporaryProfile(string characterName, CharacterProfile prof)
+        public void AddTemporaryProfile(nint characterAddress, CharacterProfile prof)
         {
-            TempLocalProfiles[characterName] = prof;
+            var key = TempLocalProfiles.Keys.FirstOrDefault(f => f.Address == characterAddress);
+            if (key != null)
+            {
+                Dalamud.Logging.PluginLog.LogInformation("Replacing temp profile for addr {chara}", characterAddress);
+                TempLocalProfiles[key] = prof;
+            }
+            else
+            {
+                Dalamud.Logging.PluginLog.LogInformation("Setting temp profile for addr {chara}", characterAddress);
+                TempLocalProfiles[new TempCharacter(characterAddress)] = prof;
+            }
         }
 
-        public void RemoveTemporaryProfile(string characterName)
+        public void RemoveTemporaryProfile(nint address)
         {
-            TempLocalProfiles.Remove(characterName);
+            var key = TempLocalProfiles.Keys.FirstOrDefault(f => f.Address == address);
+            if (key != default)
+            {
+                Dalamud.Logging.PluginLog.LogInformation("Removing temp profile for addr {addr}", address);
+                if (!TempLocalProfiles.Remove(key))
+                {
+                    Dalamud.Logging.PluginLog.LogInformation("Could not remove addr {chara}", address);
+                }
+            }
         }
 
         public static void PruneIdempotentTransforms(CharacterProfile prof)
@@ -328,9 +374,19 @@ namespace CustomizePlus.Data.Profile
                 }
             }
 
-            if (Profiles.Concat(TempLocalProfiles.Select(p => p.Value)).Any(x => x.CharacterName == name))
+            var hasTempProfile = TempLocalProfiles.Any(f => obj.Address == f.Key.Address);
+            if (hasTempProfile)
             {
-                return output.Concat(Profiles).Concat(TempLocalProfiles.Select(p => p.Value)).Where(x => x.CharacterName == name);
+                var matchingProfile = TempLocalProfiles.First(f => obj.Address == f.Key.Address);
+                matchingProfile.Key.Processed = true;
+                output.Add(matchingProfile.Value);
+                return output;
+            }
+
+            var matchingProfiles = Profiles.Where(x => x.CharacterName == name).ToList();
+            if (matchingProfiles.Any())
+            {
+                return output.Concat(matchingProfiles);
             }
             else
             {
