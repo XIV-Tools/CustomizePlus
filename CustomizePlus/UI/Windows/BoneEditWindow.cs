@@ -306,9 +306,10 @@ namespace CustomizePlus.UI.Windows
 
                     foreach (var boneGroup in groupedBones.OrderBy(x => (int)x.Key))
                     {
-                        //Hide root bone if it's not enabled in settings
+                        //Hide root bone if it's not enabled in settings or if we are in rotation mode
                         if (boneGroup.Key == BoneData.BoneFamily.Root &&
-                            !Plugin.ConfigurationManager.Configuration.RootPositionEditingEnabled)
+                            (!Plugin.ConfigurationManager.Configuration.RootPositionEditingEnabled ||
+                             _settings.EditingAttribute == BoneAttribute.Rotation))
                             continue;
 
                         //create a dropdown entry for the family if one doesn't already exist

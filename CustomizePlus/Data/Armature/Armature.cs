@@ -380,12 +380,8 @@ namespace CustomizePlus.Data.Armature
                         //so there's no point in trying to update it here
                         //meanwhile root scaling has special rules
 
-                        if (obj.HasScalableRoot())
-                        {
-                            mb.ApplyModelScale(cBase);
-                        }
-
-                        mb.ApplyModelRotation(cBase);
+                        if (obj.HasScalableRoot() && cBase->DrawObject.IsVisible)
+                            cBase->DrawObject.Object.Scale = mb.CustomizedTransform.Scaling;
                     }
                     else
                     {
@@ -421,12 +417,8 @@ namespace CustomizePlus.Data.Armature
                             {
                                 if (mb == MainRootBone)
                                 {
-                                    if (obj.HasScalableRoot())
-                                    {
-                                        mb.ApplyModelScale(cBase);
-                                    }
-
-                                    mb.ApplyModelRotation(cBase);
+                                    if (obj.HasScalableRoot() && cBase->DrawObject.IsVisible)
+                                        cBase->DrawObject.Object.Scale= mb.CustomizedTransform.Scaling;
                                 }
                                 else
                                 {
@@ -441,9 +433,29 @@ namespace CustomizePlus.Data.Armature
 
         public void ApplyRootTranslation(CharacterBase* cBase)
         {
-            if (cBase != null && _partialSkeletons.Any() && _partialSkeletons.First().Any())
+            //I'm honestly not sure if we should or even can check if cBase->DrawObject or cBase->DrawObject.Object is a valid object
+            //So for now let's assume we don't need to check for that
+            if (cBase != null)
             {
-                _partialSkeletons[0][0].ApplyStraightModelTranslation(cBase);
+                if (!Profile.Bones.TryGetValue("n_root", out BoneTransform? rootBoneTransform))
+                    return;
+
+                if (rootBoneTransform.Translation.X == 0 &&
+                    rootBoneTransform.Translation.Y == 0 &&
+                    rootBoneTransform.Translation.Z == 0)
+                    return;
+
+                if (!cBase->DrawObject.IsVisible)
+                    return;
+
+                var newPosition = new FFXIVClientStructs.FFXIV.Common.Math.Vector3
+                {
+                    X = cBase->DrawObject.Object.Position.X + MathF.Max(rootBoneTransform.Translation.X, 0.01f),
+                    Y = cBase->DrawObject.Object.Position.Y + MathF.Max(rootBoneTransform.Translation.Y, 0.01f),
+                    Z = cBase->DrawObject.Object.Position.Z + MathF.Max(rootBoneTransform.Translation.Z, 0.01f)
+                };
+
+                cBase->DrawObject.Object.Position = newPosition;
             }
         }
 
