@@ -16,14 +16,12 @@ namespace CustomizePlus.Data.Profile
     {
         private class TempCharacter
         {
-            public TempCharacter(string? name, nint? address)
+            public TempCharacter(nint address)
             {
-                Name = name;
                 Address = address;
             }
 
-            public string? Name { get; init; }
-            public nint? Address { get; init; }
+            public nint Address { get; init; }
             public bool Processed { get; set; }
         }
 
@@ -268,7 +266,7 @@ namespace CustomizePlus.Data.Profile
             else
             {
                 Dalamud.Logging.PluginLog.LogInformation("Setting temp profile for addr {chara}", characterAddress);
-                TempLocalProfiles[new TempCharacter(null, characterAddress)] = prof;
+                TempLocalProfiles[new TempCharacter(characterAddress)] = prof;
             }
         }
 
@@ -376,10 +374,10 @@ namespace CustomizePlus.Data.Profile
                 }
             }
 
-            var hasTempProfile = TempLocalProfiles.Any(f => f.Key.Name == name || obj.Address == f.Key.Address);
+            var hasTempProfile = TempLocalProfiles.Any(f => obj.Address == f.Key.Address);
             if (hasTempProfile)
             {
-                var matchingProfile = TempLocalProfiles.First(f => f.Key.Name == name || obj.Address == f.Key.Address);
+                var matchingProfile = TempLocalProfiles.First(f => obj.Address == f.Key.Address);
                 matchingProfile.Key.Processed = true;
                 output.Add(matchingProfile.Value);
                 return output;
