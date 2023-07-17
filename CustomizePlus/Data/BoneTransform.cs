@@ -185,6 +185,8 @@ namespace CustomizePlus.Data
 
         public hkQsTransformf ModifyExistingScale(hkQsTransformf tr)
         {
+            if (Services.PosingModeDetectService.IsAnamnesisScalingFrozen) return tr;
+
             tr.Scale.X *= Scaling.X;
             tr.Scale.Y *= Scaling.Y;
             tr.Scale.Z *= Scaling.Z;
@@ -194,6 +196,8 @@ namespace CustomizePlus.Data
 
         public hkQsTransformf ModifyExistingRotation(hkQsTransformf tr)
         {
+            if (Services.PosingModeDetectService.IsAnamnesisRotationFrozen) return tr;
+
             var newRotation = Quaternion.Multiply(tr.Rotation.ToQuaternion(), Rotation.ToQuaternion());
             tr.Rotation.X = newRotation.X;
             tr.Rotation.Y = newRotation.Y;
@@ -205,6 +209,8 @@ namespace CustomizePlus.Data
 
         public hkQsTransformf ModifyExistingTranslationWithRotation(hkQsTransformf tr)
         {
+            if (Services.PosingModeDetectService.IsAnamnesisPositionFrozen) return tr;
+
             var adjustedTranslation = Vector4.Transform(Translation, tr.Rotation.ToQuaternion());
             tr.Translation.X += adjustedTranslation.X;
             tr.Translation.Y += adjustedTranslation.Y;
@@ -216,6 +222,8 @@ namespace CustomizePlus.Data
 
         public hkQsTransformf ModifyExistingTranslation(hkQsTransformf tr)
         {
+            if (Services.PosingModeDetectService.IsAnamnesisPositionFrozen) return tr;
+
             tr.Translation.X += Translation.X;
             tr.Translation.Y += Translation.Y;
             tr.Translation.Z += Translation.Z;
