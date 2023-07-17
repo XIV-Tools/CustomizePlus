@@ -102,20 +102,26 @@ namespace CustomizePlus.UI.Windows
                 ImGui.TableSetColumnIndex(0);
 
                 CtrlHelper.StaticLabel("Character Name", CtrlHelper.TextAlignment.Center);
+                ImGui.TableNextColumn();
+                CtrlHelper.StaticLabel("Profile Name", CtrlHelper.TextAlignment.Center);
+                ImGui.TableNextColumn();
+                CtrlHelper.StaticLabel("Decimal Precision", CtrlHelper.TextAlignment.Left);
+
+                ImGui.TableNextRow();
+                ImGui.TableSetColumnIndex(0);
+
                 CtrlHelper.TextPropertyBox("##Character Name",
                     () => _profileInProgress.CharacterName,
                     (s) => _profileInProgress.CharacterName = s);
 
                 ImGui.TableNextColumn();
 
-                CtrlHelper.StaticLabel("Profile Name", CtrlHelper.TextAlignment.Center);
                 CtrlHelper.TextPropertyBox("##Profile Name",
                     () => _profileInProgress.ProfileName,
                     (s) => _profileInProgress.ProfileName = s);
 
                 ImGui.TableNextColumn();
 
-                CtrlHelper.StaticLabel("Decimal Precision", CtrlHelper.TextAlignment.Left);
                 ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
                 ImGui.SliderInt("##Precision", ref _precision, 0, 6, $"{_precision} Place{(_precision == 1 ? "" : "s")}");
                 CtrlHelper.AddHoverText("Level of precision to display while editing values");
