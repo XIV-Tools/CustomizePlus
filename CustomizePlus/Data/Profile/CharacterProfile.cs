@@ -3,6 +3,8 @@
 
 using System;
 using System.Collections.Generic;
+using CustomizePlus.Helpers;
+using Dalamud.Utility;
 using Newtonsoft.Json;
 
 namespace CustomizePlus.Data.Profile
@@ -70,7 +72,18 @@ namespace CustomizePlus.Data.Profile
         /// <summary>
         /// Returns whether or not this profile applies to the indicated GameObject.
         /// </summary>
-        public bool AppliesTo(Dalamud.Game.ClientState.Objects.Types.GameObject obj) => AppliesTo(obj.Name.TextValue);
+        public bool AppliesTo(Dalamud.Game.ClientState.Objects.Types.GameObject obj)
+        {
+            if (obj.Name.TextValue.IsNullOrEmpty() && (obj.ObjectIndex == 200 || obj.ObjectIndex == 201))
+            {
+                //Player is sometimes in 200 sometimes in 201. Don't ask me why.
+                return AppliesTo(GameDataHelper.GetCutsceneName(obj));
+            }
+            else
+            {
+                return AppliesTo(obj.Name.TextValue);
+            }
+        }
 
         public override string ToString()
         {

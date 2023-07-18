@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Xml.Linq;
 
 using CustomizePlus.Data.Profile;
+using Dalamud.Game.ClientState.Objects.Enums;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Component.GUI;
@@ -125,7 +126,8 @@ namespace CustomizePlus.Helpers
                     242 => GetPlayerName(),
                     243 => GetPlayerName(),
                     244 => GetPlayerName(),
-                    //? cutscene name is obsolete?
+                    200 => GetCutsceneName(obj),
+                    201 => GetCutsceneName(obj),
                     _ => obj.Name.TextValue
                 };
             }
@@ -273,25 +275,26 @@ namespace CustomizePlus.Helpers
         //}
 
 
-        // Checks Customization (not ours) of the cutscene model vs the player model to see if
-        // the player name should be used.
-        [Obsolete]
-        public static unsafe string? GetCutsceneName(FFXIVClientObject* gameObject)
+        /// <summary>
+        /// Checks Customization (not ours) of the cutscene model vs the player model to see if
+        /// the player name should be used.
+        /// </summary>
+        public static unsafe string GetCutsceneName(DalamudObject gameObject)
         {
-            if (gameObject->Name[0] != 0 || gameObject->ObjectKind != (byte)DalamudObjectKind.Player)
+            if (gameObject.ObjectKind != ObjectKind.Player)
             {
-                return null;
+                return gameObject.Name.TextValue;
             }
 
             var player = DalamudServices.ObjectTable[0];
             if (player == null)
             {
-                return null;
+                return "";
             }
 
             var customizeEqual = true;
-            var customize1 = ((FFXIVClientCharacter*)gameObject)->CustomizeData;
-            var customize2 = ((FFXIVClientCharacter*)player.Address)->CustomizeData;
+            var customize1 = ((FFXIVClientCharacter*)gameObject.Address)->DrawData.CustomizeData.Data;
+            var customize2 = ((FFXIVClientCharacter*)player.Address)->DrawData.CustomizeData.Data;
             for (var i = 0; i < 26; i++)
             {
                 var data1 = Marshal.ReadByte((IntPtr)customize1, i);
@@ -303,7 +306,7 @@ namespace CustomizePlus.Helpers
                 }
             }
 
-            return customizeEqual ? player.Name.ToString() : null;
+            return customizeEqual ? player.Name.ToString() : gameObject.Name.TextValue;
         }
 
         public static unsafe string? GetInspectName()
