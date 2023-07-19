@@ -32,6 +32,7 @@ namespace CustomizePlus.Extensions
         public static IEnumerable<PlayerCharacter> GetPlayerOwnedCharacters(this ObjectTable objectTable) => objectTable
             .Where(x => x is PlayerCharacter).Cast<PlayerCharacter>()
             .Where(x => x.ObjectId > 240)
-            .Where(x => x.OwnerId == DalamudServices.ClientState.LocalPlayer?.ObjectId || x.ObjectId == DalamudServices.ClientState.LocalPlayer?.ObjectId);
+            .Where(x => x.OwnerId == DalamudServices.ClientState.LocalPlayer?.ObjectId || x.ObjectId == DalamudServices.ClientState.LocalPlayer?.ObjectId)
+            .Where(x => x.ObjectId == 200 || x.ObjectId == 201);
     }
 }
