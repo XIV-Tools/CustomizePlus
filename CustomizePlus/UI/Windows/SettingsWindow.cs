@@ -1,16 +1,11 @@
 ﻿// © Customize+.
 // Licensed under the MIT license.
 
-using CustomizePlus.Data.Configuration;
 using CustomizePlus.Helpers;
 using CustomizePlus.UI.Windows.Debug;
 using Dalamud.Interface;
-using Dalamud.Interface.Components;
-using Dalamud.Interface.ImGuiFileDialog;
 using Dalamud.Logging;
 using ImGuiNET;
-using Newtonsoft.Json;
-using Penumbra.String.Classes;
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -22,8 +17,6 @@ namespace CustomizePlus.UI.Windows
         protected override string Title => "Customize+ settings";
         protected override bool SingleInstance => true;
         protected override bool LockCloseButton => false;
-
-        private readonly FileDialogManager _importFilePicker = new();
 
         public static void Show()
         {
