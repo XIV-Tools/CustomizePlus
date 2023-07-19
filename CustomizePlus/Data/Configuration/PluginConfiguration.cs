@@ -14,7 +14,7 @@ namespace CustomizePlus.Data.Configuration
 
         public int Version { get; set; } = CurrentVersion;
 
-        public bool PluginEnabled { get; set; }
+        public bool PluginEnabled { get; set; } = true;
 
         public bool DebuggingModeEnabled { get; set; }
 
