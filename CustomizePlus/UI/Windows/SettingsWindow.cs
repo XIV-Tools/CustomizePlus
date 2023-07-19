@@ -46,7 +46,6 @@ namespace CustomizePlus.UI.Windows
                 return;
 
             DrawPluginEnabledCheckbox();
-            DrawExportLegacyConfig();
             DrawOpenConfigLocation();
             ImGui.SameLine();
             DrawRediscover();
@@ -63,26 +62,6 @@ namespace CustomizePlus.UI.Windows
                 Plugin.ConfigurationManager.SaveConfiguration();
                 Plugin.ReloadHooks();
             }
-        }
-
-        private void DrawExportLegacyConfig() {
-            // Draw the File Picker
-            _importFilePicker.Draw();
-
-            if (ImGui.Button("Export V2 Legacy Configuration File")) {
-                Data.Configuration.Version2.Version2Configuration oldConfig =
-                    Data.Configuration.Version2.Version2Configuration.ConvertFromLatestVersion(Plugin.ConfigurationManager.Configuration);
-
-                _importFilePicker.SaveFileDialog("Export Legacy Configuration", ".json", "CustomizePlus_Backup", ".json", (isSuccess, path) =>
-                {
-                    if (isSuccess) {
-                        var json = JsonConvert.SerializeObject(oldConfig, Formatting.Indented);
-
-                        File.WriteAllText(path, json);
-                    }
-                }, DalamudServices.PluginInterface.ConfigFile.DirectoryName);
-            }
-            CtrlHelper.AddHoverText("Export V2 Legacy Configuration File");
         }
 
         private void DrawRediscover() {
