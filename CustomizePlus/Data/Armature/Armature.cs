@@ -192,22 +192,44 @@ namespace CustomizePlus.Data.Armature
         {
             try
             {
-                foreach (var obj in DalamudServices.ObjectTable)
+                if (Profile.OwnedOnly)
                 {
-                    if(!Profile.AppliesTo(obj) || !GameDataHelper.IsValidGameObject(obj))
-                        continue;
-
-                    CharacterBase* cBase = obj.ToCharacterBase();
-
-                    if (!Built || forceRebuild)
+                    foreach (var obj in DalamudServices.ObjectTable.GetPlayerOwnedCharacters())
                     {
-                        RebuildSkeleton(cBase);
+                        if (!GameDataHelper.IsValidGameObject(obj) || !Profile.AppliesTo(obj))
+                            continue;
+
+                        CharacterBase* cBase = obj.ToCharacterBase();
+
+                        if (!Built || forceRebuild)
+                        {
+                            RebuildSkeleton(cBase);
+                        }
+                        else if (NewBonesAvailable(cBase))
+                        {
+                            AugmentSkeleton(cBase);
+                        }
+                        return true;
                     }
-                    else if (NewBonesAvailable(cBase))
+                } else
+                {
+                    foreach (var obj in DalamudServices.ObjectTable)
                     {
-                        AugmentSkeleton(cBase);
+                        if (!GameDataHelper.IsValidGameObject(obj) || !Profile.AppliesTo(obj))
+                            continue;
+
+                        CharacterBase* cBase = obj.ToCharacterBase();
+
+                        if (!Built || forceRebuild)
+                        {
+                            RebuildSkeleton(cBase);
+                        }
+                        else if (NewBonesAvailable(cBase))
+                        {
+                            AugmentSkeleton(cBase);
+                        }
+                        return true;
                     }
-                    return true;
                 }
             }
             catch

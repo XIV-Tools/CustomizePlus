@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using CustomizePlus.Helpers;
+using Dalamud.Logging;
 using Dalamud.Utility;
 using Newtonsoft.Json;
 
@@ -74,6 +75,7 @@ namespace CustomizePlus.Data.Profile
         /// </summary>
         public bool AppliesTo(Dalamud.Game.ClientState.Objects.Types.GameObject obj)
         {
+            //PluginLog.Verbose($"Checking on {obj.ObjectIndex} for scale {ProfileName}");
             if (obj.Name.TextValue.IsNullOrEmpty() && (obj.ObjectIndex == 200 || obj.ObjectIndex == 201))
             {
                 //Player is sometimes in 200 sometimes in 201. Don't ask me why.
