@@ -401,7 +401,10 @@ namespace CustomizePlus.Data.Armature
                         //the main root bone's position information is handled by a different hook
                         //so there's no point in trying to update it here
                         //meanwhile root scaling has special rules
-
+                        if (mb.CustomizedTransform.Scaling.X == 0 &&
+                            mb.CustomizedTransform.Scaling.Y == 0 &&
+                            mb.CustomizedTransform.Scaling.Z == 0)
+                            continue;
                         if (obj.HasScalableRoot() && cBase->DrawObject.IsVisible)
                             cBase->DrawObject.Object.Scale = mb.CustomizedTransform.Scaling;
                     }
@@ -439,8 +442,11 @@ namespace CustomizePlus.Data.Armature
                             {
                                 if (mb == MainRootBone)
                                 {
-                                    if (obj.HasScalableRoot())
-                                        cBase->DrawObject.Object.Scale= mb.CustomizedTransform.Scaling;
+                                    if (obj.HasScalableRoot() &&
+                                        (mb.CustomizedTransform.Scaling.X != 0 ||
+                                        mb.CustomizedTransform.Scaling.Y != 0 ||
+                                        mb.CustomizedTransform.Scaling.Z != 0))
+                                        cBase->DrawObject.Object.Scale = mb.CustomizedTransform.Scaling;
                                 }
                                 else
                                 {
