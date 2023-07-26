@@ -401,7 +401,8 @@ namespace CustomizePlus.Data.Armature
                         //the main root bone's position information is handled by a different hook
                         //so there's no point in trying to update it here
                         //meanwhile root scaling has special rules
-
+                        if (!IsModifiedScale(mb))
+                            continue;
                         if (obj.HasScalableRoot() && cBase->DrawObject.IsVisible)
                             cBase->DrawObject.Object.Scale = mb.CustomizedTransform.Scaling;
                     }
@@ -411,6 +412,18 @@ namespace CustomizePlus.Data.Armature
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Checks for a non-zero and non-identity (root) scale.
+        /// </summary>
+        /// <param name="mb">The bone to check</param>
+        /// <returns>If the scale should be applied.</returns>
+        private static bool IsModifiedScale(ModelBone mb)
+        {
+            return (mb.CustomizedTransform.Scaling.X != 0 && mb.CustomizedTransform.Scaling.X != 1) ||
+                   (mb.CustomizedTransform.Scaling.Y != 0 && mb.CustomizedTransform.Scaling.Y != 1) ||
+                   (mb.CustomizedTransform.Scaling.Z != 0 && mb.CustomizedTransform.Scaling.Z != 1);
         }
 
 
@@ -439,8 +452,8 @@ namespace CustomizePlus.Data.Armature
                             {
                                 if (mb == MainRootBone)
                                 {
-                                    if (obj.HasScalableRoot())
-                                        cBase->DrawObject.Object.Scale= mb.CustomizedTransform.Scaling;
+                                    if (obj.HasScalableRoot() && IsModifiedScale(mb))
+                                        cBase->DrawObject.Object.Scale = mb.CustomizedTransform.Scaling;
                                 }
                                 else
                                 {
