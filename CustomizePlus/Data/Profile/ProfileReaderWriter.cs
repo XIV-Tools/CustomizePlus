@@ -43,6 +43,9 @@ namespace CustomizePlus.Data.Profile
                 var oldFilePath = prof.OriginalFilePath ?? string.Empty;
                 var newFilePath = CreatePath(CreateFileName(prof));
 
+                PluginLog.LogDebug(oldFilePath);
+                PluginLog.LogDebug(newFilePath);
+
                 if (!archival)
                 {
                     var json = JsonConvert.SerializeObject(prof, Formatting.Indented);
@@ -59,6 +62,7 @@ namespace CustomizePlus.Data.Profile
 
                 if (newFilePath != oldFilePath && oldFilePath != string.Empty)
                 {
+                    PluginLog.LogDebug("Triggered Deletion of file!");
                     File.Delete(oldFilePath);
                 }
 

@@ -134,11 +134,17 @@ namespace CustomizePlus.Data.Profile
             }
             else
             {
+
+                // We are forcing this to be new, so we presumably dont care what the original was.
+                // This should stop the deletion of Duplicates on disk.
+                if (forceNew) {
+                    prof.OriginalFilePath = string.Empty;
+                }
+
                 //otherwise it must be a new profile, obviously
                 //in which case we update its creation date
                 //(which incidentally prevents it from inheriting a hash code)
                 //and add it to the list of managed profiles
-
                 prof.CreationDate = DateTime.Now;
                 prof.ModifiedDate = DateTime.Now;
 
@@ -251,7 +257,7 @@ namespace CustomizePlus.Data.Profile
 
         public void StopEditing(CharacterProfile prof)
         {
-            Dalamud.Logging.PluginLog.LogInformation($"{prof} deleted");
+            Dalamud.Logging.PluginLog.LogInformation($"Stopped Editing {prof}");
             ProfileOpenInEditor = null;
         }
 
