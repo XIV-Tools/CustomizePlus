@@ -1,16 +1,11 @@
 ﻿// © Customize+.
 // Licensed under the MIT license.
 
-using CustomizePlus.Data.Configuration;
 using CustomizePlus.Helpers;
 using CustomizePlus.UI.Windows.Debug;
 using Dalamud.Interface;
-using Dalamud.Interface.Components;
-using Dalamud.Interface.ImGuiFileDialog;
 using Dalamud.Logging;
 using ImGuiNET;
-using Newtonsoft.Json;
-using Penumbra.String.Classes;
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -22,8 +17,6 @@ namespace CustomizePlus.UI.Windows
         protected override string Title => "Customize+ settings";
         protected override bool SingleInstance => true;
         protected override bool LockCloseButton => false;
-
-        private readonly FileDialogManager _importFilePicker = new();
 
         public static void Show()
         {
@@ -46,7 +39,6 @@ namespace CustomizePlus.UI.Windows
                 return;
 
             DrawPluginEnabledCheckbox();
-            DrawExportLegacyConfig();
             DrawOpenConfigLocation();
             ImGui.SameLine();
             DrawRediscover();
@@ -63,26 +55,6 @@ namespace CustomizePlus.UI.Windows
                 Plugin.ConfigurationManager.SaveConfiguration();
                 Plugin.ReloadHooks();
             }
-        }
-
-        private void DrawExportLegacyConfig() {
-            // Draw the File Picker
-            _importFilePicker.Draw();
-
-            if (ImGui.Button("Export V2 Legacy Configuration File")) {
-                Data.Configuration.Version2.Version2Configuration oldConfig =
-                    Data.Configuration.Version2.Version2Configuration.ConvertFromLatestVersion(Plugin.ConfigurationManager.Configuration);
-
-                _importFilePicker.SaveFileDialog("Export Legacy Configuration", ".json", "CustomizePlus_Backup", ".json", (isSuccess, path) =>
-                {
-                    if (isSuccess) {
-                        var json = JsonConvert.SerializeObject(oldConfig, Formatting.Indented);
-
-                        File.WriteAllText(path, json);
-                    }
-                }, DalamudServices.PluginInterface.ConfigFile.DirectoryName);
-            }
-            CtrlHelper.AddHoverText("Export V2 Legacy Configuration File");
         }
 
         private void DrawRediscover() {
