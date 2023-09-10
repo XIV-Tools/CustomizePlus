@@ -227,7 +227,7 @@ namespace CustomizePlus.UI.Windows
 
                     if (ImGui.IsItemHovered())
                     {
-                        ImGui.SetTooltip("This will only apply to player owned objects, like Pets, Minions, etc.");
+                        ImGui.SetTooltip("Apply only to player owned objects, like Yourself, Retainers, Pets, Minions, etc.");
                     }
 
                     // ---
