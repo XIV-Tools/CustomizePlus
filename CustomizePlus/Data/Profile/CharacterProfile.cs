@@ -7,6 +7,7 @@ using CustomizePlus.Helpers;
 using Dalamud.Logging;
 using Dalamud.Utility;
 using Newtonsoft.Json;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace CustomizePlus.Data.Profile
 {
@@ -78,11 +79,14 @@ namespace CustomizePlus.Data.Profile
             //PluginLog.Verbose($"Checking on {obj.ObjectIndex} for scale {ProfileName}");
             if (obj.Name.TextValue.IsNullOrEmpty() && (obj.ObjectIndex == 200 || obj.ObjectIndex == 201))
             {
+                var test = GameDataHelper.GetCutsceneName(obj);
+                PluginLog.Information("Found Character in 200 or 201." + test + " with type " + test.GetType());
                 //Player is sometimes in 200 sometimes in 201. Don't ask me why.
-                return AppliesTo(GameDataHelper.GetCutsceneName(obj));
+                return AppliesTo(test);
             }
             else
             {
+                //PluginLog.Information("Found Character Name or not in 200/1.\n" + obj.Name.TextValue);
                 return AppliesTo(obj.Name.TextValue);
             }
         }

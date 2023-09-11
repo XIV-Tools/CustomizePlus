@@ -8,6 +8,7 @@ using System.Xml.Linq;
 
 using CustomizePlus.Data.Profile;
 using Dalamud.Game.ClientState.Objects.Enums;
+using Dalamud.Logging;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Component.GUI;
@@ -276,13 +277,14 @@ namespace CustomizePlus.Helpers
 
 
         /// <summary>
-        /// Checks Customization (not ours) of the cutscene model vs the player model to see if
+        /// Checks Equipment Customization (not ours) of the cutscene model vs the player model to see if
         /// the player name should be used.
         /// </summary>
         public static unsafe string GetCutsceneName(DalamudObject gameObject)
         {
-            if (gameObject.ObjectKind != ObjectKind.Player)
-            {
+            PluginLog.Verbose($"Its {gameObject.ObjectKind}. Also, Name is: {gameObject.Name.TextValue}");
+            if (gameObject.ObjectKind != DalamudObjectKind.Player &&  gameObject.Name.TextValue != string.Empty) {
+                PluginLog.Verbose($"Found Object that isnt player or Cutscene object. Its {gameObject.ObjectKind}. Also, Name is: {gameObject.Name.TextValue}");
                 return gameObject.Name.TextValue;
             }
 
