@@ -80,7 +80,6 @@ namespace CustomizePlus.Data.Profile
             if (obj.Name.TextValue.IsNullOrEmpty() && (obj.ObjectIndex == 200 || obj.ObjectIndex == 201))
             {
                 var test = GameDataHelper.GetCutsceneName(obj);
-                PluginLog.Information("Found Character in 200 or 201." + test + " with type " + test.GetType());
                 //Player is sometimes in 200 sometimes in 201. Don't ask me why.
                 return AppliesTo(test);
             }

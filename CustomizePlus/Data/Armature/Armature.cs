@@ -234,7 +234,12 @@ namespace CustomizePlus.Data.Armature
             }
             catch
             {
-                PluginLog.LogError($"Error occured while attempting to link skeleton: {this}");
+                // This is on wait until isse #191 on Github responds. Keeping it in code, delete it if I forget and this is longer then a month ago.
+                
+                // Disabling this if its any Default Profile due to Log spam. A bit crazy but hey, if its for me id Remove Default profiles all together so this is as much as ill do for now! :)
+                //if(!(Profile.CharacterName.Equals(Constants.DefaultProfileCharacterName) || Profile.CharacterName.Equals("DefaultCutscene"))) {
+                    PluginLog.LogError($"Error occured while attempting to link skeleton: {this}");
+                //}
             }
 
             return false;

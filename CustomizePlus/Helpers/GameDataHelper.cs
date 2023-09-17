@@ -282,9 +282,8 @@ namespace CustomizePlus.Helpers
         /// </summary>
         public static unsafe string GetCutsceneName(DalamudObject gameObject)
         {
-            PluginLog.Verbose($"Its {gameObject.ObjectKind}. Also, Name is: {gameObject.Name.TextValue}");
-            if (gameObject.ObjectKind != DalamudObjectKind.Player &&  gameObject.Name.TextValue != string.Empty) {
-                PluginLog.Verbose($"Found Object that isnt player or Cutscene object. Its {gameObject.ObjectKind}. Also, Name is: {gameObject.Name.TextValue}");
+            if (gameObject.ObjectKind != DalamudObjectKind.Player && gameObject.Name.TextValue != string.Empty) {
+                PluginLog.Verbose($"Found Object that isnt player or Cutscene object. Its {gameObject.ObjectKind}. Also, Name is: {GetInitials(gameObject.Name.TextValue)}");
                 return gameObject.Name.TextValue;
             }
 
@@ -391,6 +390,23 @@ namespace CustomizePlus.Helpers
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Returns the Initials of what looks like names, aka Player names etc. Simply determined by a Space present.
+        /// If we have no or more then one space, return the full thing.
+        /// This is mainly to be used in Debug messages, to be able to Identify issues without printing a full Player name to log every time.
+        /// </summary>
+        /// <param name="input">The Name to Annonymize.</param>
+        /// <returns>The Initials, or the Full string when more or less then 1 Space.</returns>
+        public static string GetInitials(string input) {
+            string[] nameParts = input.Split(' ');
+
+            if (nameParts.Length == 2) {
+                return $"{nameParts[0][0]}. {nameParts[1][0]}.";
+            } else {
+                return input;
+            }
         }
 
         /*
