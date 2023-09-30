@@ -79,9 +79,8 @@ namespace CustomizePlus.Data.Profile
             //PluginLog.Verbose($"Checking on {obj.ObjectIndex} for scale {ProfileName}");
             if (obj.Name.TextValue.IsNullOrEmpty() && (obj.ObjectIndex == 200 || obj.ObjectIndex == 201))
             {
-                var test = GameDataHelper.GetCutsceneName(obj);
                 //Player is sometimes in 200 sometimes in 201. Don't ask me why.
-                return AppliesTo(test);
+                return AppliesTo(GameDataHelper.GetCutsceneName(obj));
             }
             else
             {
