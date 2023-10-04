@@ -8,6 +8,7 @@ using CustomizePlus.Data;
 using CustomizePlus.Helpers;
 using Dalamud.Logging;
 using Newtonsoft.Json;
+using CustomizePlus.Services;
 
 namespace CustomizePlus.Data.Profile
 {

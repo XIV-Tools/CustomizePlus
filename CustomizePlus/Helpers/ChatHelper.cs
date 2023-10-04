@@ -1,6 +1,7 @@
 ﻿// © Customize+.
 // Licensed under the MIT license.
 
+using CustomizePlus.Services;
 using Dalamud.Game.Text.SeStringHandling;
 
 namespace CustomizePlus.Helpers

@@ -23,6 +23,7 @@ using Dalamud.Game;
 using Dalamud.Hooking;
 using Dalamud.Logging;
 using Dalamud.Plugin;
+using Dalamud.Plugin.Services;
 using Newtonsoft.Json;
 
 namespace CustomizePlus
@@ -46,7 +47,6 @@ namespace CustomizePlus
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate void GameObjectMovementDelegate(IntPtr gameObject);
-
 
         public Plugin(DalamudPluginInterface pluginInterface)
         {
@@ -127,15 +127,14 @@ namespace CustomizePlus
                     if (_renderManagerHook == null)
                     {
                         var renderAddress = DalamudServices.SigScanner.ScanText(Constants.RenderHookAddress);
-                        _renderManagerHook = Hook<RenderDelegate>.FromAddress(renderAddress, OnRender);
+                        _renderManagerHook = DalamudServices.Hooker.HookFromAddress<RenderDelegate>(renderAddress, OnRender);
                         PluginLog.Debug("Render hook established");
                     }
 
                     if (_gameObjectMovementHook == null)
                     {
                         var movementAddress = DalamudServices.SigScanner.ScanText(Constants.MovementHookAddress);
-                        _gameObjectMovementHook =
-                            Hook<GameObjectMovementDelegate>.FromAddress(movementAddress, OnGameObjectMove);
+                        _gameObjectMovementHook = DalamudServices.Hooker.HookFromAddress<GameObjectMovementDelegate>(movementAddress, OnGameObjectMove);
                         PluginLog.Debug("Movement hook established");
                     }
 
@@ -164,7 +163,7 @@ namespace CustomizePlus
             }
         }
 
-        private static void Framework_Update(Framework framework)
+        private static void Framework_Update(IFramework framework)
         {
             ServiceManager.Tick();
         }

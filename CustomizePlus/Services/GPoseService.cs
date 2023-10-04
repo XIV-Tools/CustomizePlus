@@ -5,6 +5,7 @@ using System;
 using CustomizePlus.Core;
 using CustomizePlus.Helpers;
 using Dalamud.Hooking;
+using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.System.Framework;
 
 namespace CustomizePlus.Services
@@ -48,16 +49,16 @@ namespace CustomizePlus.Services
 
         public override unsafe void Start()
         {
-            GPoseState = DalamudServices.PluginInterface.UiBuilder.GposeActive ? GPoseState.Inside : GPoseState.Outside;
+            GPoseState = DalamudServices.ClientState.IsGPosing ? GPoseState.Inside : GPoseState.Outside;
 
             var uiModule = Framework.Instance()->GetUiModule();
             var enterGPoseAddress = (nint)uiModule->VTable->EnterGPose;
             var exitGPoseAddress = (nint)uiModule->VTable->ExitGPose;
 
-            _enterGPoseHook = Hook<EnterGPoseDelegate>.FromAddress(enterGPoseAddress, EnteringGPoseDetour);
+            _enterGPoseHook = DalamudServices.Hooker.HookFromAddress<EnterGPoseDelegate>(enterGPoseAddress, EnteringGPoseDetour);
             _enterGPoseHook.Enable();
 
-            _exitGPoseHook = Hook<ExitGPoseDelegate>.FromAddress(exitGPoseAddress, ExitingGPoseDetour);
+            _exitGPoseHook = DalamudServices.Hooker.HookFromAddress<ExitGPoseDelegate>(exitGPoseAddress, ExitingGPoseDetour);
             _exitGPoseHook.Enable();
 
             base.Start();

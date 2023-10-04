@@ -7,6 +7,7 @@ using System.IO;
 using System.Text;
 using CustomizePlus.Data;
 using CustomizePlus.Data.Profile;
+using Dalamud.Plugin.Services;
 using Dalamud.Game.ClientState.Objects;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Logging;
@@ -24,7 +25,7 @@ namespace CustomizePlus.Api
         public const string RevertCharacterLabel = $"CustomizePlus.{nameof(RevertCharacter)}";
         public const string OnProfileUpdateLabel = $"CustomizePlus.{nameof(OnProfileUpdate)}";
         public static readonly (int, int) ApiVersion = (3, 0);
-        private readonly ObjectTable _objectTable;
+        private readonly IObjectTable _objectTable;
         private readonly DalamudPluginInterface _pluginInterface;
 
 
@@ -36,7 +37,7 @@ namespace CustomizePlus.Api
         internal ICallGateProvider<Character?, string?>? ProviderGetProfileFromCharacter;
         internal ICallGateProvider<(int, int)>? ProviderGetApiVersion;
 
-        public CustomizePlusIpc(ObjectTable objectTable, DalamudPluginInterface pluginInterface)
+        public CustomizePlusIpc(IObjectTable objectTable, DalamudPluginInterface pluginInterface)
         {
             _objectTable = objectTable;
             _pluginInterface = pluginInterface;

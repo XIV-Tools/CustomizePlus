@@ -8,16 +8,13 @@ using Dalamud.Game.Command;
 using Dalamud.Game.Gui;
 using Dalamud.IoC;
 using Dalamud.Plugin;
+using Dalamud.Plugin.Services;
 
-namespace CustomizePlus
+namespace CustomizePlus.Services
 {
     public class DalamudServices
     {
-        [PluginService] public static Framework Framework { get; private set; } = null!;
-
-        [PluginService]
-        [RequiredVersion("1.0")]
-        public static ObjectTable ObjectTable { get; private set; } = null!;
+        
 
         [PluginService]
         [RequiredVersion("1.0")]
@@ -25,23 +22,34 @@ namespace CustomizePlus
 
         [PluginService]
         [RequiredVersion("1.0")]
-        public static CommandManager CommandManager { get; private set; } = null!;
+        public static ISigScanner SigScanner { get; private set; } = null!;
+
+        [PluginService] 
+        public static IFramework Framework { get; private set; } = null!;
 
         [PluginService]
         [RequiredVersion("1.0")]
-        public static ChatGui ChatGui { get; private set; } = null!;
+        public static IObjectTable ObjectTable { get; private set; } = null!;
 
         [PluginService]
         [RequiredVersion("1.0")]
-        public static ClientState ClientState { get; private set; } = null!;
+        public static ICommandManager CommandManager { get; private set; } = null!;
 
         [PluginService]
         [RequiredVersion("1.0")]
-        public static SigScanner SigScanner { get; private set; } = null!;
+        public static IChatGui ChatGui { get; private set; } = null!;
 
         [PluginService]
         [RequiredVersion("1.0")]
-        public static GameGui GameGui { get; private set; } = null!;
+        public static IClientState ClientState { get; private set; } = null!;
+
+        [PluginService]
+        [RequiredVersion("1.0")]
+        public static IGameGui GameGui { get; private set; } = null!;
+
+        [PluginService]
+        [RequiredVersion("1.0")]
+        internal static IGameInteropProvider Hooker { get; private set; } = null!;
 
         public static void Initialize(DalamudPluginInterface pluginInterface)
         {

@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Xml.Linq;
 
 using CustomizePlus.Data.Profile;
+using CustomizePlus.Services;
 using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Logging;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;

@@ -2,7 +2,9 @@
 // Licensed under the MIT license.
 
 using System.Collections.Generic;
+using CustomizePlus.Services;
 using Dalamud.Game.Command;
+using Dalamud.Plugin.Services;
 
 namespace CustomizePlus.Extensions
 {
@@ -10,7 +12,7 @@ namespace CustomizePlus.Extensions
     {
         private static readonly List<string> BoundCommands = new();
 
-        public static void AddCommand(this CommandManager self, CommandInfo.HandlerDelegate handler, string command,
+        public static void AddCommand(this ICommandManager self, CommandInfo.HandlerDelegate handler, string command,
             string help)
         {
             var info = new CommandInfo(handler)

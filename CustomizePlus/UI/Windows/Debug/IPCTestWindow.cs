@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Numerics;
 using CustomizePlus.Data;
 using CustomizePlus.Data.Profile;
+using CustomizePlus.Services;
 using Dalamud.Interface;
 using Dalamud.Interface.Components;
 using Dalamud.Logging;

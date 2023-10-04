@@ -2,6 +2,7 @@
 // Licensed under the MIT license.
 
 using CustomizePlus.Helpers;
+using CustomizePlus.Services;
 using CustomizePlus.UI.Windows.Debug;
 using Dalamud.Interface;
 using Dalamud.Logging;

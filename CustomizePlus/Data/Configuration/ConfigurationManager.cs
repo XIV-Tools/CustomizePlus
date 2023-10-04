@@ -6,6 +6,7 @@ using System.IO;
 using CustomizePlus.Data.Configuration.Version0;
 using CustomizePlus.Data.Configuration.Version2;
 using CustomizePlus.Helpers;
+using CustomizePlus.Services;
 using Dalamud.Logging;
 using Newtonsoft.Json;
 

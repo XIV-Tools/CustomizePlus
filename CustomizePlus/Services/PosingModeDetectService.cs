@@ -2,6 +2,7 @@
 // Licensed under the MIT license.
 
 using CustomizePlus.Core;
+using Dalamud.Plugin.Services;
 
 namespace CustomizePlus.Services
 {

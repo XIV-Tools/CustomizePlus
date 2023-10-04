@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CustomizePlus.Data.Profile;
+using CustomizePlus.Services;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Logging;
 

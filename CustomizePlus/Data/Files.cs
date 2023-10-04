@@ -5,6 +5,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
+using CustomizePlus.Services;
+using Dalamud.Interface.Internal;
 using ImGuiScene;
 
 namespace CustomizePlus.Data
@@ -12,9 +14,9 @@ namespace CustomizePlus.Data
     public static class Files
     {
         private static readonly List<IDisposable> LoadedResources = new();
-        private static readonly Dictionary<string, TextureWrap> TextureCache = new();
+        private static readonly Dictionary<string, IDalamudTextureWrap> TextureCache = new();
 
-        public static TextureWrap Icon => LoadImage("icon.png");
+        public static IDalamudTextureWrap Icon => LoadImage("icon.png");
 
         public static void Dispose()
         {
@@ -26,7 +28,7 @@ namespace CustomizePlus.Data
             LoadedResources.Clear();
         }
 
-        private static TextureWrap LoadImage(string file)
+        private static IDalamudTextureWrap LoadImage(string file)
         {
             if (TextureCache.TryGetValue(file, out var image))
                 return image;
