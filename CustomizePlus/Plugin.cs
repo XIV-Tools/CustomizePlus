@@ -81,7 +81,7 @@ namespace CustomizePlus
                 DalamudServices.PluginInterface.UiBuilder.Draw += InterfaceManager.Draw;
                 DalamudServices.PluginInterface.UiBuilder.OpenConfigUi += MainWindow.Toggle;
 
-                if (DalamudServices.PluginInterface.IsDevMenuOpen)
+                if (DalamudServices.PluginInterface.IsDevMenuOpen && ConfigurationManager.Configuration.DebuggingModeEnabled)
                 {
                     MainWindow.Show();
                 }
