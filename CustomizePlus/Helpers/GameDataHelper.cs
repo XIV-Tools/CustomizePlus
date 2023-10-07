@@ -284,7 +284,6 @@ namespace CustomizePlus.Helpers
         public static unsafe string GetCutsceneName(DalamudObject gameObject)
         {
             if (gameObject.ObjectKind != DalamudObjectKind.Player && gameObject.Name.TextValue != string.Empty) {
-                PluginLog.Verbose($"Found Object that isnt player or Cutscene object. Its {gameObject.ObjectKind}. Also, Name is: {GetInitials(gameObject.Name.TextValue)}");
                 return gameObject.Name.TextValue;
             }
 
