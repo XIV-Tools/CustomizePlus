@@ -74,7 +74,7 @@ namespace CustomizePlus
                 DalamudServices.CommandManager.AddCommand((s, t) => MainWindow.Toggle(), "/c+",
                     "Toggles the Customize+ configuration window.");
                 DalamudServices.CommandManager.AddCommand((s, t) => ApplyByCommand(t), "/customize-apply",
-                    "Apply a specific Scale (usage: /customize-apply {Character Name},{Scale Name})");
+                    "Apply a specific Scale (usage: /customize-apply {Character Name},{Scale Name})\nAllows for the usage of <me>/self and <t>/target.");
                 DalamudServices.CommandManager.AddCommand((s, t) => ApplyByCommand(t), "/capply",
                     "Alias to /customize-apply");
 
@@ -183,6 +183,14 @@ namespace CustomizePlus
 
                 (charaName, profName) = args.Split(',') switch { var a => (a[0].Trim(), a[1].Trim()) };
 
+                charaName = charaName switch {
+                    "<me>"  => GameDataHelper.GetPlayerName() ?? string.Empty,
+                    "self" => GameDataHelper.GetPlayerName() ?? string.Empty,
+                    "<t>"   => GameDataHelper.GetPlayerTargetName() ?? string.Empty,
+                    "target" => GameDataHelper.GetPlayerTargetName() ?? string.Empty,
+                    _ => charaName,
+                };
+
                 if (!ProfileManager.Profiles.Any())
                 {
                     PluginLog.Warning(
@@ -196,9 +204,7 @@ namespace CustomizePlus
                         $"Found more than one profile matching Profile \"{profName}\" and Character \"{charaName}\". Applying first match.");
                 }
 
-                var outProf =
-                    ProfileManager.Profiles.FirstOrDefault(x =>
-                        x.ProfileName == profName && x.CharacterName == charaName);
+                var outProf = ProfileManager.Profiles.FirstOrDefault(x => x.ProfileName == profName && x.CharacterName == charaName);
 
                 if (outProf == null)
                 {
