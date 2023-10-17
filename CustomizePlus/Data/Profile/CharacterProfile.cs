@@ -56,6 +56,7 @@ namespace CustomizePlus.Data.Profile
 
         public string CharacterName { get; set; } = "Default";
         public string ProfileName { get; set; } = "Profile";
+        public nint? Address { get; set; } = null;
         public bool OwnedOnly { get; set; } = false;
         public int ConfigVersion { get; set; } = Constants.ConfigurationVersion;
         public bool Enabled { get; set; }
@@ -76,6 +77,8 @@ namespace CustomizePlus.Data.Profile
         /// </summary>
         public bool AppliesTo(Dalamud.Game.ClientState.Objects.Types.GameObject obj)
         {
+            if (Address != null && obj.Address == Address) return true;
+            
             //PluginLog.Verbose($"Checking on {obj.ObjectIndex} for scale {ProfileName}");
             if (obj.Name.TextValue.IsNullOrEmpty() && (obj.ObjectIndex == 200 || obj.ObjectIndex == 201))
             {

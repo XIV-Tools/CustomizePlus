@@ -263,6 +263,8 @@ namespace CustomizePlus.Data.Profile
 
         public void AddTemporaryProfile(nint characterAddress, CharacterProfile prof)
         {
+            prof.Enabled = true;
+            prof.Address = characterAddress;
             var key = TempLocalProfiles.Keys.FirstOrDefault(f => f.Address == characterAddress);
             if (key != null)
             {
