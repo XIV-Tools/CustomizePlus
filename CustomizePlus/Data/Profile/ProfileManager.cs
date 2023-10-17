@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CustomizePlus.Helpers;
+using CustomizePlus.Services;
 using Dalamud.Game.ClientState.Objects.Enums;
 
 namespace CustomizePlus.Data.Profile
@@ -265,6 +266,7 @@ namespace CustomizePlus.Data.Profile
         {
             prof.Enabled = true;
             prof.Address = characterAddress;
+
             var key = TempLocalProfiles.Keys.FirstOrDefault(f => f.Address == characterAddress);
             if (key != null)
             {
@@ -382,12 +384,11 @@ namespace CustomizePlus.Data.Profile
                 }
             }
 
-            var hasTempProfile = TempLocalProfiles.Any(f => obj.Address == f.Key.Address);
-            if (hasTempProfile)
+            var (tempCharacter, matchingProfile) = TempLocalProfiles.FirstOrDefault(f => obj.Address == f.Key.Address || (obj.ObjectIndex is >= 200 and < 300 && f.Value.AppliesTo(obj)));
+            if (matchingProfile != null)
             {
-                var matchingProfile = TempLocalProfiles.First(f => obj.Address == f.Key.Address);
-                matchingProfile.Key.Processed = true;
-                output.Add(matchingProfile.Value);
+                tempCharacter.Processed = true;
+                output.Add(matchingProfile);
                 return output;
             }
 
