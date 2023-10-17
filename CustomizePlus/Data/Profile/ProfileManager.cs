@@ -270,12 +270,12 @@ namespace CustomizePlus.Data.Profile
             var key = TempLocalProfiles.Keys.FirstOrDefault(f => f.Address == characterAddress);
             if (key != null)
             {
-                Dalamud.Logging.PluginLog.LogInformation("Replacing temp profile for addr {chara} {charName}", characterAddress, prof.CharacterName);
+                Dalamud.Logging.PluginLog.LogInformation("Replacing temp profile for addr {chara}", characterAddress);
                 TempLocalProfiles[key] = prof;
             }
             else
             {
-                Dalamud.Logging.PluginLog.LogInformation("Setting temp profile for addr {chara} {charName}", characterAddress, prof.CharacterName);
+                Dalamud.Logging.PluginLog.LogInformation("Setting temp profile for addr {chara}", characterAddress);
                 TempLocalProfiles[new TempCharacter(characterAddress)] = prof;
             }
         }
