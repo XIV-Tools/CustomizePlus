@@ -266,20 +266,16 @@ namespace CustomizePlus.Data.Profile
         {
             prof.Enabled = true;
             prof.Address = characterAddress;
-            var characterNameApplied = DalamudServices.ObjectTable.FirstOrDefault(x => x.Address == characterAddress)?.Name.TextValue;
-            
-            if (characterNameApplied != null)
-                prof.CharacterName = characterNameApplied;
 
             var key = TempLocalProfiles.Keys.FirstOrDefault(f => f.Address == characterAddress);
             if (key != null)
             {
-                Dalamud.Logging.PluginLog.LogInformation("Replacing temp profile for addr {chara} {charName}", characterAddress, characterNameApplied ?? "unknown name");
+                Dalamud.Logging.PluginLog.LogInformation("Replacing temp profile for addr {chara} {charName}", characterAddress, prof.CharacterName);
                 TempLocalProfiles[key] = prof;
             }
             else
             {
-                Dalamud.Logging.PluginLog.LogInformation("Setting temp profile for addr {chara} {charName}", characterAddress, characterNameApplied ?? "unknown name");
+                Dalamud.Logging.PluginLog.LogInformation("Setting temp profile for addr {chara} {charName}", characterAddress, prof.CharacterName);
                 TempLocalProfiles[new TempCharacter(characterAddress)] = prof;
             }
         }
