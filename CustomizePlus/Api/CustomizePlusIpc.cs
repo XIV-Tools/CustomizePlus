@@ -14,6 +14,7 @@ using Dalamud.Logging;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Ipc;
 using Newtonsoft.Json;
+using System.Linq;
 
 namespace CustomizePlus.Api
 {
@@ -24,6 +25,7 @@ namespace CustomizePlus.Api
         public const string SetProfileToCharacterLabel = $"CustomizePlus.{nameof(SetProfileToCharacter)}";
         public const string RevertCharacterLabel = $"CustomizePlus.{nameof(RevertCharacter)}";
         public const string OnProfileUpdateLabel = $"CustomizePlus.{nameof(OnProfileUpdate)}";
+        public const string GetProfilesLabel = $"CustomizePlus.{nameof(GetProfiles)}";
         public static readonly (int, int) ApiVersion = (3, 0);
         private readonly IObjectTable _objectTable;
         private readonly DalamudPluginInterface _pluginInterface;
@@ -36,6 +38,7 @@ namespace CustomizePlus.Api
         internal ICallGateProvider<string, Character?, object>? ProviderSetProfileToCharacter;
         internal ICallGateProvider<Character?, string?>? ProviderGetProfileFromCharacter;
         internal ICallGateProvider<(int, int)>? ProviderGetApiVersion;
+        internal ICallGateProvider<string[]>? ProviderGetProfiles;
 
         public CustomizePlusIpc(IObjectTable objectTable, DalamudPluginInterface pluginInterface)
         {
@@ -57,6 +60,7 @@ namespace CustomizePlus.Api
             ProviderRevertCharacter?.UnregisterAction();
             ProviderGetApiVersion?.UnregisterFunc();
             ProviderOnProfileUpdate?.UnregisterFunc();
+            ProviderGetProfiles?.UnregisterFunc();
         }
 
         private void InitializeProviders()
@@ -112,6 +116,16 @@ namespace CustomizePlus.Api
             catch (Exception ex)
             {
                 PluginLog.Error(ex, $"Error registering IPC provider for {OnProfileUpdateLabel}.");
+            }
+
+            try
+            {
+                ProviderGetProfiles = _pluginInterface.GetIpcProvider<string[]>(GetProfilesLabel);
+                ProviderGetProfiles.RegisterFunc(GetProfiles);
+            }
+            catch (Exception ex)
+            {
+                PluginLog.Error(ex, $"Error registering IPC provider for {GetProfiles}.");
             }
         }
 
@@ -177,6 +191,11 @@ namespace CustomizePlus.Api
             }
 
             Plugin.ProfileManager.RemoveTemporaryProfile(character.Address);
+        }
+
+        private string[] GetProfiles()
+        {
+            return Plugin.ProfileManager.Profiles.Select(JsonConvert.SerializeObject).ToArray();
         }
 
         private string GetBase64String(string data)
