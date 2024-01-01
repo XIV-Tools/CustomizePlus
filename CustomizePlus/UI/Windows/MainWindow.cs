@@ -157,7 +157,7 @@ namespace CustomizePlus.UI.Windows
                     new Vector2(0, ImGui.GetFrameHeightWithSpacing() - 70 * fontScale)))
             {
                 ImGui.TableSetupColumn("Enabled", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize);
-                ImGui.TableSetupColumn("Only Owned", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize);
+                ImGui.TableSetupColumn("Yours only", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize);
                 ImGui.TableSetupColumn("Character",
                     ImGuiTableColumnFlags.WidthStretch | ImGuiTableColumnFlags.DefaultSort);
                 ImGui.TableSetupColumn("Profile Name", ImGuiTableColumnFlags.WidthStretch);
