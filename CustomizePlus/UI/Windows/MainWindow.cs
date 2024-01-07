@@ -2,6 +2,7 @@
 // Licensed under the MIT license.
 
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Numerics;
@@ -9,12 +10,14 @@ using System.Windows.Forms;
 using CustomizePlus.Data;
 using CustomizePlus.Data.Profile;
 using CustomizePlus.Helpers;
+using CustomizePlus.Services;
 using CustomizePlus.UI.Dialogs;
 using CustomizePlus.UI.Windows.Debug;
 using Dalamud.Interface;
 using Dalamud.Interface.Components;
 using Dalamud.Interface.ImGuiFileDialog;
 using Dalamud.Logging;
+using Dalamud.Plugin;
 using ImGuiNET;
 using Newtonsoft.Json;
 
@@ -25,10 +28,19 @@ namespace CustomizePlus.UI.Windows
         private static string _newCharacterName = GameDataHelper.GetPlayerName() ?? string.Empty;
         private static string _newProfileName = "New Profile";
         private readonly FileDialogManager _importFilePicker = new();
+        public const string SeaOfStarsLower = "https://raw.githubusercontent.com/ottermandias/seaofstars/main/repo.json";
         private static string? PlayerCharacterName => GameDataHelper.GetPlayerName();
 
         protected override string Title => "Customize+";
         protected override bool SingleInstance => true;
+
+        private static bool CheckSourceRepo() {
+            return DalamudServices.PluginInterface.SourceRepository?.Trim().ToLowerInvariant() switch {
+                null                => false,
+                SeaOfStarsLower     => true,
+                _                   => false,
+            };
+        }
 
         public static void Show()
         {
@@ -146,6 +158,24 @@ namespace CustomizePlus.UI.Windows
             ImGui.Separator();
             ImGui.Spacing();
 
+            if (!CheckSourceRepo()) {
+                CtrlHelper.StaticLabel("ATTENTION, PLEASE READ! We are moving Repository! This one will not receive updates any further!", CtrlHelper.TextAlignment.Center);
+                CtrlHelper.StaticLabel("The new one can be found here: https://github.com/Aether-Tools/CustomizePlus/tree/main", CtrlHelper.TextAlignment.Center);
+
+                ImGui.Dummy(new Vector2((ImGui.GetContentRegionAvail().X / 2) - 150, 0));
+                ImGui.SameLine();
+                if (ImGui.Button("Copy Repository Link")) {
+                    Clipboard.SetText("https://raw.githubusercontent.com/Aether-Tools/DalamudPlugins/main/repo.json");
+                }
+                ImGui.SameLine();
+                if (ImGui.Button("Open Link to Github")) {
+                    Process.Start(new ProcessStartInfo("https://github.com/Aether-Tools/CustomizePlus") { UseShellExecute = true });
+                }
+
+                CtrlHelper.StaticLabel("If you somehow see this DESPITE using the Sea of Stars Repository, you dont need to worry.", CtrlHelper.TextAlignment.Center);
+                CtrlHelper.StaticLabel("The Sea of Stars repository will remain updated. Still, please doublecheck you are using Sea of Stars.", CtrlHelper.TextAlignment.Center);
+            }
+           
             ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(5f, 6f));
 
             //TODO there's probably some imgui functionality to sort the table when you click on the headers
