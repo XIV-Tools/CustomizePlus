@@ -9,7 +9,7 @@ https://github.com/Ottermandias/SeaOfStars
 Then search for Customize+ in the plugin manager.
 
 ### How do I report an issue with Customize+?
-Please use the [Issue tab](https://github.com/XIV-Tools/CustomizePlus/issues) to report issues with Customize+. Issues reported on Discord will be removed.
+Please report issues on the discord linked below!
 
 ### Where do I learn how to use Customize+?
 Most of the things should be self-explanatory, if you do need help you can join the [XIV Tools Discord](https://discord.gg/KvGJCCnG8t) and self assign yourself the Customize+ role and ask in the appropriate channel.
